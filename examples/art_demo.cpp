@@ -7,11 +7,11 @@ using namespace part;
 
 int main() {
   Allocator& allocator = Allocator::DefaultAllocator();
-  ArenaAllocator arenaAllocator(allocator, 16384);
+  ArenaAllocator arena_allocator(allocator, 16384);
 
-  assert(arenaAllocator.IsEmpty());
+  assert(arena_allocator.IsEmpty());
 
-  arenaAllocator.Allocate(10);
+  arena_allocator.Allocate(10);
 
-  assert(arenaAllocator.SizeInBytes() == 10);
+  assert(arena_allocator.SizeInBytes() == 10);
 }
