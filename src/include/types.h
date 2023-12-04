@@ -14,6 +14,7 @@ using idx_t = uint64_t;
 using data_t = uint8_t;
 using data_ptr_t = data_t *;
 using const_data_ptr_t = const data_t *;
+using validity_t = uint64_t;
 
 template <class SRC> data_ptr_t data_ptr_cast(SRC *src) {
   return reinterpret_cast<data_ptr_t>(src);

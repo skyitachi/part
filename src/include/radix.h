@@ -6,6 +6,7 @@
 #define PART_RADIX_H
 #include <numeric>
 #include <string>
+#include <algorithm>
 
 #include "types.h"
 
@@ -21,7 +22,7 @@ public:
   static inline void EncodeStringDataPrefix(data_ptr_t dataptr,
                                             const std::string &value,
                                             idx_t prefix_len) {
-    auto len = value.size();
+    auto len = static_cast<idx_t >(value.size());
     memcpy(dataptr, value.data(), std::min(len, prefix_len));
     if (len < prefix_len) {
       memset(dataptr + len, '\0', prefix_len - len);
@@ -34,6 +35,10 @@ public:
 template <> inline void Radix::EncodeData(data_ptr_t dataptr, int64_t value) {
   Store<uint64_t>(BSwap<uint64_t>(value), dataptr);
   dataptr[0] = FlipSign(dataptr[0]);
+}
+
+template <> inline void Radix::EncodeData(data_ptr_t data_ptr, std::string value) {
+  EncodeStringDataPrefix(data_ptr, value, value.size());
 }
 } // namespace part
 #endif // PART_RADIX_H

@@ -48,6 +48,60 @@ public:
 public:
   Node() : data(0) {}
 
+  inline void Reset() {
+    data = 0;
+  }
+
+  inline bool operator ==(const Node &node) const {
+    return data == node.data;
+  }
+
+  inline bool IsSet() const {
+    return data & AND_IS_SET;
+  }
+
+  //! Returns whether the node is serialized or not (zero bit)
+  inline bool IsSerialized() const {
+    return data >> Node::SHIFT_SERIALIZED_FLAG;
+  }
+
+  //! Get the type (1st to 7th bit)
+  inline NType GetType() const {
+    assert(!IsSerialized());
+    auto type = data >> Node::SHIFT_TYPE;
+    assert(type >= (uint8_t)NType::PREFIX);
+    assert(type <= (uint8_t)NType::LEAF_INLINED);
+    return NType(type);
+  }
+
+  //! Get the offset (8th to 23rd bit)
+  inline idx_t GetOffset() const {
+    auto offset = data >> Node::SHIFT_OFFSET;
+    return offset & Node::AND_OFFSET;
+  }
+
+  inline idx_t GetBufferId() const {
+    return data & Node::AND_BUFFER_ID;
+  }
+
+  //! Set the serialized flag (zero bit)
+  inline void SetSerialized() {
+    data &= Node::AND_RESET;
+    data |= Node::SET_SERIALIZED_FLAG;
+  }
+  //! Set the type (1st to 7th bit)
+  inline void SetType(const uint8_t type) {
+    assert(!IsSerialized());
+    data += (uint64_t)type << Node::SHIFT_TYPE;
+  }
+  //! Set the block/buffer ID (24th to 63rd bit) and offset (8th to 23rd bit)
+  inline void SetPtr(const uint32_t buffer_id, const uint32_t offset) {
+    assert(!(data & Node::AND_RESET));
+    auto shifted_offset = ((uint64_t)offset) << Node::SHIFT_OFFSET;
+    data += shifted_offset;
+    data += buffer_id;
+  }
+
 private:
   uint64_t data;
 };
