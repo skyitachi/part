@@ -7,15 +7,16 @@
 
 namespace part {
 
-ARTKey::ARTKey(): len(0) {}
-ARTKey::ARTKey(const data_ptr_t &data, const uint32_t &len): len(len), data(data) {}
+ARTKey::ARTKey() : len(0) {}
+ARTKey::ARTKey(const data_ptr_t &data, const uint32_t &len)
+    : len(len), data(data) {}
 
-ARTKey::ARTKey(ArenaAllocator &allocator, const uint32_t &len): len(len) {
+ARTKey::ARTKey(ArenaAllocator &allocator, const uint32_t &len) : len(len) {
   data = allocator.Allocate(len);
 }
 
 bool ARTKey::operator>(const ARTKey &k) const {
-  for(uint32_t i = 0; i < std::min(len, k.len); i++) {
+  for (uint32_t i = 0; i < std::min(len, k.len); i++) {
     if (data[i] > k.data[i]) {
       return true;
     } else if (data[i] < k.data[i]) {
@@ -26,7 +27,7 @@ bool ARTKey::operator>(const ARTKey &k) const {
 }
 
 bool ARTKey::operator>=(const part::ARTKey &k) const {
-  for(uint32_t i = 0; i < std::min(len, k.len); i++) {
+  for (uint32_t i = 0; i < std::min(len, k.len); i++) {
     if (data[i] > k.data[i]) {
       return true;
     } else if (data[i] < k.data[i]) {
@@ -43,4 +44,4 @@ bool ARTKey::operator==(const ARTKey &k) const {
   return memcmp(data, k.data, len) == 0;
 }
 
-}
+} // namespace part

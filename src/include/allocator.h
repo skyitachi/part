@@ -8,134 +8,126 @@
 #include "types.h"
 
 namespace part {
-  class Allocator;
+class Allocator;
 
+struct AllocatorDebugInfo;
 
-  struct AllocatorDebugInfo;
+struct PrivateAllocatorData {
+  PrivateAllocatorData();
 
-  struct PrivateAllocatorData {
-    PrivateAllocatorData();
+  virtual ~PrivateAllocatorData();
 
-    virtual ~PrivateAllocatorData();
+  std::unique_ptr<AllocatorDebugInfo> debug_info;
 
-    std::unique_ptr<AllocatorDebugInfo> debug_info;
+  template <class TARGET> TARGET &Cast() {
+    assert(dynamic_cast<TARGET *>(this));
+    return reinterpret_cast<TARGET &>(*this);
+  }
 
-    template<class TARGET>
-    TARGET &Cast() {
-      assert(dynamic_cast<TARGET *>(this));
-      return reinterpret_cast<TARGET &>(*this);
-    }
+  template <class TARGET> const TARGET &Cast() const {
+    assert(dynamic_cast<const TARGET *>(this));
+    return reinterpret_cast<const TARGET &>(*this);
+  }
+};
 
-    template<class TARGET>
-    const TARGET &Cast() const {
-      assert(dynamic_cast<const TARGET *>(this));
-      return reinterpret_cast<const TARGET &>(*this);
-    }
-  };
+typedef data_ptr_t (*allocate_function_ptr_t)(
+    PrivateAllocatorData *private_data, idx_t size);
 
-  typedef data_ptr_t (*allocate_function_ptr_t)(PrivateAllocatorData *private_data, idx_t size);
+typedef void (*free_function_ptr_t)(PrivateAllocatorData *private_data,
+                                    data_ptr_t pointer, idx_t size);
 
-  typedef void (*free_function_ptr_t)(PrivateAllocatorData *private_data, data_ptr_t pointer, idx_t size);
-
-  typedef data_ptr_t (*reallocate_function_ptr_t)(PrivateAllocatorData *private_data, data_ptr_t pointer,
-                                                  idx_t old_size,
-                                                  idx_t size);
+typedef data_ptr_t (*reallocate_function_ptr_t)(
+    PrivateAllocatorData *private_data, data_ptr_t pointer, idx_t old_size,
+    idx_t size);
 
 class AllocatedData {
-  public:
-    AllocatedData();
+public:
+  AllocatedData();
 
-    AllocatedData(Allocator &allocator, data_ptr_t pointer, idx_t allocated_size);
+  AllocatedData(Allocator &allocator, data_ptr_t pointer, idx_t allocated_size);
 
-    ~AllocatedData();
+  ~AllocatedData();
 
-    // disable copy constructors
-    AllocatedData(const AllocatedData &other) = delete;
+  // disable copy constructors
+  AllocatedData(const AllocatedData &other) = delete;
 
-    AllocatedData &operator=(const AllocatedData &) = delete;
+  AllocatedData &operator=(const AllocatedData &) = delete;
 
-    //! enable move constructors
-    AllocatedData(AllocatedData &&other) noexcept;
+  //! enable move constructors
+  AllocatedData(AllocatedData &&other) noexcept;
 
-    AllocatedData &operator=(AllocatedData &&) noexcept;
+  AllocatedData &operator=(AllocatedData &&) noexcept;
 
-    data_ptr_t get() {
-      return pointer;
-    }
+  data_ptr_t get() { return pointer; }
 
-    const_data_ptr_t get() const {
-      return pointer;
-    }
+  const_data_ptr_t get() const { return pointer; }
 
-    idx_t GetSize() const {
-      return allocated_size;
-    }
+  idx_t GetSize() const { return allocated_size; }
 
-    bool IsSet() {
-      return pointer;
-    }
+  bool IsSet() { return pointer; }
 
-    void Reset();
+  void Reset();
 
-  private:
-    Allocator *allocator;
-    data_ptr_t pointer;
-    idx_t allocated_size;
-  };
+private:
+  Allocator *allocator;
+  data_ptr_t pointer;
+  idx_t allocated_size;
+};
 
+class Allocator {
+  // 281TB ought to be enough for anybody
+  static constexpr const idx_t MAXIMUM_ALLOC_SIZE = 281474976710656ULL;
 
-  class Allocator {
-    // 281TB ought to be enough for anybody
-    static constexpr const idx_t MAXIMUM_ALLOC_SIZE = 281474976710656ULL;
+public:
+  Allocator();
 
-  public:
-    Allocator();
+  Allocator(allocate_function_ptr_t allocate_function_p,
+            free_function_ptr_t free_function_p,
+            reallocate_function_ptr_t reallocate_function_p,
+            std::unique_ptr<PrivateAllocatorData> private_data);
 
-    Allocator(allocate_function_ptr_t allocate_function_p, free_function_ptr_t free_function_p,
-              reallocate_function_ptr_t reallocate_function_p,
-              std::unique_ptr<PrivateAllocatorData> private_data);
+  Allocator &operator=(Allocator &&allocator) noexcept = delete;
 
-    Allocator &operator=(Allocator &&allocator) noexcept = delete;
+  ~Allocator();
 
-    ~Allocator();
+  data_ptr_t AllocateData(idx_t size);
 
-    data_ptr_t AllocateData(idx_t size);
+  void FreeData(data_ptr_t pointer, idx_t size);
 
-    void FreeData(data_ptr_t pointer, idx_t size);
+  data_ptr_t ReallocateData(data_ptr_t pointer, idx_t old_size, idx_t new_size);
 
-    data_ptr_t ReallocateData(data_ptr_t pointer, idx_t old_size, idx_t new_size);
+  AllocatedData Allocate(idx_t size) {
+    return AllocatedData(*this, AllocateData(size), size);
+  }
 
-    AllocatedData Allocate(idx_t size) {
-      return AllocatedData(*this, AllocateData(size), size);
-    }
+  static data_ptr_t DefaultAllocate(PrivateAllocatorData *private_data,
+                                    idx_t size) {
+    return data_ptr_cast(malloc(size));
+  }
 
-    static data_ptr_t DefaultAllocate(PrivateAllocatorData *private_data, idx_t size) {
-      return data_ptr_cast(malloc(size));
-    }
+  static void DefaultFree(PrivateAllocatorData *private_data,
+                          data_ptr_t pointer, idx_t size) {
+    free(pointer);
+  }
 
-    static void DefaultFree(PrivateAllocatorData *private_data, data_ptr_t pointer, idx_t size) {
-      free(pointer);
-    }
+  static data_ptr_t DefaultReallocate(PrivateAllocatorData *private_data,
+                                      data_ptr_t pointer, idx_t old_size,
+                                      idx_t size) {
+    return data_ptr_cast(realloc(pointer, size));
+  }
 
-    static data_ptr_t DefaultReallocate(PrivateAllocatorData *private_data, data_ptr_t pointer, idx_t old_size,
-                                        idx_t size) {
-      return data_ptr_cast(realloc(pointer, size));
-    }
+  PrivateAllocatorData *GetPrivateData() { return private_data.get(); }
 
-    PrivateAllocatorData *GetPrivateData() {
-      return private_data.get();
-    }
+  static Allocator &DefaultAllocator();
 
-    static Allocator &DefaultAllocator();
+  static std::shared_ptr<Allocator> &DefaultAllocatorReference();
 
-    static std::shared_ptr<Allocator> &DefaultAllocatorReference();
+private:
+  allocate_function_ptr_t allocate_function;
+  free_function_ptr_t free_function;
+  reallocate_function_ptr_t reallocate_function;
 
-  private:
-    allocate_function_ptr_t allocate_function;
-    free_function_ptr_t free_function;
-    reallocate_function_ptr_t reallocate_function;
-
-    std::unique_ptr<PrivateAllocatorData> private_data;
-  };
-}
-#endif //PART_ALLOCATOR_H
+  std::unique_ptr<PrivateAllocatorData> private_data;
+};
+} // namespace part
+#endif // PART_ALLOCATOR_H

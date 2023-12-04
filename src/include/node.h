@@ -46,13 +46,11 @@ public:
   static constexpr uint8_t PREFIX_SIZE = 15;
 
 public:
-
-  Node(): data(0) {}
+  Node() : data(0) {}
 
 private:
   uint64_t data;
-
 };
-}
+} // namespace part
 
-#endif //PART_NODE_H
+#endif // PART_NODE_H

@@ -9,13 +9,11 @@
 namespace part {
 class Node;
 
-public class ART {
-  public:
-    std::unique_ptr<Node> root;
-
-
+class ART {
+public:
+  std::unique_ptr<Node> root;
 };
 
-}
+} // namespace part
 
-#endif //PART_ART_H
+#endif // PART_ART_H

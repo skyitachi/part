@@ -18,6 +18,6 @@ public:
   //! ART node pointers to the child nodes
   Node children[Node::NODE_4_CAPACITY];
 };
-}
+} // namespace part
 
-#endif //PART_NODE4_H
+#endif // PART_NODE4_H

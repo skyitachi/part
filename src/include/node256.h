@@ -5,4 +5,4 @@
 #ifndef PART_NODE256_H
 #define PART_NODE256_H
 
-#endif //PART_NODE256_H
+#endif // PART_NODE256_H

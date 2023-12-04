@@ -7,9 +7,6 @@
 
 #include "node.h"
 
-namespace part {
+namespace part {}
 
-
-}
-
-#endif //PART_NODE16_H
+#endif // PART_NODE16_H
