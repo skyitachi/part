@@ -23,9 +23,9 @@ public:
                                             const std::string &value,
                                             idx_t prefix_len) {
     auto len = static_cast<idx_t>(value.size());
-    memcpy(dataptr, value.data(), std::min(len, prefix_len));
+    std::memcpy(dataptr, value.data(), std::min(len, prefix_len));
     if (len < prefix_len) {
-      memset(dataptr + len, '\0', prefix_len - len);
+      std::memset(dataptr + len, '\0', prefix_len - len);
     }
   }
 

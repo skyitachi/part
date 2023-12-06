@@ -18,7 +18,7 @@ std::optional<Node*> Node::GetChild(ART &art, const uint8_t byte) const {
   std::optional<Node*> child;
   switch (GetType()) {
     case NType::NODE_4:
-      break;
+      return Node4::Get(art, *this).GetChild(byte);
     case NType::NODE_16:
       break;
     case NType::NODE_48:

@@ -2,12 +2,15 @@
 // Created by Shiping Yao on 2023/12/4.
 //
 
+#include <iostream>
 #include "art.h"
 #include "art_key.h"
 #include "node.h"
 #include "prefix.h"
 #include "leaf.h"
 #include "fixed_size_allocator.h"
+#include "node4.h"
+#include "node16.h"
 
 namespace part {
 
@@ -18,6 +21,10 @@ ART::ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
     allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
     allocators->emplace_back(FixedSizeAllocator(sizeof(Prefix), Allocator::DefaultAllocator()));
     allocators->emplace_back(FixedSizeAllocator(sizeof(Leaf), Allocator::DefaultAllocator()));
+    allocators->emplace_back(FixedSizeAllocator(sizeof(Node4), Allocator::DefaultAllocator()));
+//    allocators->emplace_back(FixedSizeAllocator(sizeof(Node16), Allocator::DefaultAllocator()));
+//    allocators->emplace_back(FixedSizeAllocator(sizeof(Node4), Allocator::DefaultAllocator()));
+//    allocators->emplace_back(FixedSizeAllocator(sizeof(Node4), Allocator::DefaultAllocator()));
   }
 
   root = std::make_unique<Node>();
@@ -31,30 +38,36 @@ void ART::Put(const ARTKey &key, idx_t doc_id) {
 
 bool ART::Get(const ARTKey &key, std::vector<idx_t>& result_ids) {
   auto leaf = lookup(*root, key, 0);
-  if (!leaf.IsSet()) {
-    return true;
+  if (!leaf) {
+    return false;
   }
 
-  return Leaf::GetDocIds(*this, leaf, result_ids, 1);
+  return Leaf::GetDocIds(*this, *leaf.value(), result_ids, 1);
 }
 
-Node ART::lookup(Node node, const ARTKey &key, idx_t depth) {
-  while(node.IsSet()) {
-    std::reference_wrapper<Node> next_node(node);
+std::optional<Node*> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
+  auto next_node = std::ref(node);
+  while(next_node.get().IsSet()) {
     if (next_node.get().GetType() == NType::PREFIX) {
       Prefix::Traverse(*this, next_node, key, depth);
       if (next_node.get().GetType() == NType::PREFIX) {
-        return Node();
+        return std::nullopt;
       }
     }
 
     if (next_node.get().GetType() == NType::LEAF || next_node.get().GetType() == NType::LEAF_INLINED) {
-      return next_node.get();
+      return &next_node.get();
     }
 
     assert(depth < key.len);
+    auto child = next_node.get().GetChild(*this, key[depth]);
+    if (!child) {
+      return std::nullopt;
+    }
+    next_node = *child.value();
+    depth++;
   }
-  return {};
+  return std::nullopt;
 }
 
 void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id) {
@@ -95,12 +108,34 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
     return;
   }
 
+  // insert to prefix
+
   auto next_node = std::ref(node);
   auto mismatch_position = Prefix::Traverse(*this, next_node, key, depth);
 
   if (next_node.get().GetType() != NType::PREFIX) {
     return insert(next_node, key, depth, doc_id);
   }
+
+  Node remaining_prefix;
+  auto prefix_byte = Prefix::GetByte(*this, next_node, mismatch_position);
+  Prefix::Split(*this, next_node, remaining_prefix, mismatch_position);
+  Node4::New(*this, next_node);
+
+  Node4::InsertChild(*this, next_node, prefix_byte, remaining_prefix);
+
+  // insert new leaf
+  Node leaf_node;
+  auto ref_node = std::ref(leaf_node);
+
+  if (depth + 1 < key.len) {
+    Prefix::New(*this, ref_node, key, depth + 1, key.len - depth - 1);
+  }
+
+  std::cout << "prefix byte: " << uint32_t(prefix_byte) << ", depth: " << depth << std::endl;
+
+  Leaf::New(ref_node, doc_id);
+  Node4::InsertChild(*this, next_node, key[depth], leaf_node);
 }
 
 bool ART::InsertToLeaf(Node &leaf, const idx_t row_id) {

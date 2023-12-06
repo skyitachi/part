@@ -32,7 +32,7 @@ public:
 
 private:
   void insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);
-  Node lookup(Node node, const ARTKey &key, idx_t depth);
+  std::optional<Node *> lookup(Node node, const ARTKey &key, idx_t depth);
   //! Insert a row ID into a leaf
   bool InsertToLeaf(Node &leaf, const idx_t row_id);
 };

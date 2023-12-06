@@ -6,6 +6,7 @@
 #define PART_NODE_H
 #include <cassert>
 #include <optional>
+#include <cstring>
 
 #include "types.h"
 

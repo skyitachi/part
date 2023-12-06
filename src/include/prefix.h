@@ -24,7 +24,20 @@ public:
     return *Node::GetAllocator(art, NType::PREFIX).Get<Prefix>(ptr);
   }
 
+  static inline uint8_t GetByte(const ART& art, const Node &prefix_node, const idx_t position) {
+    auto prefix = Prefix::Get(art, prefix_node);
+    assert(position < Node::PREFIX_SIZE);
+    assert(position < prefix.data[Node::PREFIX_SIZE]);
+    return prefix.data[position];
+  }
+
   static idx_t Traverse(ART& art, std::reference_wrapper<Node>& prefix_node, const ARTKey& key, idx_t &depth);
+
+  static void Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &child_node, idx_t position);
+
+  Prefix& Append(ART &art, const uint8_t byte);
+
+  void Append(ART &art, Node other_prefix);
 
 public:
   static Prefix &New(ART &art, Node &node);

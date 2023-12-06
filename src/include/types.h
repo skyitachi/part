@@ -7,6 +7,7 @@
 
 #include <cinttypes>
 #include <memory>
+#include <cstring>
 
 namespace part {
 
@@ -61,7 +62,7 @@ template <class T> static inline T BSwap(const T &x) {
 }
 
 template <typename T> void Store(const T &val, data_ptr_t ptr) {
-  memcpy(ptr, (void *)&val, sizeof(val));
+  std::memcpy(ptr, (void *)&val, sizeof(val));
 }
 
 } // namespace part

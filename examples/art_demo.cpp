@@ -56,5 +56,28 @@ int main() {
   } else {
     std::cout << "can not found such doc, success: " << success << std::endl;
   }
+
+  ARTKey doc2 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "doc2");
+  art.Put(doc2, 2);
+
+  std::cout << "after put doc2 \n";
+
+  results.clear();
+  success = art.Get(doc2, results);
+
+  if (results.size() > 0) {
+    std::cout << "doc id: " << results[0] << ", success: " << success << std::endl;
+  } else {
+    std::cout << "can not found such doc2, success: " << success << std::endl;
+  }
+
+  results.clear();
+  success = art.Get(doc1, results);
+  if (results.size() > 0) {
+    std::cout << "doc id: " << results[0] << ", success: " << success << std::endl;
+  } else {
+    std::cout << "can not found such doc1, success: " << success << std::endl;
+  }
+
 }
 

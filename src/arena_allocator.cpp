@@ -1,6 +1,7 @@
 //
 // Created by Shiping Yao on 2023/12/4.
 //
+#include <cassert>
 #include "arena_allocator.h"
 
 namespace part {
