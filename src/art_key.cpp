@@ -44,7 +44,7 @@ bool ARTKey::operator==(const ARTKey &k) const {
   return memcmp(data, k.data, len) == 0;
 }
 
-template<>
+template <>
 ARTKey ARTKey::CreateARTKey(ArenaAllocator &allocator, std::string_view value) {
   uint32_t len = value.size() + 1;
   auto data = allocator.Allocate(len);

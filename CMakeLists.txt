@@ -17,6 +17,8 @@ set(SRC_FILES
         src/prefix.cpp
         src/leaf.cpp
         src/fixed_size_allocator.cpp
+        src/node.cpp
+        src/node4.cpp
 )
 
 add_library(part SHARED ${SRC_FILES})

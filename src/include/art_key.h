@@ -7,8 +7,8 @@
 #include <string_view>
 
 #include "arena_allocator.h"
-#include "types.h"
 #include "radix.h"
+#include "types.h"
 
 namespace part {
 
@@ -46,7 +46,7 @@ public:
 
 private:
   template <class T>
-  static inline data_ptr_t CreateData(ArenaAllocator& allocator, T value) {
+  static inline data_ptr_t CreateData(ArenaAllocator &allocator, T value) {
     auto data = allocator.Allocate(sizeof(value));
     Radix::EncodeData<T>(data, value);
     return data;
@@ -55,7 +55,6 @@ private:
 
 template <>
 ARTKey ARTKey::CreateARTKey(ArenaAllocator &allocator, std::string_view value);
-
 
 } // namespace part
 #endif // PART_ART_KEY_H

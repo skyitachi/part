@@ -4,17 +4,18 @@
 
 #ifndef PART_FIXED_SIZE_ALLOCATOR_H
 #define PART_FIXED_SIZE_ALLOCATOR_H
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 #include "allocator.h"
 #include "node.h"
+#include "validity_mask.h"
 
 namespace part {
 
 struct BufferEntry {
-  BufferEntry(const data_ptr_t& ptr, const idx_t& allocation_count)
-    : ptr(ptr), allocation_count(allocation_count) {}
+  BufferEntry(const data_ptr_t &ptr, const idx_t &allocation_count)
+      : ptr(ptr), allocation_count(allocation_count) {}
 
   data_ptr_t ptr;
   idx_t allocation_count;
@@ -29,11 +30,13 @@ public:
   static constexpr uint8_t VACUUM_THRESHOLD = 10;
 
   //! Constants for fast offset calculations in the bitmask
-  static constexpr idx_t BASE[] = {0x00000000FFFFFFFF, 0x0000FFFF, 0x00FF, 0x0F, 0x3, 0x1};
+  static constexpr idx_t BASE[] = {
+      0x00000000FFFFFFFF, 0x0000FFFF, 0x00FF, 0x0F, 0x3, 0x1};
   static constexpr uint8_t SHIFT[] = {32, 16, 8, 4, 2, 1};
 
 public:
-  explicit FixedSizeAllocator(const idx_t allocation_size, Allocator& allocator);
+  explicit FixedSizeAllocator(const idx_t allocation_size,
+                              Allocator &allocator);
   ~FixedSizeAllocator();
 
   idx_t allocation_size;
@@ -44,14 +47,14 @@ public:
 
   std::vector<BufferEntry> buffers;
   std::unordered_set<idx_t> buffers_with_free_space;
-  Allocator& allocator;
+  Allocator &allocator;
+
 public:
   Node New();
 
   void Free(const Node ptr);
 
-  template<class T>
-  inline T *Get(const Node ptr) const {
+  template <class T> inline T *Get(const Node ptr) const {
     return (T *)Get(ptr);
   }
 
@@ -61,12 +64,15 @@ public:
     return buffers.size() * BUFFER_ALLOC_SIZE;
   }
 
+  uint32_t GetOffset(ValidityMask &mask, const idx_t allocation_count);
+
 private:
   inline data_ptr_t Get(const Node ptr) const {
     assert(ptr.GetBufferId() < buffers.size());
     assert(ptr.GetOffset() < allocations_per_buffer);
-    return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size + allocation_offset;
+    return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size +
+           allocation_offset;
   }
 };
-}
-#endif //PART_FIXED_SIZE_ALLOCATOR_H
+} // namespace part
+#endif // PART_FIXED_SIZE_ALLOCATOR_H

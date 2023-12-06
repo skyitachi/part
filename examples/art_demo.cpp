@@ -4,6 +4,8 @@
 #include <iostream>
 #include <arena_allocator.h>
 #include <art_key.h>
+#include <art.h>
+#include <node.h>
 
 using namespace part;
 
@@ -17,7 +19,6 @@ int main() {
   assert(data);
 
   assert(arena_allocator.SizeInBytes() == 10);
-
 
   ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
   ARTKey k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, -1);
@@ -43,5 +44,17 @@ int main() {
   ARTKey sk3 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, raw_sk3);
   assert(sk2 == sk3);
 
+  ART art;
+  ARTKey doc1 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "doc1");
+  art.Put(doc1, 1);
+
+  std::vector<idx_t > results;
+  bool success = art.Get(doc1, results);
+
+  if (results.size() > 0) {
+    std::cout << "doc id: " << results[0] << ", success: " << success << std::endl;
+  } else {
+    std::cout << "can not found such doc, success: " << success << std::endl;
+  }
 }
 

@@ -5,8 +5,8 @@
 #ifndef PART_ART_H
 #define PART_ART_H
 #include <memory>
-#include <vector>
 #include <optional>
+#include <vector>
 
 #include "types.h"
 
@@ -17,8 +17,8 @@ class ARTKey;
 
 class ART {
 public:
-
-  explicit ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
+  explicit ART(const std::shared_ptr<std::vector<FixedSizeAllocator>>
+                   &allocators_ptr = nullptr);
 
   ~ART();
   std::unique_ptr<Node> root;
@@ -26,12 +26,15 @@ public:
   bool owns_data;
 
   // only support int64_t value
-  void Put(const ARTKey& key, int64_t value);
+  void Put(const ARTKey &key, idx_t doc_id);
 
-  std::optional<int64_t> Get(const ARTKey& key);
+  bool Get(const ARTKey &key, std::vector<idx_t> &result_ids);
 
 private:
-  void insert(Node& node, const ARTKey &key, idx_t depth, const int64_t& value);
+  void insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);
+  Node lookup(Node node, const ARTKey &key, idx_t depth);
+  //! Insert a row ID into a leaf
+  bool InsertToLeaf(Node &leaf, const idx_t row_id);
 };
 
 } // namespace part

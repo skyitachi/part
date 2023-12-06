@@ -16,9 +16,15 @@ using data_ptr_t = data_t *;
 using const_data_ptr_t = const data_t *;
 using validity_t = uint64_t;
 
+static constexpr const idx_t INVALID_INDEX = idx_t(-1);
+
 template <class SRC> data_ptr_t data_ptr_cast(SRC *src) {
   return reinterpret_cast<data_ptr_t>(src);
 }
+
+#ifndef STANDARD_VECTOR_SIZE
+#define STANDARD_VECTOR_SIZE 2048
+#endif
 
 #define BSWAP16(x)                                                             \
   ((uint16_t)((((uint16_t)(x)&0xff00) >> 8) | (((uint16_t)(x)&0x00ff) << 8)))

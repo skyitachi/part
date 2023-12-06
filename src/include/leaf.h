@@ -4,17 +4,39 @@
 
 #ifndef PART_LEAF_H
 #define PART_LEAF_H
+#include <vector>
 
 #include "node.h"
 #include "types.h"
+#include "fixed_size_allocator.h"
 
 namespace part {
 
 class Leaf {
 public:
-  void New(Node& node, const idx_t value);
+  static void New(Node &node, const idx_t value);
+  static idx_t TotalCount(ART &art, Node &node);
+  static bool GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids, idx_t max_count);
 
+  static inline Leaf &Get(const ART &art, const Node ptr) {
+    assert(!ptr.IsSerialized());
+    return *Node::GetAllocator(art, NType::LEAF).Get<Leaf>(ptr);
+  }
+
+  static void Insert(ART &art, Node &node, const idx_t row_id);
+public:
+  //! The number of row IDs in this leaf
+  uint8_t count;
+  //! Up to LEAF_SIZE row IDs
+  // NOTE: no need to store row_ids in the leaf node for unique indexing
+  idx_t row_ids[Node::LEAF_SIZE];
+  //! A pointer to the next LEAF node
+  Node ptr;
+
+private:
+  static void MoveInlinedToLeaf(ART &art, Node &node);
+  Leaf &Append(ART &art, const idx_t row_id);
 };
-}
+} // namespace part
 
-#endif //PART_LEAF_H
+#endif // PART_LEAF_H

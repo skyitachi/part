@@ -4,7 +4,9 @@
 
 #ifndef PART_NODE4_H
 #define PART_NODE4_H
+
 #include "node.h"
+#include "fixed_size_allocator.h"
 
 namespace part {
 
@@ -17,6 +19,18 @@ public:
   uint8_t key[Node::NODE_4_CAPACITY];
   //! ART node pointers to the child nodes
   Node children[Node::NODE_4_CAPACITY];
+
+  static Node4 &New(ART &art, Node &node);
+
+  //! Get a reference to the node
+  static inline Node4 &Get(const ART &art, const Node ptr) {
+    assert(!ptr.IsSerialized());
+    return *Node::GetAllocator(art, NType::NODE_4).Get<Node4>(ptr);
+  }
+
+  std::optional<Node *> GetChild(const uint8_t byte);
+
+  static void InsertChild(ART &art, Node &node, uint8_t byte, const Node child);
 };
 } // namespace part
 

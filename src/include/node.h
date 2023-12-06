@@ -4,10 +4,15 @@
 
 #ifndef PART_NODE_H
 #define PART_NODE_H
+#include <cassert>
+#include <optional>
 
-#include <inttypes.h>
+#include "types.h"
 
 namespace part {
+
+class FixedSizeAllocator;
+class ART;
 
 enum class NType : uint8_t {
   PREFIX = 1,
@@ -45,20 +50,16 @@ public:
   static constexpr uint8_t LEAF_SIZE = 4;
   static constexpr uint8_t PREFIX_SIZE = 15;
 
-public:
   Node() : data(0) {}
+  Node(const uint32_t buffer_id, const uint32_t offset) : data(0) {
+    SetPtr(buffer_id, offset);
+  };
 
-  inline void Reset() {
-    data = 0;
-  }
+  inline void Reset() { data = 0; }
 
-  inline bool operator ==(const Node &node) const {
-    return data == node.data;
-  }
+  inline bool operator==(const Node &node) const { return data == node.data; }
 
-  inline bool IsSet() const {
-    return data & AND_IS_SET;
-  }
+  inline bool IsSet() const { return data & AND_IS_SET; }
 
   //! Returns whether the node is serialized or not (zero bit)
   inline bool IsSerialized() const {
@@ -74,15 +75,18 @@ public:
     return NType(type);
   }
 
+  //! Get the doc id
+  inline idx_t GetDocId() const {
+    return data & Node::AND_RESET;
+  }
+
   //! Get the offset (8th to 23rd bit)
   inline idx_t GetOffset() const {
     auto offset = data >> Node::SHIFT_OFFSET;
     return offset & Node::AND_OFFSET;
   }
 
-  inline idx_t GetBufferId() const {
-    return data & Node::AND_BUFFER_ID;
-  }
+  inline idx_t GetBufferId() const { return data & Node::AND_BUFFER_ID; }
 
   //! Set the serialized flag (zero bit)
   inline void SetSerialized() {
@@ -101,6 +105,18 @@ public:
     data += shifted_offset;
     data += buffer_id;
   }
+
+  //! Set the row ID (8th to 63rd bit)
+  inline void SetDocID(const idx_t doc_id) {
+    assert(!(data & Node::AND_RESET));
+    data += doc_id;
+  }
+
+  static FixedSizeAllocator &GetAllocator(const ART &art, NType type);
+
+  std::optional<Node* > GetChild(ART &art, const uint8_t byte) const;
+
+  static void InsertChild(ART& art, Node& node, const uint8_t byte, const Node child);
 
 private:
   uint64_t data;
