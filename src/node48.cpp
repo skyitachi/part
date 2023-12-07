@@ -3,6 +3,7 @@
 //
 #include <node48.h>
 #include <node16.h>
+#include <node256.h>
 
 namespace part {
 
@@ -62,6 +63,38 @@ Node48 &Node48::GrowNode16(ART &art, Node &node48, Node &node16) {
   Node::Free(art, node16);
 
   return n48;
+}
+
+void Node48::InsertChild(ART &art, Node &node, const uint8_t byte, const Node child) {
+  assert(node.IsSet() && !node.IsSerialized());
+  auto &n48 = Node48::Get(art, node);
+
+  assert(n48.child_index[byte] == Node::EMPTY_MARKER);
+
+  if (n48.count < Node::NODE_48_CAPACITY) {
+    idx_t child_pos = n48.count;
+    if (n48.children[child_pos].IsSet()) {
+      child_pos = 0;
+      while (n48.children[child_pos].IsSet()) {
+        child_pos++;
+      }
+      n48.children[child_pos] = child;
+      n48.child_index[byte] = child_pos;
+      n48.count++;
+    }
+  } else {
+    auto node48 = node;
+    Node256::GrowNode48(art, node, node48);
+    Node256::InsertChild(art, node, byte, child);
+  }
+}
+
+std::optional<Node *> Node48::GetChild(const uint8_t byte) {
+  if (child_index[byte] != Node::EMPTY_MARKER) {
+    assert(children[child_index[byte]].IsSet());
+    return &children[child_index[byte]];
+  }
+  return std::nullopt;
 }
 
 

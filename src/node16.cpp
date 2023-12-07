@@ -59,6 +59,25 @@ void Node16::InsertChild(ART &art, Node &node, const uint8_t byte, const Node ch
   }
 }
 
+std::optional<Node *> Node16::GetChild(const uint8_t byte) {
+  for (idx_t i = 0; i < count; i++) {
+    if (key[i] == byte) {
+      assert(children[i].IsSet());
+      return &children[i];
+    }
+  }
+
+  return std::nullopt;
+}
+
+void Node16::Free(ART &art, Node &node) {
+  assert(node.IsSet() && !node.IsSerialized());
+  auto &n16 = Node16::Get(art, node);
+
+  for (idx_t i = 0; i < n16.count; i++) {
+    Node::Free(art, n16.children[i]);
+  }
+}
 
 }
 

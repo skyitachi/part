@@ -21,6 +21,7 @@ set(SRC_FILES
         src/node4.cpp
         src/node16.cpp
         src/node48.cpp
+        src/node256.cpp
 )
 
 add_library(part SHARED ${SRC_FILES})

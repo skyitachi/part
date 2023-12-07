@@ -11,6 +11,8 @@
 #include "fixed_size_allocator.h"
 #include "node4.h"
 #include "node16.h"
+#include <node48.h>
+#include <node256.h>
 
 namespace part {
 
@@ -19,12 +21,12 @@ ART::ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
   if (!allocators) {
     owns_data = true;
     allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
-    allocators->emplace_back(FixedSizeAllocator(sizeof(Prefix), Allocator::DefaultAllocator()));
-    allocators->emplace_back(FixedSizeAllocator(sizeof(Leaf), Allocator::DefaultAllocator()));
-    allocators->emplace_back(FixedSizeAllocator(sizeof(Node4), Allocator::DefaultAllocator()));
-//    allocators->emplace_back(FixedSizeAllocator(sizeof(Node16), Allocator::DefaultAllocator()));
-//    allocators->emplace_back(FixedSizeAllocator(sizeof(Node4), Allocator::DefaultAllocator()));
-//    allocators->emplace_back(FixedSizeAllocator(sizeof(Node4), Allocator::DefaultAllocator()));
+    allocators->emplace_back(sizeof(Prefix), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(Leaf), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(Node4), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(Node16), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(Node48), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(Node256), Allocator::DefaultAllocator());
   }
 
   root = std::make_unique<Node>();
@@ -143,5 +145,16 @@ bool ART::InsertToLeaf(Node &leaf, const idx_t row_id) {
 
   Leaf::Insert(*this, leaf, row_id);
   return true;
+}
+
+idx_t ART::GetMemoryUsage() {
+  if (owns_data) {
+    idx_t total = 0;
+    for(auto &allocator: *allocators) {
+      total += allocator.GetMemoryUsage();
+    }
+    return total;
+  }
+  return 0;
 }
 } // namespace part

@@ -28,9 +28,13 @@ public:
 
   static Node16& New(ART &art, Node &node);
 
+  static void Free(ART &art, Node &node);
+
   static Node16 &GrowNode4(ART &art, Node &node16, Node &node4);
 
   static void InsertChild(ART &art, Node &node, const uint8_t byte, const Node child);
+
+  std::optional<Node *> GetChild(const uint8_t byte);
 
 
 

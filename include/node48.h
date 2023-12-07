@@ -29,6 +29,10 @@ public:
 
   static Node48 &GrowNode16(ART &art, Node &node48, Node &node16);
 
+  static void InsertChild(ART &art, Node &node, const uint8_t byte, const Node child);
+
+  std::optional<Node *> GetChild(const uint8_t byte);
+
 };
 }
 #endif // PART_NODE48_H

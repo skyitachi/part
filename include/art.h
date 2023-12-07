@@ -30,6 +30,8 @@ public:
 
   bool Get(const ARTKey &key, std::vector<idx_t> &result_ids);
 
+  idx_t GetMemoryUsage();
+
 private:
   void insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);
   std::optional<Node *> lookup(Node node, const ARTKey &key, idx_t depth);

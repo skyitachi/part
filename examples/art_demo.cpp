@@ -7,8 +7,77 @@
 #include <art.h>
 #include <node.h>
 #include <fmt/core.h>
+#include <random>
+#include <unordered_set>
+#include <unordered_map>
+#include <chrono>
+#include <absl/container/flat_hash_map.h>
 
 using namespace part;
+
+void benchHashMap(std::unordered_map<int64_t, int64_t> &map, std::vector<std::pair<int64_t, int64_t>> &values) {
+  auto start = std::chrono::high_resolution_clock::now();
+  for (const auto &pair : values) {
+    map.insert(pair);
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
+
+  int64_t estimated_size =
+      map.size() * (sizeof(int64_t) + sizeof(void *)) + map.bucket_count() * (sizeof(void *) + sizeof(size_t)) * 1.5;
+
+  fmt::print("unordered_map: {} keys consumes: {} bytes, {} ms\n", values.size(), estimated_size, consumes);
+}
+
+void benchAbslFlatHashMap(absl::flat_hash_map<int64_t, int64_t> &map, std::vector<std::pair<int64_t, int64_t>> &values) {
+  auto start = std::chrono::high_resolution_clock::now();
+  for (const auto &pair : values) {
+    map.insert(pair);
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
+
+  int64_t estimated_size =
+      map.size() * (sizeof(int64_t) + sizeof(void *)) + map.bucket_count() * (sizeof(void *) + sizeof(size_t)) * 1.5;
+
+  fmt::print("flat_hash_map: {} keys consumes: {} bytes, {} ms\n", values.size(), estimated_size, consumes);
+}
+
+void benchARTRead(ART &art,  std::vector<ARTKey> &art_keys) {
+  auto start = std::chrono::high_resolution_clock::now();
+  std::vector<idx_t> results = {};
+  for(int i = 0; i < art_keys.size(); i++) {
+    results.clear();
+    bool success = art.Get(art_keys[i], results);
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
+
+  fmt::print("ART read: {} keys consumes: {} ms\n", art_keys.size(), consumes);
+
+}
+
+void benchHashMapRead(std::unordered_map<int64_t, int64_t> &map, std::vector<std::pair<int64_t, int64_t>> &values) {
+  auto start = std::chrono::high_resolution_clock::now();
+  for (const auto &pair : values) {
+    map.find(pair.first);
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
+
+  fmt::print("unordered_map read: {} keys consumes {} ms\n", values.size(), consumes);
+}
+
+void benchAbslFlatHashMapRead(absl::flat_hash_map<int64_t, int64_t> &map, std::vector<std::pair<int64_t, int64_t>> &values) {
+  auto start = std::chrono::high_resolution_clock::now();
+  for (const auto &pair : values) {
+    map.find(pair.first);
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
+
+  fmt::print("absl flat_hash_map read: {} keys consumes {} ms\n", values.size(), consumes);
+}
 
 int main() {
   Allocator& allocator = Allocator::DefaultAllocator();
@@ -48,27 +117,61 @@ int main() {
   ART art;
   std::vector<idx_t> results = {};
 
-  std::vector<std::string> raw_keys = {
-      "doc1", "doc2", "bdoc1", "cdoc2", "fdoc3"
-  };
-  std::vector<ARTKey> art_keys = {};
-  for(auto& raw_key: raw_keys) {
-    art_keys.push_back(ARTKey::CreateARTKey(arena_allocator, raw_key));
+  std::random_device rd;
+  std::mt19937_64 gen(rd());
+  std::uniform_int_distribution<int64_t> dist(0, std::numeric_limits<int64_t>::max());
+
+  int limit = 1000000;
+
+  // 需要保证所有的key都不一样
+  std::vector<std::string> raw_keys = {};
+  std::unordered_set<int64_t> key_sets = {};
+  std::unordered_map<int64_t, int64_t> hash_map;
+  std::vector<std::pair<int64_t, int64_t>> values;
+
+  for(int i = 0; i < limit; i++) {
+    int64_t rk;
+    do {
+      rk = dist(gen);
+    } while (key_sets.contains(rk));
+    values.emplace_back(rk, i);
+    key_sets.insert(rk);
+    raw_keys.emplace_back(fmt::format("{}",rk));
   }
+
+  benchHashMap(hash_map, values);
+
+  absl::flat_hash_map<int64_t, int64_t> fmap;
+  benchAbslFlatHashMap(fmap, values);
+
+
+  std::vector<ARTKey> art_keys = {};
+  for(auto& value: values) {
+    art_keys.push_back(ARTKey::CreateARTKey<int64_t >(arena_allocator, value.first));
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
   for(int i = 0; i < art_keys.size(); i++) {
     art.Put(art_keys[i], i);
   }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
 
-  for(int i = 0; i < art_keys.size(); i++) {
-    results.clear();
-    bool success = art.Get(art_keys[i], results);
-    if (results.size() > 0) {
-      fmt::print("found key = {}, doc_id = {}, success = {}\n", raw_keys[i], results[0], success);
-    } else {
-      std::cout << "can not found such doc3, success: " << success << std::endl;
-    }
+//  for(int i = 0; i < art_keys.size(); i++) {
+//    results.clear();
+//    bool success = art.Get(art_keys[i], results);
+//    if (results.size() > 0) {
+//      fmt::print("found key = {}, doc_id = {}, success = {}\n", raw_keys[i], results[0], success);
+//    } else {
+//      fmt::print("can not found key = {}, success: {}\n", raw_keys[i], success);
+//    }
+//  }
 
-  }
+  fmt::print("ART consumes memory: {}, {} ms\n", art.GetMemoryUsage(), consumes);
+
+  benchHashMapRead(hash_map, values);
+  benchARTRead(art, art_keys);
+  benchAbslFlatHashMapRead(fmap, values);
 
 }
 
