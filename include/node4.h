@@ -22,6 +22,9 @@ public:
 
   static Node4 &New(ART &art, Node &node);
 
+  static void Free(ART &art, Node &node);
+
+
   //! Get a reference to the node
   static inline Node4 &Get(const ART &art, const Node ptr) {
     assert(!ptr.IsSerialized());

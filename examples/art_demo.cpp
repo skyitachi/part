@@ -6,6 +6,7 @@
 #include <art_key.h>
 #include <art.h>
 #include <node.h>
+#include <fmt/core.h>
 
 using namespace part;
 
@@ -45,38 +46,28 @@ int main() {
   assert(sk2 == sk3);
 
   ART art;
-  ARTKey doc1 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "doc1");
-  art.Put(doc1, 1);
+  std::vector<idx_t> results = {};
 
-  std::vector<idx_t > results;
-  bool success = art.Get(doc1, results);
-
-  if (results.size() > 0) {
-    std::cout << "doc id: " << results[0] << ", success: " << success << std::endl;
-  } else {
-    std::cout << "can not found such doc, success: " << success << std::endl;
+  std::vector<std::string> raw_keys = {
+      "doc1", "doc2", "bdoc1", "cdoc2", "fdoc3"
+  };
+  std::vector<ARTKey> art_keys = {};
+  for(auto& raw_key: raw_keys) {
+    art_keys.push_back(ARTKey::CreateARTKey(arena_allocator, raw_key));
+  }
+  for(int i = 0; i < art_keys.size(); i++) {
+    art.Put(art_keys[i], i);
   }
 
-  ARTKey doc2 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "doc2");
-  art.Put(doc2, 2);
+  for(int i = 0; i < art_keys.size(); i++) {
+    results.clear();
+    bool success = art.Get(art_keys[i], results);
+    if (results.size() > 0) {
+      fmt::print("found key = {}, doc_id = {}, success = {}\n", raw_keys[i], results[0], success);
+    } else {
+      std::cout << "can not found such doc3, success: " << success << std::endl;
+    }
 
-  std::cout << "after put doc2 \n";
-
-  results.clear();
-  success = art.Get(doc2, results);
-
-  if (results.size() > 0) {
-    std::cout << "doc id: " << results[0] << ", success: " << success << std::endl;
-  } else {
-    std::cout << "can not found such doc2, success: " << success << std::endl;
-  }
-
-  results.clear();
-  success = art.Get(doc1, results);
-  if (results.size() > 0) {
-    std::cout << "doc id: " << results[0] << ", success: " << success << std::endl;
-  } else {
-    std::cout << "can not found such doc1, success: " << success << std::endl;
   }
 
 }

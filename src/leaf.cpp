@@ -114,4 +114,18 @@ Leaf& Leaf::Append(ART &art, const idx_t row_id) {
   return leaf.get();
 }
 
+void Leaf::Free(ART &art, Node &node) {
+
+  Node current_node = node;
+  Node next_node;
+
+  while (current_node.IsSet() && !current_node.IsSerialized()) {
+    next_node = Leaf::Get(art, current_node).ptr;
+    Node::GetAllocator(art, NType::LEAF).Free(current_node);
+    current_node = next_node;
+  }
+
+  node.Reset();
+}
+
 } // namespace part

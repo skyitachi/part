@@ -93,7 +93,7 @@ void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &ch
 
   if (position == 0) {
     prefix.ptr.Reset();
-    // TODO: free
+    Node::Free(art, prefix_node.get());
     return;
   }
 
@@ -111,8 +111,7 @@ Prefix &Prefix::Append(ART &art, const uint8_t byte) {
   return prefix.get();
 }
 
-
-  void Prefix::Append(ART &art, Node other_prefix) {;
+void Prefix::Append(ART &art, Node other_prefix) {
 
   assert(other_prefix.IsSet() && !other_prefix.IsSerialized());
 
@@ -129,12 +128,24 @@ Prefix &Prefix::Append(ART &art, const uint8_t byte) {
     // TODO: serialized
 
     prefix.get().ptr = other.ptr;
-    // TODO: free
+    Node::GetAllocator(art, NType::PREFIX).Free(other_prefix);
 
     other_prefix = prefix.get().ptr;
   }
 
   assert(prefix.get().ptr.GetType() != NType::PREFIX);
+}
+
+void Prefix::Free(ART &art, Node &node) {
+  Node current_node = node;
+  Node next_node;
+  while(current_node.IsSet() && current_node.GetType() == NType::PREFIX) {
+    next_node = Prefix::Get(art, current_node).ptr;
+    Node::GetAllocator(art, NType::PREFIX).Free(current_node);
+    current_node = next_node;
+  }
+
+  Node::Free(art, current_node);
 }
 
 } // namespace part

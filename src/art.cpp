@@ -119,7 +119,9 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
 
   Node remaining_prefix;
   auto prefix_byte = Prefix::GetByte(*this, next_node, mismatch_position);
+  // next_node changes reference, that means root node will change
   Prefix::Split(*this, next_node, remaining_prefix, mismatch_position);
+  // root node change to Node4
   Node4::New(*this, next_node);
 
   Node4::InsertChild(*this, next_node, prefix_byte, remaining_prefix);
@@ -131,8 +133,6 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
   if (depth + 1 < key.len) {
     Prefix::New(*this, ref_node, key, depth + 1, key.len - depth - 1);
   }
-
-  std::cout << "prefix byte: " << uint32_t(prefix_byte) << ", depth: " << depth << std::endl;
 
   Leaf::New(ref_node, doc_id);
   Node4::InsertChild(*this, next_node, key[depth], leaf_node);

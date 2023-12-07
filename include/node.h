@@ -56,6 +56,8 @@ public:
     SetPtr(buffer_id, offset);
   };
 
+  static void Free(ART& art, Node &node);
+
   inline void Reset() { data = 0; }
 
   inline bool operator==(const Node &node) const { return data == node.data; }

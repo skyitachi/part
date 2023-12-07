@@ -1,4 +1,4 @@
-include_directories(../src/include)
+include_directories(../include)
 
 add_executable(demo art_demo.cpp)
 

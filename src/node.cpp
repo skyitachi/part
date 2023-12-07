@@ -5,6 +5,9 @@
 #include "fixed_size_allocator.h"
 #include "art.h"
 #include "node4.h"
+#include "prefix.h"
+#include "node16.h"
+#include "leaf.h"
 
 namespace part {
 
@@ -46,6 +49,32 @@ void Node::InsertChild(ART &art, Node &node, uint8_t byte, const Node child) {
       throw std::invalid_argument("Invalid node type for InsertChild");
   }
 
+}
+
+void Node::Free(ART &art, Node &node) {
+  if (!node.IsSet()) {
+    return;
+  }
+
+  if (!node.IsSerialized()) {
+    auto type = node.GetType();
+    switch (type) {
+      case NType::LEAF:
+        return Leaf::Free(art, node);
+      case NType::PREFIX:
+        return Prefix::Free(art, node);
+      case NType::NODE_4:
+        Node4::Free(art, node);
+        break;
+      case NType::LEAF_INLINED:
+        return node.Reset();
+    }
+
+    Node::GetAllocator(art, type).Free(node);
+
+  }
+
+  node.Reset();
 }
 
 }

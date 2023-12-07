@@ -19,6 +19,8 @@ public:
 
   Node ptr;
 
+  static void Free(ART &art, Node &node);
+
   static inline Prefix &Get(const ART &art, const Node ptr) {
     assert(!ptr.IsSerialized());
     return *Node::GetAllocator(art, NType::PREFIX).Get<Prefix>(ptr);
@@ -30,6 +32,9 @@ public:
     assert(position < prefix.data[Node::PREFIX_SIZE]);
     return prefix.data[position];
   }
+
+
+
 
   static idx_t Traverse(ART& art, std::reference_wrapper<Node>& prefix_node, const ARTKey& key, idx_t &depth);
 

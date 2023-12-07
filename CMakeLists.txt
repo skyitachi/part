@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include_directories(src/include /usr/local/include)
+include_directories(include /usr/local/include)
 link_directories(/usr/local/lib)
 
 set(SRC_FILES
@@ -19,6 +19,8 @@ set(SRC_FILES
         src/fixed_size_allocator.cpp
         src/node.cpp
         src/node4.cpp
+        src/node16.cpp
+        src/node48.cpp
 )
 
 add_library(part SHARED ${SRC_FILES})

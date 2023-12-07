@@ -15,6 +15,8 @@ namespace part {
 class Leaf {
 public:
   static void New(Node &node, const idx_t value);
+  static void Free(ART& art, Node &node);
+
   static idx_t TotalCount(ART &art, Node &node);
   static bool GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids, idx_t max_count);
 
