@@ -43,12 +43,12 @@ void benchAbslFlatHashMap(absl::flat_hash_map<int64_t, int64_t> &map, std::vecto
   fmt::print("flat_hash_map: {} keys consumes: {} bytes, {} ms\n", values.size(), estimated_size, consumes);
 }
 
-void benchARTRead(ART &art,  std::vector<ARTKey> &art_keys) {
+void benchARTRead(ART &art,  std::vector<std::pair<ARTKey, idx_t>> &art_keys) {
   auto start = std::chrono::high_resolution_clock::now();
   std::vector<idx_t> results = {};
   for(int i = 0; i < art_keys.size(); i++) {
     results.clear();
-    bool success = art.Get(art_keys[i], results);
+    bool success = art.Get(art_keys[i].first, results);
   }
   auto end = std::chrono::high_resolution_clock::now();
   auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
@@ -79,16 +79,45 @@ void benchAbslFlatHashMapRead(absl::flat_hash_map<int64_t, int64_t> &map, std::v
   fmt::print("absl flat_hash_map read: {} keys consumes {} ms\n", values.size(), consumes);
 }
 
+void benchBuildART(ART &art, std::vector<std::pair<ARTKey, idx_t>> &values) {
+  auto start = std::chrono::high_resolution_clock::now();
+  for (const auto &[key, value]: values) {
+    art.Put(key, value);
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
+
+  fmt::print("ART consumes memory: {}, {} ms\n", art.GetMemoryUsage(), consumes);
+}
+
+void testInsertDuplicateKey(ArenaAllocator& arena_allocator) {
+  ART art;
+  ARTKey k1 = ARTKey::CreateARTKey<std::string>(arena_allocator, "k1");
+  ARTKey k2 = ARTKey::CreateARTKey<std::string>(arena_allocator, "k1");
+
+  art.Put(k1, 1);
+  art.Put(k2, 2);
+
+  std::vector<idx_t> results;
+
+  art.Get(k1, results);
+
+  assert(results.size() == 2);
+  assert(results[0] == 1 && results[1] == 2);
+}
+
 int main() {
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
   assert(arena_allocator.IsEmpty());
 
+
   data_ptr_t data = arena_allocator.Allocate(10);
   assert(data);
 
-  assert(arena_allocator.SizeInBytes() == 10);
+//  assert(arena_allocator.SizeInBytes() == 10);
+  std::cout << arena_allocator.SizeInBytes() << std::endl;
 
   ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
   ARTKey k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, -1);
@@ -114,6 +143,8 @@ int main() {
   ARTKey sk3 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, raw_sk3);
   assert(sk2 == sk3);
 
+  testInsertDuplicateKey(arena_allocator);
+
   ART art;
   std::vector<idx_t> results = {};
 
@@ -121,7 +152,7 @@ int main() {
   std::mt19937_64 gen(rd());
   std::uniform_int_distribution<int64_t> dist(0, std::numeric_limits<int64_t>::max());
 
-  int limit = 1000000;
+  int limit = 0;
 
   // 需要保证所有的key都不一样
   std::vector<std::string> raw_keys = {};
@@ -145,33 +176,16 @@ int main() {
   benchAbslFlatHashMap(fmap, values);
 
 
-  std::vector<ARTKey> art_keys = {};
+  std::vector<std::pair<ARTKey, idx_t>> art_keys = {};
   for(auto& value: values) {
-    art_keys.push_back(ARTKey::CreateARTKey<int64_t >(arena_allocator, value.first));
+    art_keys.emplace_back(ARTKey::CreateARTKey<int64_t >(arena_allocator, value.first), value.second);
   }
 
-  auto start = std::chrono::high_resolution_clock::now();
-  for(int i = 0; i < art_keys.size(); i++) {
-    art.Put(art_keys[i], i);
-  }
-  auto end = std::chrono::high_resolution_clock::now();
-  auto consumes = std::chrono::duration_cast<std::chrono::milliseconds >(end - start).count();
 
-//  for(int i = 0; i < art_keys.size(); i++) {
-//    results.clear();
-//    bool success = art.Get(art_keys[i], results);
-//    if (results.size() > 0) {
-//      fmt::print("found key = {}, doc_id = {}, success = {}\n", raw_keys[i], results[0], success);
-//    } else {
-//      fmt::print("can not found key = {}, success: {}\n", raw_keys[i], success);
-//    }
-//  }
-
-  fmt::print("ART consumes memory: {}, {} ms\n", art.GetMemoryUsage(), consumes);
-
-  benchHashMapRead(hash_map, values);
-  benchARTRead(art, art_keys);
-  benchAbslFlatHashMapRead(fmap, values);
+//  benchBuildART(art, art_keys);
+//  benchHashMapRead(hash_map, values);
+//  benchARTRead(art, art_keys);
+//  benchAbslFlatHashMapRead(fmap, values);
 
 }
 

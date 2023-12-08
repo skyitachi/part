@@ -100,7 +100,8 @@ void Leaf::MoveInlinedToLeaf(ART &art, Node &node) {
 }
 
 Leaf& Leaf::Append(ART &art, const idx_t row_id) {
-  std::reference_wrapper<Leaf> leaf(*this);
+  auto leaf = std::ref(*this);
+
   if (leaf.get().count == Node::LEAF_SIZE) {
     leaf.get().ptr = Node::GetAllocator(art, NType::LEAF).New();
     leaf.get().ptr.SetType((uint8_t)NType::LEAF);

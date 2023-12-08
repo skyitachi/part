@@ -29,3 +29,10 @@ add_library(part SHARED ${SRC_FILES})
 target_link_libraries(part fmt)
 
 add_subdirectory(examples)
+
+include_directories(thirdparty/googletest/googletest/include)
+
+add_subdirectory(thirdparty/googletest)
+
+add_subdirectory(tests)
+

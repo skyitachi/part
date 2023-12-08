@@ -44,7 +44,7 @@ bool ART::Get(const ARTKey &key, std::vector<idx_t>& result_ids) {
     return false;
   }
 
-  return Leaf::GetDocIds(*this, *leaf.value(), result_ids, 1);
+  return Leaf::GetDocIds(*this, *leaf.value(), result_ids, std::numeric_limits<int64_t>::max());
 }
 
 std::optional<Node*> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
@@ -116,6 +116,7 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
   auto mismatch_position = Prefix::Traverse(*this, next_node, key, depth);
 
   if (next_node.get().GetType() != NType::PREFIX) {
+    std::cout << "should call this branch\n";
     return insert(next_node, key, depth, doc_id);
   }
 
