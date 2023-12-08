@@ -10,7 +10,7 @@ Node16 &Node16::New(ART &art, Node &node) {
   node = Node::GetAllocator(art, NType::NODE_16).New();
   node.SetType((uint8_t)NType::NODE_16);
 
-  auto& n16 = Node16::Get(art, node);
+  auto &n16 = Node16::Get(art, node);
   n16.count = 0;
   return n16;
 }
@@ -28,10 +28,10 @@ Node16 &part::Node16::GrowNode4(ART &art, Node &node16, Node &node4) {
   n4.count = 0;
   Node::Free(art, node4);
   return n16;
-
 }
 
-void Node16::InsertChild(ART &art, Node &node, const uint8_t byte, const Node child) {
+void Node16::InsertChild(ART &art, Node &node, const uint8_t byte,
+                         const Node child) {
   assert(node.IsSet() && !node.IsSerialized());
   auto &n16 = Node16::Get(art, node);
 
@@ -42,7 +42,7 @@ void Node16::InsertChild(ART &art, Node &node, const uint8_t byte, const Node ch
   if (n16.count < Node::NODE_16_CAPACITY) {
     idx_t child_pos = 0;
 
-    while(child_pos < n16.count && n16.key[child_pos] < byte) {
+    while (child_pos < n16.count && n16.key[child_pos] < byte) {
       child_pos++;
     }
 
@@ -79,5 +79,4 @@ void Node16::Free(ART &art, Node &node) {
   }
 }
 
-}
-
+} // namespace part

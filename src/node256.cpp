@@ -6,7 +6,6 @@
 
 namespace part {
 
-
 Node256 &Node256::New(ART &art, Node &node) {
   node = Node::GetAllocator(art, NType::NODE_256).New();
   node.SetType((uint8_t)NType::NODE_256);
@@ -33,7 +32,6 @@ void Node256::Free(ART &art, Node &node) {
       Node::Free(art, n256.children[i]);
     }
   }
-
 }
 
 Node256 &Node256::GrowNode48(ART &art, Node &node256, Node &node48) {
@@ -54,7 +52,8 @@ Node256 &Node256::GrowNode48(ART &art, Node &node256, Node &node48) {
   return n256;
 }
 
-void Node256::InsertChild(ART &art, Node &node, const uint8_t byte, const Node child) {
+void Node256::InsertChild(ART &art, Node &node, const uint8_t byte,
+                          const Node child) {
   assert(node.IsSet() && !node.IsSerialized());
   auto &n256 = Node256::Get(art, node);
 
@@ -63,7 +62,6 @@ void Node256::InsertChild(ART &art, Node &node, const uint8_t byte, const Node c
   n256.count++;
   assert(n256.count <= Node::NODE_256_CAPACITY);
   n256.children[byte] = child;
-
 }
 
 std::optional<Node *> Node256::GetChild(const uint8_t byte) {
@@ -73,4 +71,4 @@ std::optional<Node *> Node256::GetChild(const uint8_t byte) {
 
   return std::nullopt;
 }
-}
+} // namespace part

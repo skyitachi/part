@@ -1,9 +1,9 @@
 //
 // Created by skyitachi on 23-12-7.
 //
-#include <node48.h>
 #include <node16.h>
 #include <node256.h>
+#include <node48.h>
 
 namespace part {
 
@@ -38,7 +38,6 @@ void Node48::Free(ART &art, Node &node) {
       Node::Free(art, n48.children[n48.child_index[i]]);
     }
   }
-
 }
 
 Node48 &Node48::GrowNode16(ART &art, Node &node48, Node &node16) {
@@ -65,7 +64,8 @@ Node48 &Node48::GrowNode16(ART &art, Node &node48, Node &node16) {
   return n48;
 }
 
-void Node48::InsertChild(ART &art, Node &node, const uint8_t byte, const Node child) {
+void Node48::InsertChild(ART &art, Node &node, const uint8_t byte,
+                         const Node child) {
   assert(node.IsSet() && !node.IsSerialized());
   auto &n48 = Node48::Get(art, node);
 
@@ -97,5 +97,4 @@ std::optional<Node *> Node48::GetChild(const uint8_t byte) {
   return std::nullopt;
 }
 
-
-}
+} // namespace part

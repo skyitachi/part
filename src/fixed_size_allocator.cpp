@@ -123,7 +123,7 @@ void FixedSizeAllocator::Free(const Node ptr) {
   auto offset = ptr.GetOffset();
 
   assert(buffer_id < buffers.size());
-  auto& buffer = buffers[buffer_id];
+  auto &buffer = buffers[buffer_id];
 
   auto bitmask_ptr = reinterpret_cast<validity_t *>(buffer.ptr);
   ValidityMask mask(bitmask_ptr);

@@ -37,13 +37,14 @@ Prefix &Prefix::New(ART &art, Node &node) {
   return prefix;
 }
 
-idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node, const ARTKey &key, idx_t &depth) {
+idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node,
+                       const ARTKey &key, idx_t &depth) {
   assert(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
   assert(prefix_node.get().GetType() == NType::PREFIX);
 
-  while(prefix_node.get().GetType() == NType::PREFIX) {
-    auto& prefix = Prefix::Get(art, prefix_node);
-    for(idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
+  while (prefix_node.get().GetType() == NType::PREFIX) {
+    auto &prefix = Prefix::Get(art, prefix_node);
+    for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
       if (prefix.data[i] != key[depth]) {
         return i;
       }
@@ -57,10 +58,11 @@ idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node, cons
   return INVALID_INDEX;
 }
 
-void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &child_node, idx_t position) {
+void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node,
+                   Node &child_node, idx_t position) {
   assert(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
 
-  auto& prefix = Prefix::Get(art, prefix_node);
+  auto &prefix = Prefix::Get(art, prefix_node);
 
   if (position + 1 == Node::PREFIX_SIZE) {
     prefix.data[Node::PREFIX_SIZE]--;
@@ -71,7 +73,7 @@ void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &ch
 
   if (position + 1 < prefix.data[Node::PREFIX_SIZE]) {
     auto child_prefix = std::ref(Prefix::New(art, child_node));
-    for(idx_t i = position + 1; i < prefix.data[Node::PREFIX_SIZE]; i++) {
+    for (idx_t i = position + 1; i < prefix.data[Node::PREFIX_SIZE]; i++) {
       child_prefix = child_prefix.get().Append(art, prefix.data[i]);
     }
 
@@ -117,7 +119,7 @@ void Prefix::Append(ART &art, Node other_prefix) {
 
   auto prefix = std::ref(*this);
 
-  while(other_prefix.GetType() == NType::PREFIX) {
+  while (other_prefix.GetType() == NType::PREFIX) {
 
     auto &other = Prefix::Get(art, other_prefix);
     for (idx_t i = 0; i < other.data[Node::PREFIX_SIZE]; i++) {
@@ -139,7 +141,7 @@ void Prefix::Append(ART &art, Node other_prefix) {
 void Prefix::Free(ART &art, Node &node) {
   Node current_node = node;
   Node next_node;
-  while(current_node.IsSet() && current_node.GetType() == NType::PREFIX) {
+  while (current_node.IsSet() && current_node.GetType() == NType::PREFIX) {
     next_node = Prefix::Get(art, current_node).ptr;
     Node::GetAllocator(art, NType::PREFIX).Free(current_node);
     current_node = next_node;

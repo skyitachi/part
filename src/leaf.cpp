@@ -27,16 +27,16 @@ idx_t Leaf::TotalCount(ART &art, Node &node) {
     count += leaf.count;
 
     // TODO: serialized
-//    if (leaf.ptr.IsSerialized()) {
-//      leaf.ptr.Deserialize(art);
-//    }
+    //    if (leaf.ptr.IsSerialized()) {
+    //      leaf.ptr.Deserialize(art);
+    //    }
     node_ref = leaf.ptr;
   }
   return count;
 }
 
-
-bool Leaf::GetDocIds(ART &art, Node &node, std::vector<idx_t>& result_ids, idx_t max_count) {
+bool Leaf::GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids,
+                     idx_t max_count) {
   assert(node.IsSet());
 
   if (result_ids.size() + Leaf::TotalCount(art, node) > max_count) {
@@ -77,7 +77,7 @@ void Leaf::Insert(ART &art, Node &node, const idx_t row_id) {
   }
 
   std::reference_wrapper<Leaf> leaf = Leaf::Get(art, node);
-  while(leaf.get().ptr.IsSet()) {
+  while (leaf.get().ptr.IsSet()) {
     if (leaf.get().ptr.IsSerialized()) {
       // TODO: deserialized
     }
@@ -99,7 +99,7 @@ void Leaf::MoveInlinedToLeaf(ART &art, Node &node) {
   leaf.ptr.Reset();
 }
 
-Leaf& Leaf::Append(ART &art, const idx_t row_id) {
+Leaf &Leaf::Append(ART &art, const idx_t row_id) {
   auto leaf = std::ref(*this);
 
   if (leaf.get().count == Node::LEAF_SIZE) {

@@ -14,5 +14,4 @@ TEST(ArtTest, basic) {
   ArenaAllocator arena_allocator(allocator, 16384);
 
   assert(arena_allocator.IsEmpty());
-
 }

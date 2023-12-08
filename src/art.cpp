@@ -2,17 +2,17 @@
 // Created by Shiping Yao on 2023/12/4.
 //
 
-#include <iostream>
 #include "art.h"
 #include "art_key.h"
-#include "node.h"
-#include "prefix.h"
-#include "leaf.h"
 #include "fixed_size_allocator.h"
-#include "node4.h"
+#include "leaf.h"
+#include "node.h"
 #include "node16.h"
-#include <node48.h>
+#include "node4.h"
+#include "prefix.h"
+#include <iostream>
 #include <node256.h>
+#include <node48.h>
 
 namespace part {
 
@@ -38,18 +38,19 @@ void ART::Put(const ARTKey &key, idx_t doc_id) {
   insert(*root, key, 0, doc_id);
 }
 
-bool ART::Get(const ARTKey &key, std::vector<idx_t>& result_ids) {
+bool ART::Get(const ARTKey &key, std::vector<idx_t> &result_ids) {
   auto leaf = lookup(*root, key, 0);
   if (!leaf) {
     return false;
   }
 
-  return Leaf::GetDocIds(*this, *leaf.value(), result_ids, std::numeric_limits<int64_t>::max());
+  return Leaf::GetDocIds(*this, *leaf.value(), result_ids,
+                         std::numeric_limits<int64_t>::max());
 }
 
-std::optional<Node*> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
+std::optional<Node *> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
   auto next_node = std::ref(node);
-  while(next_node.get().IsSet()) {
+  while (next_node.get().IsSet()) {
     if (next_node.get().GetType() == NType::PREFIX) {
       Prefix::Traverse(*this, next_node, key, depth);
       if (next_node.get().GetType() == NType::PREFIX) {
@@ -57,7 +58,8 @@ std::optional<Node*> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
       }
     }
 
-    if (next_node.get().GetType() == NType::LEAF || next_node.get().GetType() == NType::LEAF_INLINED) {
+    if (next_node.get().GetType() == NType::LEAF ||
+        next_node.get().GetType() == NType::LEAF_INLINED) {
       return &next_node.get();
     }
 
@@ -72,7 +74,8 @@ std::optional<Node*> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
   return std::nullopt;
 }
 
-void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id) {
+void ART::insert(Node &node, const ARTKey &key, idx_t depth,
+                 const idx_t &doc_id) {
   if (!node.IsSet()) {
     assert(depth <= key.len);
     std::reference_wrapper<Node> ref_node(node);
@@ -151,7 +154,7 @@ bool ART::InsertToLeaf(Node &leaf, const idx_t row_id) {
 idx_t ART::GetMemoryUsage() {
   if (owns_data) {
     idx_t total = 0;
-    for(auto &allocator: *allocators) {
+    for (auto &allocator : *allocators) {
       total += allocator.GetMemoryUsage();
     }
     return total;
