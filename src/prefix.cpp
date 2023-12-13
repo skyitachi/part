@@ -4,6 +4,7 @@
 
 #include "prefix.h"
 #include "art_key.h"
+#include "node.h"
 
 namespace part {
 
@@ -148,6 +149,45 @@ void Prefix::Free(ART &art, Node &node) {
   }
 
   Node::Free(art, current_node);
+}
+
+idx_t Prefix::TotalCount(ART &art, std::reference_wrapper <Node> &node) {
+  assert(node.get().IsSet() && !node.get().IsSerialized());
+
+  idx_t count = 0;
+  while (node.get().GetType() == NType::PREFIX) {
+    auto &prefix = Prefix::Get(art, node);
+    count += prefix.data[Node::PREFIX_SIZE];
+
+    if (prefix.ptr.IsSerialized()) {
+      // TODO Deserialize
+    }
+    node = prefix.ptr;
+  }
+  return count;
+}
+
+BlockPointer Prefix::Serialize(ART &art, Node &node, Serializer &serializer) {
+  auto first_non_prefix = std::ref(node);
+  idx_t total_count = Prefix::TotalCount(art, first_non_prefix);
+
+  auto child_block_pointer = first_non_prefix.get().Serialize(art, serializer);
+
+  auto block_pointer = serializer.GetBlockPointer();
+  serializer.Write(NType::PREFIX);
+  serializer.Write<idx_t>(total_count);
+
+  auto current_node = std::ref(node);
+  while(current_node.get().GetType() == NType::PREFIX) {
+    auto &prefix = Prefix::Get(art, current_node);
+    for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
+      serializer.Write(prefix.data[i]);
+    }
+    current_node = prefix.ptr;
+  }
+  serializer.Write(child_block_pointer.block_id);
+  serializer.Write(child_block_pointer.offset);
+
 }
 
 } // namespace part

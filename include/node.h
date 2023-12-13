@@ -9,6 +9,7 @@
 #include <cstring>
 
 #include "types.h"
+#include "serializer.h"
 
 namespace part {
 
@@ -120,6 +121,10 @@ public:
   std::optional<Node* > GetChild(ART &art, const uint8_t byte) const;
 
   static void InsertChild(ART& art, Node& node, const uint8_t byte, const Node child);
+
+  BlockPointer Serialize(ART &art, Serializer &serializer);
+
+  void Deserialize(ART &art);
 
 private:
   uint64_t data;

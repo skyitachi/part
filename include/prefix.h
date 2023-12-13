@@ -9,7 +9,6 @@
 #include "art.h"
 #include "node.h"
 #include "fixed_size_allocator.h"
-#include "block.h"
 
 namespace part {
 class ARTKey;
@@ -43,9 +42,9 @@ public:
   void Append(ART &art, Node other_prefix);
 
   // serialization
-  static BlockPointer Serialize(ART &art, Node &node);
+  static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
 
-  static void Deserialize(ART &art, Node &node, BlockPointer &pointer);
+  static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
 
 
 public:

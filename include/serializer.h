@@ -5,6 +5,7 @@
 #ifndef PART_SERIALIZER_H
 #define PART_SERIALIZER_H
 #include "types.h"
+#include "block.h"
 
 namespace part {
 class Serializer {
@@ -20,7 +21,7 @@ public:
     this->version = v;
   }
 
-  virtual void WriteData(const data_ptr_t buffer, idx_t write_size) = 0;
+  virtual void WriteData(const_data_ptr_t buffer, idx_t write_size) = 0;
 
   template <class T>
   void Write(T element) {

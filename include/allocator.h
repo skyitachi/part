@@ -4,8 +4,10 @@
 
 #ifndef PART_ALLOCATOR_H
 #define PART_ALLOCATOR_H
+#include <cassert>
 
 #include "types.h"
+
 
 namespace part {
 class Allocator;
