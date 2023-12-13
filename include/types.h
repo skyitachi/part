@@ -17,6 +17,13 @@ using data_ptr_t = data_t *;
 using const_data_ptr_t = const data_t *;
 using validity_t = uint64_t;
 
+using block_id_t = int64_t;
+
+#define INVALID_BLOCK (-1)
+
+// maximum block id, 2^62
+#define MAXIMUM_BLOCK 4611686018427388000LL
+
 static constexpr const idx_t INVALID_INDEX = idx_t(-1);
 
 template <class SRC> data_ptr_t data_ptr_cast(SRC *src) {

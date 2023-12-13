@@ -9,6 +9,7 @@
 #include "art.h"
 #include "node.h"
 #include "fixed_size_allocator.h"
+#include "block.h"
 
 namespace part {
 class ARTKey;
@@ -33,9 +34,6 @@ public:
     return prefix.data[position];
   }
 
-
-
-
   static idx_t Traverse(ART& art, std::reference_wrapper<Node>& prefix_node, const ARTKey& key, idx_t &depth);
 
   static void Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &child_node, idx_t position);
@@ -44,10 +42,17 @@ public:
 
   void Append(ART &art, Node other_prefix);
 
+  // serialization
+  static BlockPointer Serialize(ART &art, Node &node);
+
+  static void Deserialize(ART &art, Node &node, BlockPointer &pointer);
+
+
 public:
   static Prefix &New(ART &art, Node &node);
   static void New(ART &art, std::reference_wrapper<Node> &node,
                   const ARTKey &key, const uint32_t depth, uint32_t count);
+  static idx_t TotalCount(ART &art, std::reference_wrapper<Node> &node);
 };
 } // namespace part
 #endif // PART_PREFIX_H
