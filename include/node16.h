@@ -36,6 +36,10 @@ public:
 
   std::optional<Node *> GetChild(const uint8_t byte);
 
+  static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
+
+  static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
+
 
 
 };

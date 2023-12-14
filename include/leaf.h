@@ -26,6 +26,12 @@ public:
   }
 
   static void Insert(ART &art, Node &node, const idx_t row_id);
+
+  static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
+
+  static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
+
+
 public:
   //! The number of row IDs in this leaf
   uint8_t count;

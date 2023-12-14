@@ -34,6 +34,10 @@ public:
   std::optional<Node *> GetChild(const uint8_t byte);
 
   static void InsertChild(ART &art, Node &node, uint8_t byte, const Node child);
+
+  static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
+
+  static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
 };
 } // namespace part
 

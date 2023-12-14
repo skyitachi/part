@@ -95,4 +95,32 @@ void Node::Free(ART &art, Node &node) {
   node.Reset();
 }
 
+BlockPointer Node::Serialize(ART &art, Serializer &serializer) {
+  if (!IsSet()) {
+    return BlockPointer();
+  }
+  if (IsSerialized()) {
+    Deserialize(art);
+  }
+
+  switch (GetType()) {
+    case NType::PREFIX:
+      return Prefix::Serialize(art, *this, serializer);
+    case NType::LEAF:
+      return Leaf::Serialize(art, *this, serializer);
+    case NType::NODE_4:
+      return Node4::Serialize(art, *this, serializer);
+    case NType::NODE_16:
+      return Node16::Serialize(art, *this, serializer);
+    case NType::NODE_48:
+      return Node48::Serialize(art, *this, serializer);
+    case NType::NODE_256:
+      return Node256::Serialize(art, *this, serializer);
+    case NType::LEAF_INLINED:
+      return Leaf::Serialize(art, *this, serializer);
+    default:
+      throw std::invalid_argument("invalid type for serialize");
+  }
+}
+
 } // namespace part

@@ -188,6 +188,7 @@ BlockPointer Prefix::Serialize(ART &art, Node &node, Serializer &serializer) {
   serializer.Write(child_block_pointer.block_id);
   serializer.Write(child_block_pointer.offset);
 
+  return block_pointer;
 }
 
 } // namespace part
