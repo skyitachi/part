@@ -97,4 +97,12 @@ std::optional<Node *> Node48::GetChild(const uint8_t byte) {
   return std::nullopt;
 }
 
+BlockPointer Node48::Serialize(ART &art, Node &node, Serializer &serializer) {
+  return BlockPointer();
+}
+
+void Node48::Deserialize(ART &art, Node &node, Deserializer &deserializer) {
+
+}
+
 } // namespace part

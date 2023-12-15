@@ -123,4 +123,7 @@ BlockPointer Node::Serialize(ART &art, Serializer &serializer) {
   }
 }
 
+void Node::Deserialize(ART &art) {
+}
+
 } // namespace part

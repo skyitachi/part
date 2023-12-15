@@ -79,4 +79,12 @@ void Node16::Free(ART &art, Node &node) {
   }
 }
 
+BlockPointer Node16::Serialize(ART &art, Node &node, Serializer &serializer) {
+  return BlockPointer();
+}
+
+void Node16::Deserialize(ART &art, Node &node, Deserializer &deserializer) {
+
+}
+
 } // namespace part

@@ -71,4 +71,12 @@ std::optional<Node *> Node256::GetChild(const uint8_t byte) {
 
   return std::nullopt;
 }
+
+BlockPointer Node256::Serialize(ART &art, Node &node, Serializer &serializer) {
+  return BlockPointer();
+}
+
+void Node256::Deserialize(ART &art, Node &node, Deserializer &deserializer) {
+
+}
 } // namespace part

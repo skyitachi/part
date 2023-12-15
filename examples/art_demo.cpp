@@ -155,32 +155,45 @@ int main() {
   int limit = 0;
 
   // 需要保证所有的key都不一样
-  std::vector<std::string> raw_keys = {};
-  std::unordered_set<int64_t> key_sets = {};
-  std::unordered_map<int64_t, int64_t> hash_map;
-  std::vector<std::pair<int64_t, int64_t>> values;
+//  std::vector<std::string> raw_keys = {};
+//  std::unordered_set<int64_t> key_sets = {};
+//  std::unordered_map<int64_t, int64_t> hash_map;
+//  std::vector<std::pair<int64_t, int64_t>> values;
+//
+//  for(int i = 0; i < limit; i++) {
+//    int64_t rk;
+//    do {
+//      rk = dist(gen);
+//    } while (key_sets.contains(rk));
+//    values.emplace_back(rk, i);
+//    key_sets.insert(rk);
+//    raw_keys.emplace_back(fmt::format("{}",rk));
+//  }
+//
+//  benchHashMap(hash_map, values);
+//
+//  absl::flat_hash_map<int64_t, int64_t> fmap;
+//  benchAbslFlatHashMap(fmap, values);
+//
+//
+//  std::vector<std::pair<ARTKey, idx_t>> art_keys = {};
+//  for(auto& value: values) {
+//    art_keys.emplace_back(ARTKey::CreateARTKey<int64_t >(arena_allocator, value.first), value.second);
+//  }
 
-  for(int i = 0; i < limit; i++) {
-    int64_t rk;
-    do {
-      rk = dist(gen);
-    } while (key_sets.contains(rk));
-    values.emplace_back(rk, i);
-    key_sets.insert(rk);
-    raw_keys.emplace_back(fmt::format("{}",rk));
+  {
+    ART art2;
+    art2.Put(k1, 1000);
+
+    SequentialSerializer writer("art.index");
+
+    auto block_pointer = art2.Serialize(writer);
+
+
+    fmt::println("root set: {}, block_id: {}, offset_: {}", art2.root->IsSet(), block_pointer.block_id, block_pointer.offset);
+
+
   }
-
-  benchHashMap(hash_map, values);
-
-  absl::flat_hash_map<int64_t, int64_t> fmap;
-  benchAbslFlatHashMap(fmap, values);
-
-
-  std::vector<std::pair<ARTKey, idx_t>> art_keys = {};
-  for(auto& value: values) {
-    art_keys.emplace_back(ARTKey::CreateARTKey<int64_t >(arena_allocator, value.first), value.second);
-  }
-
 
 //  benchBuildART(art, art_keys);
 //  benchHashMapRead(hash_map, values);

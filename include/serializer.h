@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <fmt/core.h>
 
@@ -60,7 +61,7 @@ public:
 class SequentialSerializer: public Serializer {
 public:
     explicit SequentialSerializer(std::string path): block_id_(0), offset_(0), capacity_(4096) {
-        fd_ = ::open(path.c_str(), O_CREAT | O_RDWR);
+        fd_ = ::open(path.c_str(), O_CREAT | O_RDWR, 0644);
         if (fd_ == -1) {
             throw std::invalid_argument(fmt::format("cannot open file {}, due to {}", path, strerror(errno)));
         }
@@ -71,7 +72,7 @@ public:
 
     ~SequentialSerializer() {
         if (fd_ != -1) {
-            close(fd_);
+            ::close(fd_);
         }
     }
 
