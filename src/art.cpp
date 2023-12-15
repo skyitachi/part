@@ -2,6 +2,8 @@
 // Created by Shiping Yao on 2023/12/4.
 //
 
+#include <iostream>
+
 #include "art.h"
 #include "art_key.h"
 #include "fixed_size_allocator.h"
@@ -10,7 +12,6 @@
 #include "node16.h"
 #include "node4.h"
 #include "prefix.h"
-#include <iostream>
 #include <node256.h>
 #include <node48.h>
 
@@ -30,6 +31,16 @@ ART::ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
   }
 
   root = std::make_unique<Node>();
+}
+
+ART::ART(const std::string& metadata_path,
+         const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr): ART(allocators_ptr) {
+
+    metadata_fd_ = ::open(metadata_path.c_str(), O_CREAT | O_RDWR, 0644);
+    if (metadata_fd_ == -1) {
+        throw std::invalid_argument(fmt::format("cannot open {} file, error: {}",
+                                                metadata_path, strerror(errno)));
+    }
 }
 
 ART::~ART() { root->Reset(); }
@@ -168,4 +179,13 @@ BlockPointer ART::Serialize(Serializer &writer) {
     }
     return BlockPointer();
 }
+
+void ART::UpdateMetadata(BlockPointer pointer) {
+    if (metadata_fd_ == -1) {
+        throw std::invalid_argument(fmt::format("no metadata file"));
+    }
+    ::write(metadata_fd_, &pointer.block_id, sizeof(block_id_t));
+    ::write(metadata_fd_, &pointer.offset, sizeof(uint32_t));
+}
+
 } // namespace part
