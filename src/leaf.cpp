@@ -129,4 +129,32 @@ void Leaf::Free(ART &art, Node &node) {
   node.Reset();
 }
 
+BlockPointer Leaf::Serialize(ART &art, Node &node, Serializer &writer) {
+    if (node.GetType() == NType::LEAF_INLINED) {
+        auto block_pointer = writer.GetBlockPointer();
+        writer.Write(NType::LEAF_INLINED);
+        writer.Write(node.GetDocId());
+        return block_pointer;
+    }
+
+    auto block_pointer = writer.GetBlockPointer();
+    writer.Write(NType::LEAF);
+    idx_t total_count = Leaf::TotalCount(art, node);
+    writer.Write<idx_t>(total_count);
+
+    // iterate all leaves and write their row IDs
+    auto ref_node = std::ref(node);
+    while (ref_node.get().IsSet()) {
+        assert(!ref_node.get().IsSerialized());
+        auto &leaf = Leaf::Get(art, ref_node);
+
+        // write row IDs
+        for (idx_t i = 0; i < leaf.count; i++) {
+            writer.Write(leaf.row_ids[i]);
+        }
+        ref_node = leaf.ptr;
+    }
+    return block_pointer;
+}
+
 } // namespace part

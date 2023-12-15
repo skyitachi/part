@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "types.h"
+#include "block.h"
+#include "serializer.h"
 
 namespace part {
 class Node;
@@ -31,6 +33,8 @@ public:
   bool Get(const ARTKey &key, std::vector<idx_t> &result_ids);
 
   idx_t GetMemoryUsage();
+
+  BlockPointer Serialize(Serializer &writer);
 
 private:
   void insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);

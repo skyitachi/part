@@ -22,6 +22,7 @@ set(SRC_FILES
         src/node16.cpp
         src/node48.cpp
         src/node256.cpp
+        src/serializer.cpp
 )
 
 add_library(part SHARED ${SRC_FILES})

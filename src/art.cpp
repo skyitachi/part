@@ -161,4 +161,11 @@ idx_t ART::GetMemoryUsage() {
   }
   return 0;
 }
+
+BlockPointer ART::Serialize(Serializer &writer) {
+    if (root->IsSet()) {
+        return root->Serialize(*this, writer);
+    }
+    return BlockPointer();
+}
 } // namespace part
