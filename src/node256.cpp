@@ -76,7 +76,5 @@ BlockPointer Node256::Serialize(ART &art, Node &node, Serializer &serializer) {
   return BlockPointer();
 }
 
-void Node256::Deserialize(ART &art, Node &node, Deserializer &deserializer) {
-
-}
+void Node256::Deserialize(ART &art, Node &node, Deserializer &deserializer) {}
 } // namespace part

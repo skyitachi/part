@@ -54,6 +54,9 @@ idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node,
     prefix_node = prefix.ptr;
     assert(prefix_node.get().IsSet());
     // TODO: serialized
+    if (prefix_node.get().IsSerialized()) {
+      prefix_node.get().Deserialize(art);
+    }
   }
 
   return INVALID_INDEX;
@@ -151,7 +154,7 @@ void Prefix::Free(ART &art, Node &node) {
   Node::Free(art, current_node);
 }
 
-idx_t Prefix::TotalCount(ART &art, std::reference_wrapper <Node> &node) {
+idx_t Prefix::TotalCount(ART &art, std::reference_wrapper<Node> &node) {
   assert(node.get().IsSet() && !node.get().IsSerialized());
 
   idx_t count = 0;
@@ -178,7 +181,7 @@ BlockPointer Prefix::Serialize(ART &art, Node &node, Serializer &serializer) {
   serializer.Write<idx_t>(total_count);
 
   auto current_node = std::ref(node);
-  while(current_node.get().GetType() == NType::PREFIX) {
+  while (current_node.get().GetType() == NType::PREFIX) {
     auto &prefix = Prefix::Get(art, current_node);
     for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
       serializer.Write(prefix.data[i]);
@@ -189,6 +192,31 @@ BlockPointer Prefix::Serialize(ART &art, Node &node, Serializer &serializer) {
   serializer.Write(child_block_pointer.offset);
 
   return block_pointer;
+}
+
+void Prefix::Deserialize(ART &art, Node &node, Deserializer &reader) {
+  auto total_count = reader.Read<idx_t>();
+  auto current_node = std::ref(node);
+
+  while (total_count) {
+    current_node.get() = Node::GetAllocator(art, NType::PREFIX).New();
+    current_node.get().SetType((uint8_t)NType::PREFIX);
+
+    auto &prefix = Prefix::Get(art, current_node);
+    prefix.data[Node::PREFIX_SIZE] =
+        std::min((idx_t)Node::PREFIX_SIZE, total_count);
+
+    for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
+      prefix.data[i] = reader.Read<uint8_t>();
+    }
+
+    total_count -= prefix.data[Node::PREFIX_SIZE];
+
+    current_node = prefix.ptr;
+    prefix.ptr.Reset();
+  }
+
+  current_node.get() = Node(reader);
 }
 
 } // namespace part

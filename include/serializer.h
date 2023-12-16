@@ -60,7 +60,7 @@ public:
 
 class SequentialSerializer: public Serializer {
 public:
-    explicit SequentialSerializer(std::string path): block_id_(0), offset_(0), capacity_(4096) {
+    explicit SequentialSerializer(std::string path): block_id_(0), offset_(0), capacity_(BLOCK_SIZE) {
         fd_ = ::open(path.c_str(), O_CREAT | O_RDWR, 0644);
         if (fd_ == -1) {
             throw std::invalid_argument(fmt::format("cannot open file {}, due to {}", path, strerror(errno)));
@@ -82,6 +82,30 @@ private:
     uint32_t offset_;
     int fd_;
     uint32_t capacity_;
+};
+
+
+class SequentialDeserializer: public Deserializer {
+public:
+    explicit SequentialDeserializer(const std::string &path, const BlockPointer &pointer) {
+        fd_ = ::open(path.c_str(), O_RDONLY, 0644);
+        if (fd_ == -1) {
+            throw std::invalid_argument(fmt::format("cannot open file {}, error: {}", path, strerror(errno)));
+        }
+
+        block_id_ = pointer.block_id;
+        offset_ = pointer.offset;
+    }
+
+    SequentialDeserializer(int fd, const BlockPointer &pointer):
+        fd_(fd), block_id_(pointer.block_id), offset_(pointer.offset) {
+    }
+
+    virtual void ReadData(data_ptr_t buffer, idx_t read_size) override;
+private:
+    idx_t block_id_;
+    int fd_;
+    uint32_t offset_;
 };
 }
 #endif //PART_SERIALIZER_H

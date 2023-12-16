@@ -33,14 +33,28 @@ ART::ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
   root = std::make_unique<Node>();
 }
 
-ART::ART(const std::string& metadata_path,
-         const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr): ART(allocators_ptr) {
+ART::ART(const std::string &metadata_path, const std::string &index_path,
+         const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
+    : ART(allocators_ptr) {
 
-    metadata_fd_ = ::open(metadata_path.c_str(), O_CREAT | O_RDWR, 0644);
-    if (metadata_fd_ == -1) {
-        throw std::invalid_argument(fmt::format("cannot open {} file, error: {}",
-                                                metadata_path, strerror(errno)));
-    }
+  metadata_fd_ = ::open(metadata_path.c_str(), O_CREAT | O_RDWR, 0644);
+  if (metadata_fd_ == -1) {
+    throw std::invalid_argument(fmt::format("cannot open {} file, error: {}",
+                                            metadata_path, strerror(errno)));
+  }
+
+  index_fd_ = ::open(index_path.c_str(), O_CREAT | O_RDWR, 0644);
+  if (index_fd_ == -1) {
+    throw std::invalid_argument(fmt::format(
+        "cann open {} index file, error: {}", index_path, strerror(errno)));
+  }
+  auto pointer = ReadMetadata();
+  fmt::println("meta pointer.block_id: {}, offset: {}", pointer.block_id,
+               pointer.offset);
+  root = std::make_unique<Node>(pointer.block_id, pointer.offset);
+  root->SetSerialized();
+
+  index_path_ = index_path;
 }
 
 ART::~ART() { root->Reset(); }
@@ -130,7 +144,6 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth,
   auto mismatch_position = Prefix::Traverse(*this, next_node, key, depth);
 
   if (next_node.get().GetType() != NType::PREFIX) {
-    std::cout << "should call this branch\n";
     return insert(next_node, key, depth, doc_id);
   }
 
@@ -174,18 +187,28 @@ idx_t ART::GetMemoryUsage() {
 }
 
 BlockPointer ART::Serialize(Serializer &writer) {
-    if (root->IsSet()) {
-        return root->Serialize(*this, writer);
-    }
-    return BlockPointer();
+  if (root->IsSet()) {
+    return root->Serialize(*this, writer);
+  }
+  return BlockPointer();
 }
 
-void ART::UpdateMetadata(BlockPointer pointer) {
-    if (metadata_fd_ == -1) {
-        throw std::invalid_argument(fmt::format("no metadata file"));
-    }
-    ::write(metadata_fd_, &pointer.block_id, sizeof(block_id_t));
-    ::write(metadata_fd_, &pointer.offset, sizeof(uint32_t));
+void ART::UpdateMetadata(BlockPointer pointer, Serializer &writer) {
+  writer.Write<block_id_t>(pointer.block_id);
+  writer.Write<uint32_t>(pointer.offset);
 }
+
+BlockPointer ART::ReadMetadata() {
+  if (metadata_fd_ == -1) {
+    throw std::invalid_argument(fmt::format("no meta file"));
+  }
+  BlockPointer pointer;
+  int64_t block_id;
+  ::read(metadata_fd_, &pointer.block_id, sizeof(block_id_t));
+  ::read(metadata_fd_, &pointer.offset, sizeof(uint32_t));
+  return pointer;
+}
+
+void ART::Deserialize() { root->Deserialize(*this); }
 
 } // namespace part

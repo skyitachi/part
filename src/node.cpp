@@ -13,6 +13,19 @@
 
 namespace part {
 
+Node::Node(Deserializer &reader) {
+  auto block_id = reader.Read<block_id_t>();
+  auto offset = reader.Read<uint32_t>();
+  Reset();
+
+  if (block_id == INVALID_BLOCK) {
+    return;
+  }
+
+  SetSerialized();
+  SetPtr(block_id, offset);
+}
+
 FixedSizeAllocator &Node::GetAllocator(const ART &art, NType type) {
   return (*art.allocators)[(uint8_t)type - 1];
 }
@@ -104,26 +117,47 @@ BlockPointer Node::Serialize(ART &art, Serializer &serializer) {
   }
 
   switch (GetType()) {
-    case NType::PREFIX:
-      return Prefix::Serialize(art, *this, serializer);
-    case NType::LEAF:
-      return Leaf::Serialize(art, *this, serializer);
-    case NType::NODE_4:
-      return Node4::Serialize(art, *this, serializer);
-    case NType::NODE_16:
-      return Node16::Serialize(art, *this, serializer);
-    case NType::NODE_48:
-      return Node48::Serialize(art, *this, serializer);
-    case NType::NODE_256:
-      return Node256::Serialize(art, *this, serializer);
-    case NType::LEAF_INLINED:
-      return Leaf::Serialize(art, *this, serializer);
-    default:
-      throw std::invalid_argument("invalid type for serialize");
+  case NType::PREFIX:
+    return Prefix::Serialize(art, *this, serializer);
+  case NType::LEAF:
+    return Leaf::Serialize(art, *this, serializer);
+  case NType::NODE_4:
+    return Node4::Serialize(art, *this, serializer);
+  case NType::NODE_16:
+    return Node16::Serialize(art, *this, serializer);
+  case NType::NODE_48:
+    return Node48::Serialize(art, *this, serializer);
+  case NType::NODE_256:
+    return Node256::Serialize(art, *this, serializer);
+  case NType::LEAF_INLINED:
+    return Leaf::Serialize(art, *this, serializer);
+  default:
+    throw std::invalid_argument("invalid type for serialize");
   }
 }
 
 void Node::Deserialize(ART &art) {
+  assert(IsSet() && IsSerialized());
+
+  BlockPointer pointer(GetBufferId(), GetOffset());
+  SequentialDeserializer reader(art.GetIndexFileFd(), pointer);
+  Reset();
+  SetType(reader.Read<uint8_t>());
+  auto decoded_type = GetType();
+
+  if (decoded_type == NType::PREFIX) {
+    return Prefix::Deserialize(art, *this, reader);
+  }
+
+  if (decoded_type == NType::LEAF_INLINED) {
+    return SetDocID(reader.Read<idx_t>());
+  }
+
+  if (decoded_type == NType::LEAF) {
+    return Leaf::Deserialize(art, *this, reader);
+  }
+
+  throw std::invalid_argument("other type deserializer not supported");
 }
 
 } // namespace part

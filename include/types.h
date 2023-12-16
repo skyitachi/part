@@ -19,6 +19,7 @@ using validity_t = uint64_t;
 
 using block_id_t = int64_t;
 
+#define BLOCK_SIZE 4096
 #define INVALID_BLOCK (-1)
 
 // maximum block id, 2^62

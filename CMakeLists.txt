@@ -5,6 +5,7 @@ project(part)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include_directories(include /usr/local/include)
 link_directories(/usr/local/lib)
