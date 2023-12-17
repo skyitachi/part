@@ -109,6 +109,7 @@ void Node::Free(ART &art, Node &node) {
 }
 
 BlockPointer Node::Serialize(ART &art, Serializer &serializer) {
+    // NOTE: important
   if (!IsSet()) {
     return BlockPointer();
   }

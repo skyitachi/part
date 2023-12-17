@@ -21,15 +21,14 @@ idx_t Leaf::TotalCount(ART &art, Node &node) {
   }
 
   idx_t count = 0;
-  std::reference_wrapper<Node> node_ref(node);
+  auto node_ref = std::ref(node);
   while (node_ref.get().IsSet()) {
     auto &leaf = Leaf::Get(art, node_ref);
     count += leaf.count;
 
-    // TODO: serialized
-    //    if (leaf.ptr.IsSerialized()) {
-    //      leaf.ptr.Deserialize(art);
-    //    }
+    if (leaf.ptr.IsSerialized()) {
+      leaf.ptr.Deserialize(art);
+    }
     node_ref = leaf.ptr;
   }
   return count;
@@ -79,7 +78,7 @@ void Leaf::Insert(ART &art, Node &node, const idx_t row_id) {
   std::reference_wrapper<Leaf> leaf = Leaf::Get(art, node);
   while (leaf.get().ptr.IsSet()) {
     if (leaf.get().ptr.IsSerialized()) {
-      // TODO: deserialized
+        leaf.get().ptr.Deserialize(art);
     }
     leaf = Leaf::Get(art, leaf.get().ptr);
   }

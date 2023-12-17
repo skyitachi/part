@@ -53,7 +53,6 @@ idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node,
     }
     prefix_node = prefix.ptr;
     assert(prefix_node.get().IsSet());
-    // TODO: serialized
     if (prefix_node.get().IsSerialized()) {
       prefix_node.get().Deserialize(art);
     }
@@ -82,7 +81,9 @@ void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node,
     }
 
     assert(prefix.ptr.IsSet());
-    // TODO: serialize
+    if (prefix.ptr.IsSerialized()) {
+        prefix.ptr.Deserialize(art);
+    }
 
     if (prefix.ptr.GetType() == NType::PREFIX) {
       child_prefix.get().Append(art, prefix.ptr);
@@ -131,7 +132,10 @@ void Prefix::Append(ART &art, Node other_prefix) {
     }
 
     assert(other.ptr.IsSet());
-    // TODO: serialized
+    if (other.ptr.IsSerialized()) {
+        other.ptr.Deserialize(art);
+    }
+
 
     prefix.get().ptr = other.ptr;
     Node::GetAllocator(art, NType::PREFIX).Free(other_prefix);
@@ -163,7 +167,7 @@ idx_t Prefix::TotalCount(ART &art, std::reference_wrapper<Node> &node) {
     count += prefix.data[Node::PREFIX_SIZE];
 
     if (prefix.ptr.IsSerialized()) {
-      // TODO Deserialize
+      prefix.ptr.Deserialize(art);
     }
     node = prefix.ptr;
   }
