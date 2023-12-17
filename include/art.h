@@ -39,11 +39,14 @@ public:
 
   BlockPointer Serialize(Serializer &writer);
 
-  void Deserialize();
-
   void UpdateMetadata(BlockPointer pointer, Serializer &meta_writer);
 
   BlockPointer ReadMetadata();
+
+  void Serialize();
+
+  void Deserialize();
+
 
   int GetIndexFileFd() {
       return index_fd_;
@@ -56,8 +59,9 @@ private:
   bool InsertToLeaf(Node &leaf, const idx_t row_id);
 
   int metadata_fd_;
-  std::string index_path_;
   int index_fd_;
+  std::string index_path_;
+  std::string meta_path_;
 };
 
 } // namespace part

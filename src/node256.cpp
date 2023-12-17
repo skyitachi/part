@@ -73,36 +73,33 @@ std::optional<Node *> Node256::GetChild(const uint8_t byte) {
 }
 
 BlockPointer Node256::Serialize(ART &art, Node &node, Serializer &writer) {
-    assert(node.IsSet() && !node.IsSerialized());
-    auto &n256 = Node256::Get(art, node);
+  assert(node.IsSet() && !node.IsSerialized());
+  auto &n256 = Node256::Get(art, node);
 
-    std::vector<BlockPointer> child_block_pointers;
-    for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-        child_block_pointers.emplace_back(n256.children[i].Serialize(art, writer));
-    }
+  std::vector<BlockPointer> child_block_pointers;
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    child_block_pointers.emplace_back(n256.children[i].Serialize(art, writer));
+  }
 
-    auto block_pointer = writer.GetBlockPointer();
-    writer.Write(NType::NODE_256);
-    writer.Write(n256.count);
+  auto block_pointer = writer.GetBlockPointer();
+  writer.Write(NType::NODE_256);
+  writer.Write(n256.count);
 
-    for (auto &child_block_pointer: child_block_pointers) {
-        writer.Write(child_block_pointer.block_id);
-        writer.Write(child_block_pointer.offset);
-    }
+  for (auto &child_block_pointer : child_block_pointers) {
+    writer.Write(child_block_pointer.block_id);
+    writer.Write(child_block_pointer.offset);
+  }
 
-    return block_pointer;
+  return block_pointer;
 }
 
 void Node256::Deserialize(ART &art, Node &node, Deserializer &reader) {
-    assert(node.IsSet() && node.IsSerialized());
-    node = Node::GetAllocator(art, NType::NODE_256).New();
 
-    auto &n256 = Node256::Get(art, node);
-    n256.count = reader.Read<uint16_t>();
+  auto &n256 = Node256::Get(art, node);
+  n256.count = reader.Read<uint16_t>();
 
-    for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-        n256.children[i] = Node(reader);
-    }
-
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    n256.children[i] = Node(reader);
+  }
 }
 } // namespace part

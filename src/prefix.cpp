@@ -82,7 +82,7 @@ void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node,
 
     assert(prefix.ptr.IsSet());
     if (prefix.ptr.IsSerialized()) {
-        prefix.ptr.Deserialize(art);
+      prefix.ptr.Deserialize(art);
     }
 
     if (prefix.ptr.GetType() == NType::PREFIX) {
@@ -133,9 +133,8 @@ void Prefix::Append(ART &art, Node other_prefix) {
 
     assert(other.ptr.IsSet());
     if (other.ptr.IsSerialized()) {
-        other.ptr.Deserialize(art);
+      other.ptr.Deserialize(art);
     }
-
 
     prefix.get().ptr = other.ptr;
     Node::GetAllocator(art, NType::PREFIX).Free(other_prefix);

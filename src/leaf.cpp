@@ -78,7 +78,7 @@ void Leaf::Insert(ART &art, Node &node, const idx_t row_id) {
   std::reference_wrapper<Leaf> leaf = Leaf::Get(art, node);
   while (leaf.get().ptr.IsSet()) {
     if (leaf.get().ptr.IsSerialized()) {
-        leaf.get().ptr.Deserialize(art);
+      leaf.get().ptr.Deserialize(art);
     }
     leaf = Leaf::Get(art, leaf.get().ptr);
   }

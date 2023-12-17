@@ -37,24 +37,24 @@ ART::ART(const std::string &metadata_path, const std::string &index_path,
          const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
     : ART(allocators_ptr) {
 
-  metadata_fd_ = ::open(metadata_path.c_str(), O_CREAT | O_RDWR, 0644);
-  if (metadata_fd_ == -1) {
-    throw std::invalid_argument(fmt::format("cannot open {} file, error: {}",
-                                            metadata_path, strerror(errno)));
-  }
+  index_path_ = index_path;
+  meta_path_ = metadata_path;
 
   index_fd_ = ::open(index_path.c_str(), O_CREAT | O_RDWR, 0644);
   if (index_fd_ == -1) {
     throw std::invalid_argument(fmt::format(
         "cann open {} index file, error: {}", index_path, strerror(errno)));
   }
-  auto pointer = ReadMetadata();
-  fmt::println("meta pointer.block_id: {}, offset: {}", pointer.block_id,
-               pointer.offset);
-  root = std::make_unique<Node>(pointer.block_id, pointer.offset);
-  root->SetSerialized();
 
-  index_path_ = index_path;
+  metadata_fd_ = ::open(metadata_path.c_str(), O_RDWR, 0644);
+  if (metadata_fd_ == -1) {
+    root = std::make_unique<Node>();
+  } else {
+    auto pointer = ReadMetadata();
+    root = std::make_unique<Node>(pointer.block_id, pointer.offset);
+    root->SetSerialized();
+    root->Deserialize(*this);
+  }
 }
 
 ART::~ART() { root->Reset(); }
@@ -193,6 +193,16 @@ BlockPointer ART::Serialize(Serializer &writer) {
   return BlockPointer();
 }
 
+void ART::Serialize() {
+  SequentialSerializer data_writer(index_path_);
+  BlockPointer pointer = BlockPointer();
+  if (root->IsSet()) {
+    pointer = root->Serialize(*this, data_writer);
+    SequentialSerializer meta_writer(meta_path_);
+    UpdateMetadata(pointer, meta_writer);
+  }
+}
+
 void ART::UpdateMetadata(BlockPointer pointer, Serializer &writer) {
   writer.Write<block_id_t>(pointer.block_id);
   writer.Write<uint32_t>(pointer.offset);
@@ -203,7 +213,6 @@ BlockPointer ART::ReadMetadata() {
     throw std::invalid_argument(fmt::format("no meta file"));
   }
   BlockPointer pointer;
-  int64_t block_id;
   ::read(metadata_fd_, &pointer.block_id, sizeof(block_id_t));
   ::read(metadata_fd_, &pointer.offset, sizeof(uint32_t));
   return pointer;

@@ -98,43 +98,42 @@ std::optional<Node *> Node48::GetChild(const uint8_t byte) {
 }
 
 BlockPointer Node48::Serialize(ART &art, Node &node, Serializer &writer) {
-    assert(node.IsSet() && !node.IsSerialized());
-    auto& n48 = Node48::Get(art, node);
+  assert(node.IsSet() && !node.IsSerialized());
+  auto &n48 = Node48::Get(art, node);
 
-    std::vector<BlockPointer> child_pointer_blocks;
-    for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
-        child_pointer_blocks.emplace_back(n48.children[i].Serialize(art, writer));
-    }
-    auto block_pointer = writer.GetBlockPointer();
+  std::vector<BlockPointer> child_pointer_blocks;
+  for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
+    child_pointer_blocks.emplace_back(n48.children[i].Serialize(art, writer));
+  }
+  auto block_pointer = writer.GetBlockPointer();
 
-    writer.Write(NType::NODE_48);
-    writer.Write<uint8_t>(n48.count);
+  writer.Write(NType::NODE_48);
+  writer.Write<uint8_t>(n48.count);
 
-    for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-        writer.Write(n48.child_index[i]);
-    }
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    writer.Write(n48.child_index[i]);
+  }
 
-    for (auto &child_block_pointer: child_pointer_blocks) {
-        writer.Write(child_block_pointer.block_id);
-        writer.Write(child_block_pointer.offset);
-    }
+  for (auto &child_block_pointer : child_pointer_blocks) {
+    writer.Write(child_block_pointer.block_id);
+    writer.Write(child_block_pointer.offset);
+  }
 
-    return block_pointer;
+  return block_pointer;
 }
 
 void Node48::Deserialize(ART &art, Node &node, Deserializer &reader) {
-    assert(node.IsSet() && node.IsSerialized());
-    node = Node::GetAllocator(art, NType::NODE_48).New();
 
-    auto &n48 = Node48::Get(art, node);
-    n48.count = reader.Read<uint8_t>();
-    for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-        n48.child_index[i] = reader.Read<uint8_t>();
-    }
+  auto &n48 = Node48::Get(art, node);
+  n48.count = reader.Read<uint8_t>();
 
-    for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
-        n48.children[i] = Node(reader);
-    }
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    n48.child_index[i] = reader.Read<uint8_t>();
+  }
+
+  for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
+    n48.children[i] = Node(reader);
+  }
 }
 
 } // namespace part

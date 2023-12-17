@@ -80,51 +80,48 @@ void Node16::Free(ART &art, Node &node) {
 }
 
 BlockPointer Node16::Serialize(ART &art, Node &node, Serializer &writer) {
-    assert(node.IsSet() && !node.IsSerialized());
-    auto &n16 = Node16::Get(art, node);
+  assert(node.IsSet() && !node.IsSerialized());
+  auto &n16 = Node16::Get(art, node);
 
-    std::vector<BlockPointer> child_block_pointers;
-    for (idx_t i = 0; i < n16.count; i++) {
-        child_block_pointers.emplace_back(n16.children[i].Serialize(art, writer));
-    }
+  std::vector<BlockPointer> child_block_pointers;
+  for (idx_t i = 0; i < n16.count; i++) {
+    child_block_pointers.emplace_back(n16.children[i].Serialize(art, writer));
+  }
 
-    for (idx_t i = n16.count; i < Node::NODE_16_CAPACITY; i++) {
-        child_block_pointers.emplace_back((block_id_t)INVALID_INDEX, 0);
-    }
+  for (idx_t i = n16.count; i < Node::NODE_16_CAPACITY; i++) {
+    child_block_pointers.emplace_back((block_id_t)INVALID_INDEX, 0);
+  }
 
-    auto block_pointer = writer.GetBlockPointer();
-    writer.Write(NType::NODE_16);
-    writer.Write<uint8_t>(n16.count);
+  auto block_pointer = writer.GetBlockPointer();
+  writer.Write(NType::NODE_16);
+  writer.Write<uint8_t>(n16.count);
 
-    for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
-        writer.Write(n16.key[i]);
-    }
+  for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
+    writer.Write(n16.key[i]);
+  }
 
-    for (auto &child_block_pointer: child_block_pointers) {
-        writer.Write(child_block_pointer.block_id);
-        writer.Write(child_block_pointer.offset);
-    }
+  for (auto &child_block_pointer : child_block_pointers) {
+    writer.Write(child_block_pointer.block_id);
+    writer.Write(child_block_pointer.offset);
+  }
 
-    return block_pointer;
+  return block_pointer;
 }
 
 void Node16::Deserialize(ART &art, Node &node, Deserializer &reader) {
-    assert(node.IsSet() && node.IsSerialized());
+  auto ref_node = std::ref(node);
+  auto &n16 = Node16::Get(art, ref_node);
 
-    auto ref_node = std::ref(node);
-    ref_node.get() = Node::GetAllocator(art, NType::NODE_16).New();
+  auto count = reader.Read<uint8_t>();
+  n16.count = count;
 
-    auto count = reader.Read<uint8_t>();
-    auto &n16 = Node16::Get(art, ref_node);
-    n16.count = count;
+  for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
+    n16.key[i] = reader.Read<uint8_t>();
+  }
 
-    for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
-        n16.key[i] = reader.Read<uint8_t>();
-    }
-
-    for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
-        n16.children[i] = Node(reader);
-    }
+  for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
+    n16.children[i] = Node(reader);
+  }
 }
 
 } // namespace part

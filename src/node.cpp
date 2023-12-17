@@ -51,7 +51,7 @@ std::optional<Node *> Node::GetChild(ART &art, const uint8_t byte) const {
     throw std::invalid_argument("Invalid node type for GetChild");
   }
   if (child && child.value()->IsSerialized()) {
-    // TODO: deserialized
+    child.value()->Deserialize(art);
   }
   return child;
 }
@@ -109,7 +109,7 @@ void Node::Free(ART &art, Node &node) {
 }
 
 BlockPointer Node::Serialize(ART &art, Serializer &serializer) {
-    // NOTE: important
+  // NOTE: important
   if (!IsSet()) {
     return BlockPointer();
   }
@@ -144,6 +144,7 @@ void Node::Deserialize(ART &art) {
   SequentialDeserializer reader(art.GetIndexFileFd(), pointer);
   Reset();
   SetType(reader.Read<uint8_t>());
+
   auto decoded_type = GetType();
 
   if (decoded_type == NType::PREFIX) {
@@ -158,7 +159,22 @@ void Node::Deserialize(ART &art) {
     return Leaf::Deserialize(art, *this, reader);
   }
 
-  throw std::invalid_argument("other type deserializer not supported");
+  *this = Node::GetAllocator(art, decoded_type).New();
+  SetType(uint8_t(decoded_type));
+
+  switch (decoded_type) {
+    case NType::NODE_4:
+      return Node4::Deserialize(art, *this, reader);
+    case NType::NODE_16:
+      return Node16::Deserialize(art, *this, reader);
+    case NType::NODE_48:
+      return Node48::Deserialize(art, *this, reader);
+    case NType::NODE_256:
+      return Node256::Deserialize(art, *this, reader);
+    default:
+      throw std::invalid_argument("other type deserializer not supported");
+  }
+
 }
 
 } // namespace part
