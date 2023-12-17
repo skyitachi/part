@@ -21,7 +21,7 @@ Node::Node(Deserializer &reader) {
   if (block_id == INVALID_BLOCK) {
     return;
   }
-  fmt::println("[Debug.Node] new node: {}, {}", block_id, offset);
+//  fmt::println("[Debug.Node] new node: {}, {}", block_id, offset);
   SetSerialized();
   SetPtr(block_id, offset);
 }
@@ -69,8 +69,9 @@ void Node::InsertChild(ART &art, Node &node, uint8_t byte, const Node child) {
     break;
   case NType::NODE_256:
     Node256::InsertChild(art, node, byte, child);
+    break;
   default:
-    throw std::invalid_argument("Invalid node type for InsertChild");
+    throw std::invalid_argument(fmt::format("Invalid node type for InsertChild type: {}", (uint8_t)node.GetType()));
   }
 }
 
@@ -141,13 +142,11 @@ void Node::Deserialize(ART &art) {
   assert(IsSet() && IsSerialized());
 
   BlockPointer pointer(GetBufferId(), GetOffset());
-
-  fmt::println("[Debug.Node] root pointer: {}, {}", pointer.block_id, pointer.offset);
-
   SequentialDeserializer reader(art.GetIndexFileFd(), pointer);
   Reset();
   SetType(reader.Read<uint8_t>());
 
+  fmt::println("[Debug.Node] root pointer: {}, {}, type: {}", pointer.block_id, pointer.offset, (uint8_t)GetType());
   auto decoded_type = GetType();
 
   if (decoded_type == NType::PREFIX) {

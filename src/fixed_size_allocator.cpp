@@ -2,6 +2,7 @@
 // Created by Shiping Yao on 2023/12/4.
 //
 #include "fixed_size_allocator.h"
+#include "node48.h"
 
 namespace part {
 
@@ -114,6 +115,10 @@ Node FixedSizeAllocator::New() {
   if (buffers[buffer_id].allocation_count == allocations_per_buffer) {
     buffers_with_free_space.erase(buffer_id);
   }
+    if (allocation_size == sizeof(Node48)) {
+        fmt::println("new node48 node here: buffer size: {}, allocation_size: {}",
+                     buffers.size(), allocation_size);
+    }
   return Node(buffer_id, offset);
 }
 

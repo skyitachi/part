@@ -8,7 +8,7 @@ namespace part {
 void SequentialSerializer::WriteData(const_data_ptr_t buffer,
                                      idx_t write_size) {
   idx_t copy = write_size;
-  fmt::println("[Debug.WriteData] {}, {}", block_id_, offset_);
+//  fmt::println("[Debug.WriteData] {}, {}", block_id_, offset_);
   while (offset_ + copy > capacity_) {
     size_t to_write = capacity_ - offset_;
     copy -= to_write;

@@ -36,7 +36,7 @@ void Node256::Free(ART &art, Node &node) {
 
 Node256 &Node256::GrowNode48(ART &art, Node &node256, Node &node48) {
   auto &n48 = Node48::Get(art, node48);
-  auto &n256 = Node256::Get(art, node256);
+  auto &n256 = Node256::New(art, node256);
 
   n256.count = n48.count;
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {

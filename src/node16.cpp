@@ -3,6 +3,7 @@
 //
 #include "node16.h"
 #include "node4.h"
+#include "node48.h"
 
 namespace part {
 
@@ -17,7 +18,7 @@ Node16 &Node16::New(ART &art, Node &node) {
 
 Node16 &part::Node16::GrowNode4(ART &art, Node &node16, Node &node4) {
   auto &n4 = Node4::Get(art, node4);
-  auto &n16 = New(art, node16);
+  auto &n16 = Node16::New(art, node16);
 
   n16.count = n4.count;
   for (idx_t i = 0; i < n4.count; i++) {
@@ -55,7 +56,9 @@ void Node16::InsertChild(ART &art, Node &node, const uint8_t byte,
     n16.children[child_pos] = child;
     n16.count++;
   } else {
-    // TODO: node48
+    auto node16 = node;
+    Node48::GrowNode16(art, node, node16);
+    Node48::InsertChild(art, node, byte, child);
   }
 }
 
@@ -89,12 +92,13 @@ BlockPointer Node16::Serialize(ART &art, Node &node, Serializer &writer) {
   }
 
   for (idx_t i = n16.count; i < Node::NODE_16_CAPACITY; i++) {
-    child_block_pointers.emplace_back((block_id_t)INVALID_INDEX, 0);
+    child_block_pointers.emplace_back((block_id_t)INVALID_BLOCK, 0);
   }
 
   auto block_pointer = writer.GetBlockPointer();
   writer.Write(NType::NODE_16);
   writer.Write<uint8_t>(n16.count);
+  fmt::println("node16 count: {}", n16.count);
 
   for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
     writer.Write(n16.key[i]);

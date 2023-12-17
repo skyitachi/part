@@ -77,6 +77,10 @@ public:
     assert(!IsSerialized());
     auto type = data >> Node::SHIFT_TYPE;
     assert(type >= (uint8_t)NType::PREFIX);
+    if (type > (uint8_t)NType::LEAF_INLINED) {
+        fmt::println("[Debug.GetType] {}", type);
+        ::fflush(stdout);
+    }
     assert(type <= (uint8_t)NType::LEAF_INLINED);
     return NType(type);
   }

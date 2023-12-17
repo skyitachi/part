@@ -75,7 +75,7 @@ BlockPointer Node4::Serialize(ART &art, Node &node, Serializer &writer) {
     child_block_pointers.emplace_back(n4.children[i].Serialize(art, writer));
   }
   for (idx_t i = n4.count; i < Node::NODE_4_CAPACITY; i++) {
-    child_block_pointers.emplace_back((block_id_t)INVALID_INDEX, 0);
+    child_block_pointers.emplace_back((block_id_t)INVALID_BLOCK, 0);
   }
   auto block_pointer = writer.GetBlockPointer();
   writer.Write(NType::NODE_4);
@@ -99,7 +99,9 @@ void Node4::Deserialize(ART &art, Node &node, Deserializer &reader) {
 
   n4.count = count;
 
-  for (idx_t i = 0; i < count; i++) {
+  fmt::println("n4 node count: {}", n4.count);
+
+  for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
     n4.key[i] = reader.Read<uint8_t>();
   }
 
