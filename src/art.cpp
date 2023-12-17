@@ -198,6 +198,8 @@ void ART::Serialize() {
   BlockPointer pointer = BlockPointer();
   if (root->IsSet()) {
     pointer = root->Serialize(*this, data_writer);
+    fmt::println("[Debug.ART] root block pointer: {}, {}, root_type: {}",
+                 pointer.block_id, pointer.offset, uint8_t(root->GetType()));
     SequentialSerializer meta_writer(meta_path_);
     UpdateMetadata(pointer, meta_writer);
   }

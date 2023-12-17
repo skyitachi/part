@@ -9,6 +9,7 @@
 
 #include <nlohmann/json.hpp>
 #include <gtest/gtest.h>
+#include <fmt/core.h>
 
 #include "art.h"
 #include "allocator.h"
@@ -117,7 +118,7 @@ public:
 
 
 TEST_F(ARTSerializeTest, JsonFileTest) {
-  auto kv_pairs = genRandomKvPairs(10);
+  auto kv_pairs = genRandomKvPairs(100);
 
   ARTSerializeTest::kvPairToJsonFile(kv_pairs, "keys_int64.json");
 
@@ -165,19 +166,24 @@ TEST_F(ARTSerializeTest, MediumARTTest) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
   SetUpFiles("medium_i64_art.meta", "medium_i64_art.data");
-  auto kv_pairs = PrepareData(10000, "medium_kv_pairs.json");
+//  auto kv_pairs = PrepareData(10000, "medium_kv_pairs.json");
+
+  auto kv_pairs = readKVPairsFromFile("medium_kv_pairs.json");
+
   keep_file = true;
 
   auto [meta_path, index_path] = GetFiles();
 
-  ART art(meta_path, index_path);
+  fmt::println("meta {}, data {}", meta_path, index_path);
 
-  for (const auto &kv: kv_pairs) {
-    auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
-    art.Put(art_key, kv.second);
-  }
-
-  art.Serialize();
+//  ART art(meta_path, index_path);
+//
+//  for (const auto &kv: kv_pairs) {
+//    auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
+//    art.Put(art_key, kv.second);
+//  }
+//
+//  art.Serialize();
 
   ART art2(meta_path, index_path);
 
@@ -185,6 +191,8 @@ TEST_F(ARTSerializeTest, MediumARTTest) {
     auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
     std::vector<idx_t> results;
     bool success = art2.Get(art_key, results);
+
+    fmt::println("{}, {}", kv.first, kv.second);
 
     EXPECT_TRUE(success);
     EXPECT_EQ(1, results.size());

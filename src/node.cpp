@@ -21,7 +21,7 @@ Node::Node(Deserializer &reader) {
   if (block_id == INVALID_BLOCK) {
     return;
   }
-
+  fmt::println("[Debug.Node] new node: {}, {}", block_id, offset);
   SetSerialized();
   SetPtr(block_id, offset);
 }
@@ -141,6 +141,9 @@ void Node::Deserialize(ART &art) {
   assert(IsSet() && IsSerialized());
 
   BlockPointer pointer(GetBufferId(), GetOffset());
+
+  fmt::println("[Debug.Node] root pointer: {}, {}", pointer.block_id, pointer.offset);
+
   SequentialDeserializer reader(art.GetIndexFileFd(), pointer);
   Reset();
   SetType(reader.Read<uint8_t>());
