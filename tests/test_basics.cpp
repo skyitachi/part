@@ -2,6 +2,7 @@
 // Created by Shiping Yao on 2023/12/8.
 //
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include <art.h>
 #include <allocator.h>
@@ -71,4 +72,8 @@ TEST(ARTDeserializeTest, Basic) {
     EXPECT_EQ(123, results[0]);
     EXPECT_EQ(124, results[1]);
     EXPECT_EQ(123, results[2]);
+}
+
+TEST(ARTSerializeAndDeserialize, Basic) {
+    
 }
