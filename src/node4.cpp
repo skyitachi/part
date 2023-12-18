@@ -7,7 +7,6 @@
 namespace part {
 
 Node4 &Node4::New(ART &art, Node &node) {
-
   node = Node::GetAllocator(art, NType::NODE_4).New();
   node.SetType((uint8_t)NType::NODE_4);
   auto &n4 = Node4::Get(art, node);
@@ -89,17 +88,17 @@ BlockPointer Node4::Serialize(ART &art, Node &node, Serializer &writer) {
     writer.Write(child_block_pointer.block_id);
     writer.Write(child_block_pointer.offset);
   }
+
   return block_pointer;
 }
 
 void Node4::Deserialize(ART &art, Node &node, Deserializer &reader) {
-  auto ref_node = std::ref(node);
-  auto &n4 = Node4::Get(art, ref_node);
+  auto &n4 = Node4::Get(art, node);
+
+  auto block_pointer = reader.GetBlockPointer();
   auto count = reader.Read<uint8_t>();
 
   n4.count = count;
-
-  fmt::println("n4 node count: {}", n4.count);
 
   for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
     n4.key[i] = reader.Read<uint8_t>();
@@ -110,4 +109,4 @@ void Node4::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 }
 
-} // namespace part
+}  // namespace part

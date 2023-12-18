@@ -48,6 +48,8 @@ public:
   virtual ~Deserializer() {
   }
 
+  virtual BlockPointer GetBlockPointer() = 0;
+
   virtual void ReadData(data_ptr_t buffer, idx_t read_size) = 0;
 
   template <class T>
@@ -102,6 +104,8 @@ public:
     }
 
     virtual void ReadData(data_ptr_t buffer, idx_t read_size) override;
+
+  virtual BlockPointer GetBlockPointer() override;
 private:
     idx_t block_id_;
     int fd_;

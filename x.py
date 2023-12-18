@@ -59,6 +59,7 @@ def get_source_files(dir: Path) -> List[str]:
     return [
         *glob(str(dir / "src/**/*.h"), recursive=True),
         *glob(str(dir / "src/**/*.cpp"), recursive=True),
+        *glob(str(dir / "tests/**/*.cpp"), recursive=True),
     ]
 
 

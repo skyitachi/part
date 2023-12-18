@@ -2,6 +2,7 @@
 // Created by skyitachi on 23-12-7.
 //
 #include "node16.h"
+
 #include "node4.h"
 #include "node48.h"
 
@@ -31,8 +32,7 @@ Node16 &part::Node16::GrowNode4(ART &art, Node &node16, Node &node4) {
   return n16;
 }
 
-void Node16::InsertChild(ART &art, Node &node, const uint8_t byte,
-                         const Node child) {
+void Node16::InsertChild(ART &art, Node &node, const uint8_t byte, const Node child) {
   assert(node.IsSet() && !node.IsSerialized());
   auto &n16 = Node16::Get(art, node);
 
@@ -128,4 +128,4 @@ void Node16::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 }
 
-} // namespace part
+}  // namespace part

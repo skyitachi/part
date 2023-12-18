@@ -1,11 +1,12 @@
 //
 // Created by Shiping Yao on 2023/12/3.
 //
-#include <cassert>
-#include <exception>
+#include "allocator.h"
+
 #include <fmt/core.h>
 
-#include "allocator.h"
+#include <cassert>
+#include <exception>
 
 namespace part {
 
@@ -16,10 +17,9 @@ struct AllocatorDebugInfo {
 
   void AllocateData(data_ptr_t pointer, idx_t size);
   void FreeData(data_ptr_t pointer, idx_t size);
-  void ReallocateData(data_ptr_t pointer, data_ptr_t new_pointer,
-                      idx_t old_size, idx_t new_size);
+  void ReallocateData(data_ptr_t pointer, data_ptr_t new_pointer, idx_t old_size, idx_t new_size);
 
-private:
+ private:
   //! The number of bytes that are outstanding (i.e. that have been allocated -
   //! but not freed) Used for debug purposes
   atomic<idx_t> allocation_count;
@@ -36,14 +36,13 @@ PrivateAllocatorData::PrivateAllocatorData() {}
 PrivateAllocatorData::~PrivateAllocatorData() {}
 
 Allocator::Allocator()
-    : Allocator(Allocator::DefaultAllocate, Allocator::DefaultFree,
-                Allocator::DefaultReallocate, nullptr) {}
+    : Allocator(Allocator::DefaultAllocate, Allocator::DefaultFree, Allocator::DefaultReallocate, nullptr) {}
 
-Allocator::Allocator(allocate_function_ptr_t allocate_function_p,
-                     free_function_ptr_t free_function_p,
+Allocator::Allocator(allocate_function_ptr_t allocate_function_p, free_function_ptr_t free_function_p,
                      reallocate_function_ptr_t reallocate_function_p,
                      std::unique_ptr<PrivateAllocatorData> private_data_p)
-    : allocate_function(allocate_function_p), free_function(free_function_p),
+    : allocate_function(allocate_function_p),
+      free_function(free_function_p),
       reallocate_function(reallocate_function_p),
       private_data(std::move(private_data_p)) {
   assert(allocate_function);
@@ -74,8 +73,7 @@ data_ptr_t Allocator::AllocateData(idx_t size) {
   private_data->debug_info->AllocateData(result, size);
 #endif
   if (!result) {
-    throw std::invalid_argument(
-        fmt::format("Failed to allocate block of {} bytes", size));
+    throw std::invalid_argument(fmt::format("Failed to allocate block of {} bytes", size));
   }
   return result;
 }
@@ -92,8 +90,7 @@ void Allocator::FreeData(data_ptr_t ptr, idx_t size) {
   free_function(private_data.get(), ptr, size);
 }
 
-data_ptr_t Allocator::ReallocateData(data_ptr_t pointer, idx_t old_size,
-                                     idx_t size) {
+data_ptr_t Allocator::ReallocateData(data_ptr_t pointer, idx_t old_size, idx_t size) {
   if (!pointer) {
     return nullptr;
   }
@@ -104,29 +101,23 @@ data_ptr_t Allocator::ReallocateData(data_ptr_t pointer, idx_t old_size,
                     "maximum allocation size is {}",
                     size, MAXIMUM_ALLOC_SIZE));
   }
-  auto new_pointer =
-      reallocate_function(private_data.get(), pointer, old_size, size);
+  auto new_pointer = reallocate_function(private_data.get(), pointer, old_size, size);
 #ifdef DEBUG
   assert(private_data);
-  private_data->debug_info->ReallocateData(pointer, new_pointer, old_size,
-                                           size);
+  private_data->debug_info->ReallocateData(pointer, new_pointer, old_size, size);
 #endif
   if (!new_pointer) {
-    throw std::invalid_argument(
-        fmt::format("Failed to re-allocate block of {} bytes", size));
+    throw std::invalid_argument(fmt::format("Failed to re-allocate block of {} bytes", size));
   }
   return new_pointer;
 }
 
 std::shared_ptr<Allocator> &Allocator::DefaultAllocatorReference() {
-  static std::shared_ptr<Allocator> DEFAULT_ALLOCATOR =
-      std::make_shared<Allocator>();
+  static std::shared_ptr<Allocator> DEFAULT_ALLOCATOR = std::make_shared<Allocator>();
   return DEFAULT_ALLOCATOR;
 }
 
-Allocator &Allocator::DefaultAllocator() {
-  return *DefaultAllocatorReference();
-}
+Allocator &Allocator::DefaultAllocator() { return *DefaultAllocatorReference(); }
 
 #ifdef DEBUG
 AllocatorDebugInfo::AllocatorDebugInfo() { allocation_count = 0; }
@@ -135,8 +126,7 @@ AllocatorDebugInfo::~AllocatorDebugInfo() {
   if (allocation_count != 0) {
     printf("Outstanding allocations found for Allocator\n");
     for (auto &entry : pointers) {
-      printf("Allocation of size %llu at address %p\n", entry.second.first,
-             (void *)entry.first);
+      printf("Allocation of size %llu at address %p\n", entry.second.first, (void *)entry.first);
       printf("Stack trace:\n%s\n", entry.second.second.c_str());
       printf("\n");
     }
@@ -185,20 +175,16 @@ void AllocatorDebugInfo::FreeData(data_ptr_t pointer, idx_t size) {
 #endif
 }
 
-void AllocatorDebugInfo::ReallocateData(data_ptr_t pointer,
-                                        data_ptr_t new_pointer, idx_t old_size,
-                                        idx_t new_size) {
+void AllocatorDebugInfo::ReallocateData(data_ptr_t pointer, data_ptr_t new_pointer, idx_t old_size, idx_t new_size) {
   FreeData(pointer, old_size);
   AllocateData(new_pointer, new_size);
 }
 
 #endif
 
-AllocatedData::AllocatedData()
-    : allocator(nullptr), pointer(nullptr), allocated_size(0) {}
+AllocatedData::AllocatedData() : allocator(nullptr), pointer(nullptr), allocated_size(0) {}
 
-AllocatedData::AllocatedData(Allocator &allocator, data_ptr_t pointer,
-                             idx_t allocated_size)
+AllocatedData::AllocatedData(Allocator &allocator, data_ptr_t pointer, idx_t allocated_size)
     : allocator(&allocator), pointer(pointer), allocated_size(allocated_size) {}
 
 AllocatedData::~AllocatedData() { Reset(); }
@@ -225,4 +211,4 @@ void AllocatedData::Reset() {
   pointer = nullptr;
 }
 
-} // namespace part
+}  // namespace part

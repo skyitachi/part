@@ -3,17 +3,15 @@
 //
 
 #include <art_key.h>
+
 #include <numeric>
 
 namespace part {
 
 ARTKey::ARTKey() : len(0) {}
-ARTKey::ARTKey(const data_ptr_t &data, const uint32_t &len)
-    : len(len), data(data) {}
+ARTKey::ARTKey(const data_ptr_t &data, const uint32_t &len) : len(len), data(data) {}
 
-ARTKey::ARTKey(ArenaAllocator &allocator, const uint32_t &len) : len(len) {
-  data = allocator.Allocate(len);
-}
+ARTKey::ARTKey(ArenaAllocator &allocator, const uint32_t &len) : len(len) { data = allocator.Allocate(len); }
 
 bool ARTKey::operator>(const ARTKey &k) const {
   for (uint32_t i = 0; i < std::min(len, k.len); i++) {
@@ -54,4 +52,4 @@ ARTKey ARTKey::CreateARTKey(ArenaAllocator &allocator, std::string_view value) {
   return ARTKey(data, len);
 }
 
-} // namespace part
+}  // namespace part

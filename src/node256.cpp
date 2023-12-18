@@ -52,8 +52,7 @@ Node256 &Node256::GrowNode48(ART &art, Node &node256, Node &node48) {
   return n256;
 }
 
-void Node256::InsertChild(ART &art, Node &node, const uint8_t byte,
-                          const Node child) {
+void Node256::InsertChild(ART &art, Node &node, const uint8_t byte, const Node child) {
   assert(node.IsSet() && !node.IsSerialized());
   auto &n256 = Node256::Get(art, node);
 
@@ -94,7 +93,6 @@ BlockPointer Node256::Serialize(ART &art, Node &node, Serializer &writer) {
 }
 
 void Node256::Deserialize(ART &art, Node &node, Deserializer &reader) {
-
   auto &n256 = Node256::Get(art, node);
   n256.count = reader.Read<uint16_t>();
 
@@ -102,4 +100,4 @@ void Node256::Deserialize(ART &art, Node &node, Deserializer &reader) {
     n256.children[i] = Node(reader);
   }
 }
-} // namespace part
+}  // namespace part

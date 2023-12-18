@@ -12,7 +12,6 @@ void Leaf::New(Node &node, const idx_t doc_id) {
 }
 
 idx_t Leaf::TotalCount(ART &art, Node &node) {
-
   // NOTE: first leaf in the leaf chain is already deserialized
   assert(node.IsSet() && !node.IsSerialized());
 
@@ -34,8 +33,7 @@ idx_t Leaf::TotalCount(ART &art, Node &node) {
   return count;
 }
 
-bool Leaf::GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids,
-                     idx_t max_count) {
+bool Leaf::GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids, idx_t max_count) {
   assert(node.IsSet());
 
   if (result_ids.size() + Leaf::TotalCount(art, node) > max_count) {
@@ -66,7 +64,6 @@ bool Leaf::GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids,
 }
 
 void Leaf::Insert(ART &art, Node &node, const idx_t row_id) {
-
   assert(node.IsSet() && !node.IsSerialized());
 
   if (node.GetType() == NType::LEAF_INLINED) {
@@ -86,7 +83,6 @@ void Leaf::Insert(ART &art, Node &node, const idx_t row_id) {
 }
 
 void Leaf::MoveInlinedToLeaf(ART &art, Node &node) {
-
   assert(node.GetType() == NType::LEAF_INLINED);
   auto doc_id = node.GetDocId();
   node = Node::GetAllocator(art, NType::LEAF).New();
@@ -115,7 +111,6 @@ Leaf &Leaf::Append(ART &art, const idx_t row_id) {
 }
 
 void Leaf::Free(ART &art, Node &node) {
-
   Node current_node = node;
   Node next_node;
 
@@ -133,6 +128,8 @@ BlockPointer Leaf::Serialize(ART &art, Node &node, Serializer &writer) {
     auto block_pointer = writer.GetBlockPointer();
     writer.Write(NType::LEAF_INLINED);
     writer.Write(node.GetDocId());
+    //    fmt::println("[Leaf.INLINE] block_id: {}, offset: {}",
+    //    block_pointer.block_id, block_pointer.offset);
     return block_pointer;
   }
 
@@ -177,4 +174,4 @@ void Leaf::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 }
 
-} // namespace part
+}  // namespace part

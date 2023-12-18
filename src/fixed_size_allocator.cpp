@@ -2,6 +2,7 @@
 // Created by Shiping Yao on 2023/12/4.
 //
 #include "fixed_size_allocator.h"
+
 #include "node48.h"
 
 namespace part {
@@ -9,26 +10,21 @@ namespace part {
 constexpr idx_t FixedSizeAllocator::BASE[];
 constexpr uint8_t FixedSizeAllocator::SHIFT[];
 
-FixedSizeAllocator::FixedSizeAllocator(const idx_t allocation_size,
-                                       Allocator &allocator)
-    : allocation_size(allocation_size), total_allocations(0),
-      allocator(allocator) {
-
+FixedSizeAllocator::FixedSizeAllocator(const idx_t allocation_size, Allocator &allocator)
+    : allocation_size(allocation_size), total_allocations(0), allocator(allocator) {
   idx_t bits_per_value = sizeof(validity_t) * 8;
   idx_t curr_alloc_size = 0;
 
   bitmask_count = 0;
   allocations_per_buffer = 0;
   while (curr_alloc_size < BUFFER_ALLOC_SIZE) {
-    if (!bitmask_count ||
-        (bitmask_count * bits_per_value) % allocations_per_buffer == 0) {
+    if (!bitmask_count || (bitmask_count * bits_per_value) % allocations_per_buffer == 0) {
       bitmask_count++;
       curr_alloc_size += sizeof(validity_t);
     }
 
     auto remaining_alloc_size = BUFFER_ALLOC_SIZE - curr_alloc_size;
-    auto remaining_allocations =
-        std::min(remaining_alloc_size / allocation_size, bits_per_value);
+    auto remaining_allocations = std::min(remaining_alloc_size / allocation_size, bits_per_value);
 
     if (remaining_allocations == 0) {
       break;
@@ -45,9 +41,7 @@ FixedSizeAllocator::~FixedSizeAllocator() {
   }
 }
 
-uint32_t FixedSizeAllocator::GetOffset(ValidityMask &mask,
-                                       const idx_t allocation_count) {
-
+uint32_t FixedSizeAllocator::GetOffset(ValidityMask &mask, const idx_t allocation_count) {
   auto data = mask.GetData();
 
   // fills up a buffer sequentially before searching for free bits
@@ -59,7 +53,6 @@ uint32_t FixedSizeAllocator::GetOffset(ValidityMask &mask,
   // get an entry with free bits
   for (idx_t entry_idx = 0; entry_idx < bitmask_count; entry_idx++) {
     if (data[entry_idx] != 0) {
-
       // find the position of the free bit
       auto entry = data[entry_idx];
       idx_t first_valid_bit = 0;
@@ -115,10 +108,6 @@ Node FixedSizeAllocator::New() {
   if (buffers[buffer_id].allocation_count == allocations_per_buffer) {
     buffers_with_free_space.erase(buffer_id);
   }
-    if (allocation_size == sizeof(Node48)) {
-        fmt::println("new node48 node here: buffer size: {}, allocation_size: {}",
-                     buffers.size(), allocation_size);
-    }
   return Node(buffer_id, offset);
 }
 
@@ -142,4 +131,4 @@ void FixedSizeAllocator::Free(const Node ptr) {
   buffers_with_free_space.insert(buffer_id);
 }
 
-} // namespace part
+}  // namespace part

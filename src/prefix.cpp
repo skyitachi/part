@@ -3,13 +3,14 @@
 //
 
 #include "prefix.h"
+
 #include "art_key.h"
 #include "node.h"
 
 namespace part {
 
-void Prefix::New(ART &art, std::reference_wrapper<Node> &node,
-                 const ARTKey &key, const uint32_t depth, uint32_t count) {
+void Prefix::New(ART &art, std::reference_wrapper<Node> &node, const ARTKey &key, const uint32_t depth,
+                 uint32_t count) {
   if (count == 0) {
     return;
   }
@@ -38,8 +39,7 @@ Prefix &Prefix::New(ART &art, Node &node) {
   return prefix;
 }
 
-idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node,
-                       const ARTKey &key, idx_t &depth) {
+idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node, const ARTKey &key, idx_t &depth) {
   assert(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
   assert(prefix_node.get().GetType() == NType::PREFIX);
 
@@ -61,8 +61,7 @@ idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node,
   return INVALID_INDEX;
 }
 
-void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node,
-                   Node &child_node, idx_t position) {
+void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &child_node, idx_t position) {
   assert(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
 
   auto &prefix = Prefix::Get(art, prefix_node);
@@ -119,13 +118,11 @@ Prefix &Prefix::Append(ART &art, const uint8_t byte) {
 }
 
 void Prefix::Append(ART &art, Node other_prefix) {
-
   assert(other_prefix.IsSet() && !other_prefix.IsSerialized());
 
   auto prefix = std::ref(*this);
 
   while (other_prefix.GetType() == NType::PREFIX) {
-
     auto &other = Prefix::Get(art, other_prefix);
     for (idx_t i = 0; i < other.data[Node::PREFIX_SIZE]; i++) {
       prefix = prefix.get().Append(art, other.data[i]);
@@ -206,8 +203,7 @@ void Prefix::Deserialize(ART &art, Node &node, Deserializer &reader) {
     current_node.get().SetType((uint8_t)NType::PREFIX);
 
     auto &prefix = Prefix::Get(art, current_node);
-    prefix.data[Node::PREFIX_SIZE] =
-        std::min((idx_t)Node::PREFIX_SIZE, total_count);
+    prefix.data[Node::PREFIX_SIZE] = std::min((idx_t)Node::PREFIX_SIZE, total_count);
 
     for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
       prefix.data[i] = reader.Read<uint8_t>();
@@ -222,4 +218,4 @@ void Prefix::Deserialize(ART &art, Node &node, Deserializer &reader) {
   current_node.get() = Node(reader);
 }
 
-} // namespace part
+}  // namespace part
