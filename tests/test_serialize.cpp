@@ -19,6 +19,20 @@
 using json = nlohmann::json;
 using namespace part;
 
+std::string generateRandomString(int length) {
+  std::string charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  std::random_device rd;
+  std::mt19937 generator(rd());
+  std::uniform_int_distribution<int> distribution(0, charset.length() - 1);
+
+  std::string randomString;
+  for (int i = 0; i < length; ++i) {
+    randomString += charset[distribution(generator)];
+  }
+
+  return randomString;
+}
+
 class ARTSerializeTest : public testing::Test {
  protected:
   template <class T>
@@ -256,4 +270,33 @@ TEST(SerializerTest, Basic) {
     std::string rv(reinterpret_cast<const char *>(data), str.size());
     EXPECT_EQ(rv, str);
   }
+
+  std::string r_str = generateRandomString(10000);
+
+  serializer.WriteData(reinterpret_cast<const_data_ptr_t>(r_str.data()), r_str.size());
+
+  std::string r_str2 = generateRandomString(2023 * 3);
+
+  serializer.WriteData(reinterpret_cast<const_data_ptr_t >(r_str2.data()), r_str2.size());
+
+  serializer.Flush();
+
+  {
+    auto data = allocator.AllocateData(r_str.size());
+    reader.ReadData(data, r_str.size());
+
+    std::string rv(reinterpret_cast<const char *>(data), r_str.size());
+
+    EXPECT_EQ(rv, r_str);
+  }
+  {
+    auto data = allocator.AllocateData(r_str2.size());
+    reader.ReadData(data, r_str2.size());
+
+    std::string rv(reinterpret_cast<const char *>(data), r_str2.size());
+
+    EXPECT_EQ(rv, r_str2);
+
+  }
+
 }
