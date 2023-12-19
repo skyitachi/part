@@ -181,7 +181,7 @@ TEST_F(ARTSerializeTest, MediumARTTest) {
 
   kv_pairs = readKVPairsFromFile("medium_kv_pairs.json");
 
-  keep_file = true;
+  keep_file = false;
 
   auto [meta_path, index_path] = GetFiles();
 
