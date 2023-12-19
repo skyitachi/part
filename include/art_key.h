@@ -15,7 +15,7 @@ namespace part {
 class ArenaAllocator;
 
 class ARTKey {
-public:
+ public:
   ARTKey();
   ARTKey(const data_ptr_t &data, const uint32_t &len);
   ARTKey(ArenaAllocator &allocator, const uint32_t &len);
@@ -23,7 +23,7 @@ public:
   uint32_t len;
   data_ptr_t data;
 
-public:
+ public:
   template <class T>
   static inline ARTKey CreateARTKey(ArenaAllocator &allocator, T element) {
     auto data = ARTKey::CreateData<T>(allocator, element);
@@ -40,11 +40,9 @@ public:
 
   inline bool Empty() const { return len == 0; }
 
-  inline bool ByteMatches(const ARTKey &other, const uint32_t &depth) const {
-    return data[depth] == other[depth];
-  }
+  inline bool ByteMatches(const ARTKey &other, const uint32_t &depth) const { return data[depth] == other[depth]; }
 
-private:
+ private:
   template <class T>
   static inline data_ptr_t CreateData(ArenaAllocator &allocator, T value) {
     auto data = allocator.Allocate(sizeof(value));
@@ -56,5 +54,5 @@ private:
 template <>
 ARTKey ARTKey::CreateARTKey(ArenaAllocator &allocator, std::string_view value);
 
-} // namespace part
-#endif // PART_ART_KEY_H
+}  // namespace part
+#endif  // PART_ART_KEY_H

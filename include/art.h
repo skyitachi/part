@@ -8,9 +8,9 @@
 #include <optional>
 #include <vector>
 
-#include "types.h"
 #include "block.h"
 #include "serializer.h"
+#include "types.h"
 
 namespace part {
 class Node;
@@ -18,11 +18,10 @@ class FixedSizeAllocator;
 class ARTKey;
 
 class ART {
-public:
-  explicit ART(const std::shared_ptr<std::vector<FixedSizeAllocator>>
-                   &allocators_ptr = nullptr);
+ public:
+  explicit ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
 
-  explicit ART(const std::string &metadata_path, const std::string& index_path,
+  explicit ART(const std::string &metadata_path, const std::string &index_path,
                const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
 
   ~ART();
@@ -47,12 +46,9 @@ public:
 
   void Deserialize();
 
+  int GetIndexFileFd() { return index_fd_; }
 
-  int GetIndexFileFd() {
-      return index_fd_;
-  }
-
-private:
+ private:
   void insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);
   std::optional<Node *> lookup(Node node, const ARTKey &key, idx_t depth);
   //! Insert a row ID into a leaf
@@ -64,6 +60,6 @@ private:
   std::string meta_path_;
 };
 
-} // namespace part
+}  // namespace part
 
-#endif // PART_ART_H
+#endif  // PART_ART_H

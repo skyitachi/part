@@ -4,14 +4,13 @@
 
 #ifndef PART_NODE256_H
 #define PART_NODE256_H
-#include "node.h"
 #include "fixed_size_allocator.h"
+#include "node.h"
 
 namespace part {
 
 class Node256 {
-
-public:
+ public:
   uint16_t count;
 
   Node children[Node::NODE_256_CAPACITY];
@@ -35,5 +34,5 @@ public:
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
 };
-}
-#endif // PART_NODE256_H
+}  // namespace part
+#endif  // PART_NODE256_H

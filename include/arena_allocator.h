@@ -23,9 +23,8 @@ struct ArenaChunk {
 class ArenaAllocator {
   static constexpr const idx_t ARENA_ALLOCATOR_INITIAL_CAPACITY = 2048;
 
-public:
-  ArenaAllocator(Allocator &allocator,
-                 idx_t initial_capacity = ARENA_ALLOCATOR_INITIAL_CAPACITY);
+ public:
+  ArenaAllocator(Allocator &allocator, idx_t initial_capacity = ARENA_ALLOCATOR_INITIAL_CAPACITY);
   ~ArenaAllocator();
 
   data_ptr_t Allocate(idx_t size);
@@ -48,7 +47,7 @@ public:
   //! Returns an "Allocator" wrapper for this arena allocator
   Allocator &GetAllocator() { return arena_allocator; }
 
-private:
+ private:
   //! Internal allocator that is used by the arena allocator
   Allocator &allocator;
   idx_t current_capacity;
@@ -57,5 +56,5 @@ private:
   //! An allocator wrapper using this arena allocator
   Allocator arena_allocator;
 };
-} // namespace part
-#endif // PART_ARENA_ALLOCATOR_H
+}  // namespace part
+#endif  // PART_ARENA_ALLOCATOR_H

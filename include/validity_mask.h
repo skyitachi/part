@@ -10,11 +10,12 @@ namespace part {
 
 struct ValidityMask;
 
-template <typename V> struct TemplatedValidityData {
+template <typename V>
+struct TemplatedValidityData {
   static constexpr const int BITS_PER_VALUE = sizeof(V) * 8;
   static constexpr const V MAX_ENTRY = ~V(0);
 
-public:
+ public:
   inline explicit TemplatedValidityData(idx_t count) {
     auto entry_count = EntryCount(count);
     owned_data = std::make_unique<V[]>(entry_count);
@@ -33,34 +34,26 @@ public:
 
   std::unique_ptr<V[]> owned_data;
 
-public:
-  static inline idx_t EntryCount(idx_t count) {
-    return (count + (BITS_PER_VALUE - 1)) / BITS_PER_VALUE;
-  }
+ public:
+  static inline idx_t EntryCount(idx_t count) { return (count + (BITS_PER_VALUE - 1)) / BITS_PER_VALUE; }
 };
-template <typename V> struct TemplatedValidityMask {
+template <typename V>
+struct TemplatedValidityMask {
   using ValidityBuffer = TemplatedValidityData<V>;
 
-public:
+ public:
   static constexpr const int BITS_PER_VALUE = ValidityBuffer::BITS_PER_VALUE;
-  static constexpr const int STANDARD_ENTRY_COUNT =
-      (STANDARD_VECTOR_SIZE + (BITS_PER_VALUE - 1)) / BITS_PER_VALUE;
-  static constexpr const int STANDARD_MASK_SIZE =
-      STANDARD_ENTRY_COUNT * sizeof(validity_t);
+  static constexpr const int STANDARD_ENTRY_COUNT = (STANDARD_VECTOR_SIZE + (BITS_PER_VALUE - 1)) / BITS_PER_VALUE;
+  static constexpr const int STANDARD_MASK_SIZE = STANDARD_ENTRY_COUNT * sizeof(validity_t);
 
-public:
+ public:
   inline TemplatedValidityMask() : validity_mask(nullptr) {}
 
-  inline explicit TemplatedValidityMask(idx_t max_count) {
-    Initialize(max_count);
-  }
+  inline explicit TemplatedValidityMask(idx_t max_count) { Initialize(max_count); }
 
   inline explicit TemplatedValidityMask(V *ptr) : validity_mask(ptr) {}
 
-  inline TemplatedValidityMask(const TemplatedValidityMask &original,
-                               idx_t count) {
-    Copy(original, count);
-  }
+  inline TemplatedValidityMask(const TemplatedValidityMask &original, idx_t count) { Copy(original, count); }
 
   static inline idx_t ValidityMaskSize(idx_t count = STANDARD_VECTOR_SIZE) {
     return ValidityBuffer::EntryCount(count) * sizeof(V);
@@ -68,9 +61,7 @@ public:
 
   inline bool AllValid() const { return !validity_mask; }
 
-  inline bool CheckAllValid(idx_t count) const {
-    return CountValid(count) == count;
-  }
+  inline bool CheckAllValid(idx_t count) const { return CountValid(count) == count; }
 
   inline bool CheckAllValid(idx_t to, idx_t from) const {
     if (AllValid()) {
@@ -126,9 +117,7 @@ public:
     validity_data.reset();
   }
 
-  static inline idx_t EntryCount(idx_t count) {
-    return ValidityBuffer::EntryCount(count);
-  }
+  static inline idx_t EntryCount(idx_t count) { return ValidityBuffer::EntryCount(count); }
 
   inline V GetValidityEntry(idx_t entry_idx) const {
     if (!validity_mask) {
@@ -137,18 +126,13 @@ public:
     return validity_mask[entry_idx];
   }
 
-  static inline bool AllValid(V entry) {
-    return entry == ValidityBuffer::MAX_ENTRY;
-  }
+  static inline bool AllValid(V entry) { return entry == ValidityBuffer::MAX_ENTRY; }
 
   static inline bool NoneValid(V entry) { return entry == 0; }
 
-  static inline bool RowIsValid(V entry, idx_t idx_in_entry) {
-    return entry & (V(1) << V(idx_in_entry));
-  }
+  static inline bool RowIsValid(V entry, idx_t idx_in_entry) { return entry & (V(1) << V(idx_in_entry)); }
 
-  static inline void GetEntryIndex(idx_t row_idx, idx_t &entry_idx,
-                                   idx_t &idx_in_entry) {
+  static inline void GetEntryIndex(idx_t row_idx, idx_t &entry_idx, idx_t &idx_in_entry) {
     entry_idx = row_idx / BITS_PER_VALUE;
     idx_in_entry = row_idx % BITS_PER_VALUE;
   }
@@ -161,9 +145,7 @@ public:
     return ValidityBuffer::MAX_ENTRY >> (BITS_PER_VALUE - n);
   }
 
-  static inline idx_t SizeInBytes(idx_t n) {
-    return (n + BITS_PER_VALUE - 1) / BITS_PER_VALUE;
-  }
+  static inline idx_t SizeInBytes(idx_t n) { return (n + BITS_PER_VALUE - 1) / BITS_PER_VALUE; }
 
   //! RowIsValidUnsafe should only be used if AllValid() is false: it achieves
   //! the same as RowIsValid but skips a not-null check
@@ -252,10 +234,7 @@ public:
       validity_mask[i] = 0;
     }
     auto last_entry_bits = count % static_cast<idx_t>(BITS_PER_VALUE);
-    validity_mask[last_entry_index] =
-        (last_entry_bits == 0)
-            ? 0
-            : (ValidityBuffer::MAX_ENTRY << (last_entry_bits));
+    validity_mask[last_entry_index] = (last_entry_bits == 0) ? 0 : (ValidityBuffer::MAX_ENTRY << (last_entry_bits));
   }
 
   //! Marks exactly "count" bits in the validity mask as valid (not null)
@@ -270,9 +249,7 @@ public:
     }
     auto last_entry_bits = count % static_cast<idx_t>(BITS_PER_VALUE);
     validity_mask[last_entry_index] |=
-        (last_entry_bits == 0)
-            ? ValidityBuffer::MAX_ENTRY
-            : ~(ValidityBuffer::MAX_ENTRY << (last_entry_bits));
+        (last_entry_bits == 0) ? ValidityBuffer::MAX_ENTRY : ~(ValidityBuffer::MAX_ENTRY << (last_entry_bits));
   }
 
   inline bool IsMaskSet() const {
@@ -282,7 +259,7 @@ public:
     return false;
   }
 
-public:
+ public:
   inline void Initialize(validity_t *validity) {
     validity_data.reset();
     validity_mask = validity;
@@ -303,34 +280,30 @@ public:
       validity_data = nullptr;
       validity_mask = nullptr;
     } else {
-      validity_data =
-          std::make_shared<ValidityBuffer>(other.validity_mask, count);
+      validity_data = std::make_shared<ValidityBuffer>(other.validity_mask, count);
       validity_mask = validity_data->owned_data.get();
     }
   }
 
-protected:
+ protected:
   V *validity_mask;
   std::shared_ptr<ValidityBuffer> validity_data;
 };
 
 struct ValidityMask : public TemplatedValidityMask<validity_t> {
-public:
+ public:
   inline ValidityMask() : TemplatedValidityMask(nullptr) {}
 
-  inline explicit ValidityMask(idx_t max_count)
-      : TemplatedValidityMask(max_count) {}
+  inline explicit ValidityMask(idx_t max_count) : TemplatedValidityMask(max_count) {}
 
   inline explicit ValidityMask(validity_t *ptr) : TemplatedValidityMask(ptr) {}
 
-  inline ValidityMask(const ValidityMask &original, idx_t count)
-      : TemplatedValidityMask(original, count) {}
+  inline ValidityMask(const ValidityMask &original, idx_t count) : TemplatedValidityMask(original, count) {}
 
-public:
+ public:
   void Resize(idx_t old_size, idx_t new_size);
 
-  void SliceInPlace(const ValidityMask &other, idx_t target_offset,
-                    idx_t source_offset, idx_t count);
+  void SliceInPlace(const ValidityMask &other, idx_t target_offset, idx_t source_offset, idx_t count);
 
   void Slice(const ValidityMask &other, idx_t source_offset, idx_t count);
 
@@ -340,5 +313,5 @@ public:
 
   static bool IsAligned(idx_t count);
 };
-} // namespace part
-#endif // PART_VALIDITY_MASK_H
+}  // namespace part
+#endif  // PART_VALIDITY_MASK_H

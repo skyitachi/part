@@ -144,7 +144,7 @@ void Node::Deserialize(ART &art) {
   assert(IsSet() && IsSerialized());
 
   BlockPointer pointer(GetBufferId(), GetOffset());
-  SequentialDeserializer reader(art.GetIndexFileFd(), pointer);
+  BlockDeserializer reader(art.GetIndexFileFd(), pointer);
   // NOTE: important
   Reset();
   auto type = reader.Read<uint8_t>();

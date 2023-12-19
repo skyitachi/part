@@ -6,16 +6,16 @@
 #define PART_LEAF_H
 #include <vector>
 
+#include "fixed_size_allocator.h"
 #include "node.h"
 #include "types.h"
-#include "fixed_size_allocator.h"
 
 namespace part {
 
 class Leaf {
-public:
+ public:
   static void New(Node &node, const idx_t value);
-  static void Free(ART& art, Node &node);
+  static void Free(ART &art, Node &node);
 
   static idx_t TotalCount(ART &art, Node &node);
   static bool GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids, idx_t max_count);
@@ -31,8 +31,7 @@ public:
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
 
-
-public:
+ public:
   //! The number of row IDs in this leaf
   uint8_t count;
   //! Up to LEAF_SIZE row IDs
@@ -41,10 +40,10 @@ public:
   //! A pointer to the next LEAF node
   Node ptr;
 
-private:
+ private:
   static void MoveInlinedToLeaf(ART &art, Node &node);
   Leaf &Append(ART &art, const idx_t row_id);
 };
-} // namespace part
+}  // namespace part
 
-#endif // PART_LEAF_H
+#endif  // PART_LEAF_H

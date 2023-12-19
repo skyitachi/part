@@ -5,14 +5,13 @@
 #ifndef PART_NODE4_H
 #define PART_NODE4_H
 
-#include "node.h"
 #include "fixed_size_allocator.h"
+#include "node.h"
 
 namespace part {
 
 class Node4 {
-
-public:
+ public:
   //! Number of non-null children
   uint8_t count;
   //! Array containing all partial key bytes
@@ -23,7 +22,6 @@ public:
   static Node4 &New(ART &art, Node &node);
 
   static void Free(ART &art, Node &node);
-
 
   //! Get a reference to the node
   static inline Node4 &Get(const ART &art, const Node ptr) {
@@ -39,6 +37,6 @@ public:
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
 };
-} // namespace part
+}  // namespace part
 
-#endif // PART_NODE4_H
+#endif  // PART_NODE4_H

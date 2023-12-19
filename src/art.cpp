@@ -184,7 +184,9 @@ idx_t ART::GetMemoryUsage() {
 
 BlockPointer ART::Serialize(Serializer &writer) {
   if (root->IsSet()) {
-    return root->Serialize(*this, writer);
+    auto block_pointer = root->Serialize(*this, writer);
+    writer.Flush();
+    return block_pointer;
   }
   return BlockPointer();
 }

@@ -225,3 +225,35 @@ TEST_F(ARTSerializeTest, BigARTTest) {
     EXPECT_EQ(kv.second, results[0]);
   }
 }
+
+TEST(SerializerTest, Basic) {
+  Allocator& allocator = Allocator::DefaultAllocator();
+  SequentialSerializer serializer("serialize_test.data");
+  std::vector<int> ints;
+  for (int i = 0; i < 2023; i++) {
+    ints.emplace_back(i);
+    serializer.Write(i);
+  }
+  std::vector<std::string> strs;
+  for (int i = 0; i < 2023; i++) {
+    std::string str = fmt::format("value_{}", i);
+    strs.emplace_back(str);
+    serializer.WriteData(reinterpret_cast<const_data_ptr_t>(str.data()), str.size());
+  }
+  serializer.Flush();
+
+  BlockPointer pointer(0, 0);
+  BlockDeserializer reader("serialize_test.data", pointer);
+
+  for (const auto &v: ints) {
+    auto rv = reader.Read<int>();
+    EXPECT_EQ(rv, v);
+  }
+
+  for (const auto &str: strs) {
+    auto data = allocator.AllocateData(str.size());
+    reader.ReadData(data, str.size());
+    std::string rv(reinterpret_cast<const char *>(data), str.size());
+    EXPECT_EQ(rv, str);
+  }
+}

@@ -5,15 +5,15 @@
 #ifndef PART_NODE16_H
 #define PART_NODE16_H
 
-#include "node.h"
 #include "fixed_size_allocator.h"
+#include "node.h"
 
 namespace part {
 
 class Node16 {
-public:
-  Node16(const Node16&) = delete;
-  Node16 &operator=(const Node16&) = delete;
+ public:
+  Node16(const Node16 &) = delete;
+  Node16 &operator=(const Node16 &) = delete;
 
   uint8_t count;
 
@@ -26,7 +26,7 @@ public:
     return *Node::GetAllocator(art, NType::NODE_16).Get<Node16>(ptr);
   }
 
-  static Node16& New(ART &art, Node &node);
+  static Node16 &New(ART &art, Node &node);
 
   static void Free(ART &art, Node &node);
 
@@ -39,11 +39,8 @@ public:
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
-
-
-
 };
 
-}
+}  // namespace part
 
-#endif // PART_NODE16_H
+#endif  // PART_NODE16_H

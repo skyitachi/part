@@ -5,11 +5,11 @@
 #ifndef PART_NODE_H
 #define PART_NODE_H
 #include <cassert>
-#include <optional>
 #include <cstring>
+#include <optional>
 
-#include "types.h"
 #include "serializer.h"
+#include "types.h"
 
 namespace part {
 
@@ -27,7 +27,7 @@ enum class NType : uint8_t {
 };
 
 class Node {
-public:
+ public:
   //! Node thresholds
   static constexpr uint8_t NODE_48_SHRINK_THRESHOLD = 12;
   static constexpr uint8_t NODE_256_SHRINK_THRESHOLD = 36;
@@ -53,13 +53,11 @@ public:
   static constexpr uint8_t PREFIX_SIZE = 15;
 
   Node() : data(0) {}
-  Node(const uint32_t buffer_id, const uint32_t offset) : data(0) {
-    SetPtr(buffer_id, offset);
-  };
+  Node(const uint32_t buffer_id, const uint32_t offset) : data(0) { SetPtr(buffer_id, offset); };
 
-  Node(Deserializer& reader);
+  Node(Deserializer &reader);
 
-  static void Free(ART& art, Node &node);
+  static void Free(ART &art, Node &node);
 
   inline void Reset() { data = 0; }
 
@@ -68,9 +66,7 @@ public:
   inline bool IsSet() const { return data & AND_IS_SET; }
 
   //! Returns whether the node is serialized or not (zero bit)
-  inline bool IsSerialized() const {
-    return data >> Node::SHIFT_SERIALIZED_FLAG;
-  }
+  inline bool IsSerialized() const { return data >> Node::SHIFT_SERIALIZED_FLAG; }
 
   //! Get the type (1st to 7th bit)
   inline NType GetType() const {
@@ -81,14 +77,10 @@ public:
     return NType(type);
   }
 
-  inline uint8_t UnsafeGetType() const {
-      return data >> Node::SHIFT_TYPE;
-  }
+  inline uint8_t UnsafeGetType() const { return data >> Node::SHIFT_TYPE; }
 
   //! Get the doc id
-  inline idx_t GetDocId() const {
-    return data & Node::AND_RESET;
-  }
+  inline idx_t GetDocId() const { return data & Node::AND_RESET; }
 
   //! Get the offset (8th to 23rd bit)
   inline idx_t GetOffset() const {
@@ -124,17 +116,17 @@ public:
 
   static FixedSizeAllocator &GetAllocator(const ART &art, NType type);
 
-  std::optional<Node* > GetChild(ART &art, const uint8_t byte) const;
+  std::optional<Node *> GetChild(ART &art, const uint8_t byte) const;
 
-  static void InsertChild(ART& art, Node& node, const uint8_t byte, const Node child);
+  static void InsertChild(ART &art, Node &node, const uint8_t byte, const Node child);
 
   BlockPointer Serialize(ART &art, Serializer &serializer);
 
   void Deserialize(ART &art);
 
-private:
+ private:
   uint64_t data;
 };
-} // namespace part
+}  // namespace part
 
-#endif // PART_NODE_H
+#endif  // PART_NODE_H

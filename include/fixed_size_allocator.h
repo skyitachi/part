@@ -14,15 +14,14 @@
 namespace part {
 
 struct BufferEntry {
-  BufferEntry(const data_ptr_t &ptr, const idx_t &allocation_count)
-      : ptr(ptr), allocation_count(allocation_count) {}
+  BufferEntry(const data_ptr_t &ptr, const idx_t &allocation_count) : ptr(ptr), allocation_count(allocation_count) {}
 
   data_ptr_t ptr;
   idx_t allocation_count;
 };
 
 class FixedSizeAllocator {
-public:
+ public:
   //! Fixed size of the buffers
   static constexpr idx_t BUFFER_ALLOC_SIZE = 262144;
 
@@ -30,13 +29,11 @@ public:
   static constexpr uint8_t VACUUM_THRESHOLD = 10;
 
   //! Constants for fast offset calculations in the bitmask
-  static constexpr idx_t BASE[] = {
-      0x00000000FFFFFFFF, 0x0000FFFF, 0x00FF, 0x0F, 0x3, 0x1};
+  static constexpr idx_t BASE[] = {0x00000000FFFFFFFF, 0x0000FFFF, 0x00FF, 0x0F, 0x3, 0x1};
   static constexpr uint8_t SHIFT[] = {32, 16, 8, 4, 2, 1};
 
-public:
-  explicit FixedSizeAllocator(const idx_t allocation_size,
-                              Allocator &allocator);
+ public:
+  explicit FixedSizeAllocator(const idx_t allocation_size, Allocator &allocator);
   ~FixedSizeAllocator();
 
   idx_t allocation_size;
@@ -49,35 +46,33 @@ public:
   std::unordered_set<idx_t> buffers_with_free_space;
   Allocator &allocator;
 
-public:
+ public:
   Node New();
 
   void Free(const Node ptr);
 
-  template <class T> inline T *Get(const Node ptr) const {
+  template <class T>
+  inline T *Get(const Node ptr) const {
     return (T *)Get(ptr);
   }
 
   void Reset();
 
-  inline idx_t GetMemoryUsage() const {
-    return buffers.size() * BUFFER_ALLOC_SIZE;
-  }
+  inline idx_t GetMemoryUsage() const { return buffers.size() * BUFFER_ALLOC_SIZE; }
 
   uint32_t GetOffset(ValidityMask &mask, const idx_t allocation_count);
 
-private:
+ private:
   inline data_ptr_t Get(const Node ptr) const {
-      if (ptr.GetBufferId() >= buffers.size()) {
-          fmt::println("node type: {}, buffer_id: {}, buffer size: {}, allocation_size: {}",
-                       (uint8_t)ptr.GetType(), ptr.GetBufferId(), buffers.size(), allocation_size);
-          ::fflush(stdout);
-      }
-   assert(ptr.GetBufferId() < buffers.size());
+    if (ptr.GetBufferId() >= buffers.size()) {
+      fmt::println("node type: {}, buffer_id: {}, buffer size: {}, allocation_size: {}", (uint8_t)ptr.GetType(),
+                   ptr.GetBufferId(), buffers.size(), allocation_size);
+      ::fflush(stdout);
+    }
+    assert(ptr.GetBufferId() < buffers.size());
     assert(ptr.GetOffset() < allocations_per_buffer);
-    return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size +
-           allocation_offset;
+    return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size + allocation_offset;
   }
 };
-} // namespace part
-#endif // PART_FIXED_SIZE_ALLOCATOR_H
+}  // namespace part
+#endif  // PART_FIXED_SIZE_ALLOCATOR_H
