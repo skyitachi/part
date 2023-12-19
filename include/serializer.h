@@ -111,8 +111,7 @@ class BlockDeserializer : public Deserializer {
   }
 
   BlockDeserializer(int fd, const BlockPointer &pointer, Allocator &allocator = Allocator::DefaultAllocator())
-      : fd_(fd), block_id_(pointer.block_id), offset_(pointer.offset), allocator(allocator) {
-  }
+      : fd_(fd), block_id_(pointer.block_id), offset_(pointer.offset), allocator(allocator) {}
 
   virtual void ReadData(data_ptr_t buffer, idx_t read_size) override;
 
@@ -124,7 +123,6 @@ class BlockDeserializer : public Deserializer {
   idx_t block_id_;
   int fd_;
   uint32_t offset_;
-
 };
 }  // namespace part
 #endif  // PART_SERIALIZER_H

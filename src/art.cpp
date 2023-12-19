@@ -196,8 +196,10 @@ void ART::Serialize() {
   BlockPointer pointer = BlockPointer();
   if (root->IsSet()) {
     pointer = root->Serialize(*this, data_writer);
+    data_writer.Flush();
     SequentialSerializer meta_writer(meta_path_);
     UpdateMetadata(pointer, meta_writer);
+    meta_writer.Flush();
   }
 }
 

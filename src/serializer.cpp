@@ -92,5 +92,4 @@ void BlockDeserializer::ReadData(data_ptr_t buffer, idx_t read_size) {
 
 BlockPointer BlockDeserializer::GetBlockPointer() { return {static_cast<block_id_t>(block_id_), offset_}; }
 
-
 }  // namespace part

@@ -175,6 +175,7 @@ TEST(ARTTest, ARTDebugTEST) { ART art("i64_art.meta", "i64_art.data"); }
 TEST_F(ARTSerializeTest, MediumARTTest) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
+
   SetUpFiles("medium_i64_art.meta", "medium_i64_art.data");
   auto kv_pairs = PrepareData(10000, "medium_kv_pairs.json");
 
@@ -241,7 +242,7 @@ TEST_F(ARTSerializeTest, BigARTTest) {
 }
 
 TEST(SerializerTest, Basic) {
-  Allocator& allocator = Allocator::DefaultAllocator();
+  Allocator &allocator = Allocator::DefaultAllocator();
   SequentialSerializer serializer("serialize_test.data");
   std::vector<int> ints;
   for (int i = 0; i < 2023; i++) {
@@ -259,12 +260,12 @@ TEST(SerializerTest, Basic) {
   BlockPointer pointer(0, 0);
   BlockDeserializer reader("serialize_test.data", pointer);
 
-  for (const auto &v: ints) {
+  for (const auto &v : ints) {
     auto rv = reader.Read<int>();
     EXPECT_EQ(rv, v);
   }
 
-  for (const auto &str: strs) {
+  for (const auto &str : strs) {
     auto data = allocator.AllocateData(str.size());
     reader.ReadData(data, str.size());
     std::string rv(reinterpret_cast<const char *>(data), str.size());
@@ -277,7 +278,7 @@ TEST(SerializerTest, Basic) {
 
   std::string r_str2 = generateRandomString(2023 * 3);
 
-  serializer.WriteData(reinterpret_cast<const_data_ptr_t >(r_str2.data()), r_str2.size());
+  serializer.WriteData(reinterpret_cast<const_data_ptr_t>(r_str2.data()), r_str2.size());
 
   serializer.Flush();
 
@@ -296,7 +297,5 @@ TEST(SerializerTest, Basic) {
     std::string rv(reinterpret_cast<const char *>(data), r_str2.size());
 
     EXPECT_EQ(rv, r_str2);
-
   }
-
 }
