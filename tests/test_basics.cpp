@@ -102,7 +102,7 @@ TEST(ARTTest, NodeCount) {
 
 }
 
-TEST(ARTTest, BigARTNodeCount) {
+TEST(ARTNodeCountTest, BigARTNodeCount) {
   ART art;
   Random random;
 
@@ -111,6 +111,18 @@ TEST(ARTTest, BigARTNodeCount) {
     art.Put(k, v);
   }
 
-  fmt::println("write ends");
   fmt::println("non_leaf_count: {}, leaf count: {}", art.NoneLeafCount(), art.LeafCount());
 }
+
+TEST(ARTNodeCountTest, SequenceBigARTNodeCount) {
+  ART art;
+  Random random;
+
+  auto kv_pairs = random.GenOrderedKvPairs(100000);
+  for(const auto& [k, v]: kv_pairs) {
+    art.Put(k, v);
+  }
+
+  fmt::println("non_leaf_count: {}, leaf count: {}", art.NoneLeafCount(), art.LeafCount());
+}
+

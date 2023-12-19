@@ -4,6 +4,7 @@
 #include <benchmark/benchmark.h>
 #include <chrono>
 #include <filesystem>
+#include <unordered_map>
 
 #include "art.h"
 #include "util.h"
@@ -56,13 +57,14 @@ struct ARTKeyHash {
 int main(int argc, char** argv) {
   ::benchmark::Initialize(&argc, argv);
   Random random;
-  ART art;
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
   int limit = 100000;
   auto kv_pairs = random.GenKvPairs(limit);
+  auto ordered_kv_pairs = random.GenOrderedKvPairs(limit);
 
   register_benchmark("art_unordered_write_test", 1, [&](bm::State &st) {
+    ART art;
     while (st.KeepRunning()) {
       for(int i = 0; i < 100000; i++) {
         art.Put(kv_pairs[i].first, kv_pairs[i].second);
@@ -70,9 +72,17 @@ int main(int argc, char** argv) {
     }
   });
 
-  ART art2("benchmark_i64.meta", "benchmark_i64.data");
+  register_benchmark("art_ordered_write_test", 1, [&](bm::State &st) {
+    ART art;
+    while (st.KeepRunning()) {
+      for(int i = 0; i < 100000; i++) {
+        art.Put(ordered_kv_pairs[i].first, ordered_kv_pairs[i].second);
+      }
+    }
+  });
 
   register_benchmark("art_unordered_write_serialize_test", 1, [&](bm::State &st) {
+    ART art2("benchmark_i64.meta", "benchmark_i64.data");
     while (st.KeepRunning()) {
       for(int i = 0; i < 100000; i++) {
         art2.Put(kv_pairs[i].first, kv_pairs[i].second);

@@ -244,7 +244,7 @@ static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
       auto &leaf = Leaf::Get(art, node);
       idx_t sum = 1;
       while (leaf.ptr.IsSet()) {
-        leaf = Leaf::Get(art, node);
+        leaf = Leaf::Get(art, leaf.ptr);
         sum += 1;
       }
       return sum;
