@@ -49,12 +49,10 @@ class Random {
     Allocator &allocator = Allocator::DefaultAllocator();
     ArenaAllocator arena_allocator(allocator, 16384);
     Vector<ARTKeyInt64Pair> kv_pairs;
-    std::unordered_set<int64_t> key_sets;
     for (int i = 0; i < limit; i++) {
       int64_t rk = i;
       auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, rk);
       kv_pairs.emplace_back(art_key, i);
-      key_sets.insert(rk);
     }
     return kv_pairs;
   }

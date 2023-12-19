@@ -61,7 +61,6 @@ int main(int argc, char** argv) {
   ArenaAllocator arena_allocator(allocator, 16384);
   int limit = 100000;
   auto kv_pairs = random.GenKvPairs(limit);
-  auto ordered_kv_pairs = random.GenOrderedKvPairs(limit);
 
   register_benchmark("art_unordered_write_test", 1, [&](bm::State &st) {
     ART art;
@@ -75,8 +74,9 @@ int main(int argc, char** argv) {
   register_benchmark("art_ordered_write_test", 1, [&](bm::State &st) {
     ART art;
     while (st.KeepRunning()) {
-      for(int i = 0; i < 100000; i++) {
-        art.Put(ordered_kv_pairs[i].first, ordered_kv_pairs[i].second);
+      for(idx_t i = 0; i < 100000; i++) {
+        auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+        art.Put(art_key, i);
       }
     }
   });
