@@ -1,15 +1,16 @@
 //
 // Created by Shiping Yao on 2023/12/8.
 //
+#include <fmt/core.h>
+#include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
+
+#include "util.h"
+#include <node.h>
 #include <allocator.h>
 #include <arena_allocator.h>
 #include <art.h>
 #include <art_key.h>
-#include <fmt/core.h>
-#include <gtest/gtest.h>
-#include <node.h>
-
-#include <nlohmann/json.hpp>
 
 using namespace part;
 
@@ -73,4 +74,43 @@ TEST(ARTDeserializeTest, Basic) {
   EXPECT_EQ(123, results[2]);
 }
 
-TEST(ARTSerializeAndDeserialize, Basic) {}
+TEST(ARTTest, NodeCount) {
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
+  art.Put(k1, 1);
+
+  EXPECT_EQ(art.NoneLeafCount(), 1);
+  EXPECT_EQ(art.LeafCount(), 1);
+
+  // same prefix
+  ARTKey k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
+  art.Put(k2, 2);
+
+  EXPECT_EQ(art.NoneLeafCount(), 1);
+  EXPECT_EQ(art.LeafCount(), 1);
+
+
+  ARTKey k3 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 11);
+  art.Put(k3, 2);
+
+  EXPECT_EQ(art.NoneLeafCount(), 2);
+  EXPECT_EQ(art.LeafCount(), 2);
+
+}
+
+TEST(ARTTest, BigARTNodeCount) {
+  ART art;
+  Random random;
+
+  auto kv_pairs = random.GenKvPairs(100000);
+  for(const auto& [k, v]: kv_pairs) {
+    art.Put(k, v);
+  }
+
+  fmt::println("write ends");
+  fmt::println("non_leaf_count: {}, leaf count: {}", art.NoneLeafCount(), art.LeafCount());
+}

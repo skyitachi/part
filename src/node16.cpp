@@ -98,7 +98,6 @@ BlockPointer Node16::Serialize(ART &art, Node &node, Serializer &writer) {
   auto block_pointer = writer.GetBlockPointer();
   writer.Write(NType::NODE_16);
   writer.Write<uint8_t>(n16.count);
-  fmt::println("node16 count: {}", n16.count);
 
   for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
     writer.Write(n16.key[i]);

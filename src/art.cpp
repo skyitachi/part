@@ -220,4 +220,84 @@ BlockPointer ART::ReadMetadata() {
 
 void ART::Deserialize() { root->Deserialize(*this); }
 
+static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
+  if (!node.IsSet()) {
+    return 0;
+  }
+  if (node.IsSerialized()) {
+    node.Deserialize(art);
+  }
+  auto type = node.GetType();
+
+  idx_t current = count_leaf ? 0 : 1;
+
+  switch (type) {
+    case NType::PREFIX: {
+      auto &prefix = Prefix::Get(art, node);
+      auto sum = current + sumNoneLeafCount(art, prefix.ptr, count_leaf);
+      return sum;
+    }
+    case NType::LEAF: {
+      if (!count_leaf) {
+        return 0;
+      }
+      auto &leaf = Leaf::Get(art, node);
+      idx_t sum = 1;
+      while (leaf.ptr.IsSet()) {
+        leaf = Leaf::Get(art, node);
+        sum += 1;
+      }
+      return sum;
+    }
+    case NType::LEAF_INLINED:
+      if (count_leaf) {
+        return 1;
+      }
+      return 0;
+    case NType::NODE_4: {
+      auto &n4 = Node4::Get(art, node);
+      idx_t sum = current;
+      for (idx_t i = 0; i < n4.count; i++) {
+        sum += sumNoneLeafCount(art, n4.children[i], count_leaf);
+      }
+      return sum;
+    }
+    case NType::NODE_16: {
+      auto &n16 = Node16::Get(art, node);
+      idx_t sum = current;
+      for (idx_t i = 0; i < n16.count; i++) {
+        sum += sumNoneLeafCount(art, n16.children[i], count_leaf);
+      }
+      return sum;
+    }
+    case NType::NODE_48: {
+      auto &n48 = Node48::Get(art, node);
+      idx_t sum = current;
+      for (idx_t i = 0; i < n48.count; i++) {
+        sum += sumNoneLeafCount(art, n48.children[i], count_leaf);
+      }
+      return sum;
+    }
+    case NType::NODE_256: {
+      auto &n256 = Node256::Get(art, node);
+      idx_t sum = current;
+      for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+        if (n256.children[i].IsSet()) {
+          sum += sumNoneLeafCount(art, n256.children[i], count_leaf);
+        }
+      }
+      return sum;
+    }
+  }
+  return 0;
+}
+
+idx_t ART::NoneLeafCount() {
+  return sumNoneLeafCount(*this, *root, false);
+}
+
+idx_t ART::LeafCount() {
+  return sumNoneLeafCount(*this, *root, true);
+}
+
 }  // namespace part

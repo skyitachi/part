@@ -36,6 +36,10 @@ class ART {
 
   idx_t GetMemoryUsage();
 
+  idx_t LeafCount();
+
+  idx_t NoneLeafCount();
+
   BlockPointer Serialize(Serializer &writer);
 
   void UpdateMetadata(BlockPointer pointer, Serializer &meta_writer);
