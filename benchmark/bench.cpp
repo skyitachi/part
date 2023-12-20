@@ -71,12 +71,21 @@ int main(int argc, char** argv) {
     }
   });
 
+  std::sort(kv_pairs.begin(), kv_pairs.end(), [](auto& a, auto &b)->int {
+    if (a.first > b.first) {
+      return 1;
+    } else if (a.first == b.first) {
+      return 0;
+    }
+    return -1;
+  });
+
   register_benchmark("art_ordered_write_test", 1, [&](bm::State &st) {
     ART art;
     while (st.KeepRunning()) {
       for(idx_t i = 0; i < 100000; i++) {
-        auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
-        art.Put(art_key, i);
+//        auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+        art.Put(kv_pairs[i].first, kv_pairs[i].second);
       }
     }
   });

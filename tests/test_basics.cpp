@@ -126,3 +126,11 @@ TEST(ARTNodeCountTest, SequenceBigARTNodeCount) {
   fmt::println("non_leaf_count: {}, leaf count: {}", art.NoneLeafCount(), art.LeafCount());
 }
 
+TEST(ARTTest, ARTKeyMemoryLeak) {
+  Random random;
+  auto kv_pairs = random.GenKvPairs(10);
+  for(auto &pair: kv_pairs) {
+    fmt::println("key ken: {}", pair.first.len);
+  }
+}
+
