@@ -3,8 +3,7 @@
 //
 
 #include <art_key.h>
-
-#include <numeric>
+#include <fmt/core.h>
 
 namespace part {
 
@@ -15,6 +14,7 @@ ARTKey::ARTKey(ArenaAllocator &allocator, const uint32_t &len) : len(len) { data
 
 bool ARTKey::operator>(const ARTKey &k) const {
   for (uint32_t i = 0; i < std::min(len, k.len); i++) {
+    printf("data pointer: %p, other data pointer: %p\n", data, k.data);
     if (data[i] > k.data[i]) {
       return true;
     } else if (data[i] < k.data[i]) {
@@ -41,6 +41,8 @@ bool ARTKey::operator==(const ARTKey &k) const {
   }
   return std::memcmp(data, k.data, len) == 0;
 }
+
+bool ARTKey::operator<(const ARTKey &k) const { return k >= *this; }
 
 template <>
 ARTKey ARTKey::CreateARTKey(ArenaAllocator &allocator, std::string_view value) {

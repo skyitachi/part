@@ -28,12 +28,10 @@ class Random {
 
   inline int64_t NextLong() { return (*dist_)(*gen_); }
 
-  Vector<ARTKeyInt64Pair> GenKvPairs(int32_t limit) {
-    Allocator &allocator = Allocator::DefaultAllocator();
-    ArenaAllocator arena_allocator(allocator, 16384);
+  Vector<ARTKeyInt64Pair> GenKvPairs(int32_t limit, ArenaAllocator& arena_allocator) {
     Vector<ARTKeyInt64Pair> kv_pairs;
     std::unordered_set<int64_t> key_sets;
-    for (int i = 0; i < limit; i++) {
+    for (idx_t i = 0; i < limit; i++) {
       int64_t rk = 0;
       do {
         rk = NextLong();
@@ -45,9 +43,7 @@ class Random {
     return kv_pairs;
   }
 
-  Vector<ARTKeyInt64Pair> GenOrderedKvPairs(int32_t limit) {
-    Allocator &allocator = Allocator::DefaultAllocator();
-    ArenaAllocator arena_allocator(allocator, 16384);
+  Vector<ARTKeyInt64Pair> GenOrderedKvPairs(int32_t limit, ArenaAllocator& arena_allocator) {
     Vector<ARTKeyInt64Pair> kv_pairs;
     for (int i = 0; i < limit; i++) {
       int64_t rk = i;

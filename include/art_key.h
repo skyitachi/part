@@ -33,10 +33,10 @@ class ARTKey {
   data_t &operator[](size_t i) { return data[i]; }
 
   const data_t &operator[](size_t i) const { return data[i]; }
-
   bool operator>(const ARTKey &k) const;
   bool operator>=(const ARTKey &k) const;
   bool operator==(const ARTKey &k) const;
+  bool operator<(const ARTKey &k) const;
 
   inline bool Empty() const { return len == 0; }
 

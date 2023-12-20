@@ -3,14 +3,11 @@
 //
 #include <fmt/core.h>
 #include <gtest/gtest.h>
+
 #include <nlohmann/json.hpp>
 
+#include "art.h"
 #include "util.h"
-#include <node.h>
-#include <allocator.h>
-#include <arena_allocator.h>
-#include <art.h>
-#include <art_key.h>
 
 using namespace part;
 
@@ -93,21 +90,20 @@ TEST(ARTTest, NodeCount) {
   EXPECT_EQ(art.NoneLeafCount(), 1);
   EXPECT_EQ(art.LeafCount(), 1);
 
-
   ARTKey k3 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 11);
   art.Put(k3, 2);
 
   EXPECT_EQ(art.NoneLeafCount(), 2);
   EXPECT_EQ(art.LeafCount(), 2);
-
 }
 
 TEST(ARTNodeCountTest, BigARTNodeCount) {
+  ArenaAllocator arena_allocator(Allocator::DefaultAllocator(), 16384);
   ART art;
   Random random;
 
-  auto kv_pairs = random.GenKvPairs(100000);
-  for(const auto& [k, v]: kv_pairs) {
+  auto kv_pairs = random.GenKvPairs(100000, arena_allocator);
+  for (const auto& [k, v] : kv_pairs) {
     art.Put(k, v);
   }
 
@@ -115,11 +111,13 @@ TEST(ARTNodeCountTest, BigARTNodeCount) {
 }
 
 TEST(ARTNodeCountTest, SequenceBigARTNodeCount) {
+  ArenaAllocator arena_allocator(Allocator::DefaultAllocator(), 16384);
+
   ART art;
   Random random;
 
-  auto kv_pairs = random.GenOrderedKvPairs(100000);
-  for(const auto& [k, v]: kv_pairs) {
+  auto kv_pairs = random.GenOrderedKvPairs(100000, arena_allocator);
+  for (const auto& [k, v] : kv_pairs) {
     art.Put(k, v);
   }
 
@@ -127,10 +125,10 @@ TEST(ARTNodeCountTest, SequenceBigARTNodeCount) {
 }
 
 TEST(ARTTest, ARTKeyMemoryLeak) {
+  ArenaAllocator arena_allocator(Allocator::DefaultAllocator(), 16384);
   Random random;
-  auto kv_pairs = random.GenKvPairs(10);
-  for(auto &pair: kv_pairs) {
+  auto kv_pairs = random.GenKvPairs(10, arena_allocator);
+  for (auto& pair : kv_pairs) {
     fmt::println("key ken: {}", pair.first.len);
   }
 }
-

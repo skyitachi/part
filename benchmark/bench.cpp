@@ -8,8 +8,6 @@
 
 #include "art.h"
 #include "util.h"
-#include "arena_allocator.h"
-
 
 namespace bm = benchmark;
 using namespace part;
@@ -59,31 +57,26 @@ int main(int argc, char** argv) {
   Random random;
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
-  int limit = 100000;
-  auto kv_pairs = random.GenKvPairs(limit);
+  int limit = 1000000;
+  auto kv_pairs = random.GenKvPairs(limit, arena_allocator);
 
   register_benchmark("art_unordered_write_test", 1, [&](bm::State &st) {
     ART art;
     while (st.KeepRunning()) {
-      for(int i = 0; i < 100000; i++) {
+      for(int i = 0; i < limit; i++) {
         art.Put(kv_pairs[i].first, kv_pairs[i].second);
       }
     }
   });
 
-  std::sort(kv_pairs.begin(), kv_pairs.end(), [](auto& a, auto &b)->int {
-    if (a.first > b.first) {
-      return 1;
-    } else if (a.first == b.first) {
-      return 0;
-    }
-    return -1;
+  std::sort(kv_pairs.begin(), kv_pairs.end(), [](auto a, auto b) {
+    return a.first < b.first;
   });
 
   register_benchmark("art_ordered_write_test", 1, [&](bm::State &st) {
     ART art;
     while (st.KeepRunning()) {
-      for(idx_t i = 0; i < 100000; i++) {
+      for(idx_t i = 0; i < limit; i++) {
 //        auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
         art.Put(kv_pairs[i].first, kv_pairs[i].second);
       }
@@ -93,7 +86,7 @@ int main(int argc, char** argv) {
   register_benchmark("art_unordered_write_serialize_test", 1, [&](bm::State &st) {
     ART art2("benchmark_i64.meta", "benchmark_i64.data");
     while (st.KeepRunning()) {
-      for(int i = 0; i < 100000; i++) {
+      for(int i = 0; i < limit; i++) {
         art2.Put(kv_pairs[i].first, kv_pairs[i].second);
       }
       art2.Serialize();
@@ -105,7 +98,7 @@ int main(int argc, char** argv) {
   register_benchmark("std_unordered_map_insert", 1, [&](bm::State &st) {
     std::unordered_map<ARTKey, int64_t, ARTKeyHash> map;
     while (st.KeepRunning()) {
-      for(int i = 0; i < 100000; i++) {
+      for(int i = 0; i < limit; i++) {
         map.insert(kv_pairs[i]);
       }
     }

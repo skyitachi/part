@@ -8,7 +8,10 @@
 #include <optional>
 #include <vector>
 
+#include "arena_allocator.h"
+#include "art_key.h"
 #include "block.h"
+#include "node.h"
 #include "serializer.h"
 #include "types.h"
 

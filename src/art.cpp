@@ -292,12 +292,8 @@ static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
   return 0;
 }
 
-idx_t ART::NoneLeafCount() {
-  return sumNoneLeafCount(*this, *root, false);
-}
+idx_t ART::NoneLeafCount() { return sumNoneLeafCount(*this, *root, false); }
 
-idx_t ART::LeafCount() {
-  return sumNoneLeafCount(*this, *root, true);
-}
+idx_t ART::LeafCount() { return sumNoneLeafCount(*this, *root, true); }
 
 }  // namespace part
