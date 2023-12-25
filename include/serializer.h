@@ -79,6 +79,7 @@ class SequentialSerializer : public Serializer {
     if (fd_ != -1) {
       ::close(fd_);
     }
+    allocator.FreeData(buffer_, capacity_);
   }
 
   virtual void Flush() override;

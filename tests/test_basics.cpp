@@ -4,8 +4,6 @@
 #include <fmt/core.h>
 #include <gtest/gtest.h>
 
-#include <nlohmann/json.hpp>
-
 #include "art.h"
 #include "util.h"
 
