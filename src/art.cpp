@@ -35,25 +35,23 @@ ART::ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
   root = std::make_unique<Node>();
 }
 
-ART::ART(const std::string &metadata_path, const std::string &index_path,
-         const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
+ART::ART(const std::string &index_path, const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr)
     : ART(allocators_ptr) {
   index_path_ = index_path;
-  meta_path_ = metadata_path;
 
   index_fd_ = ::open(index_path.c_str(), O_CREAT | O_RDWR, 0644);
   if (index_fd_ == -1) {
     throw std::invalid_argument(fmt::format("cann open {} index file, error: {}", index_path, strerror(errno)));
   }
 
-  metadata_fd_ = ::open(metadata_path.c_str(), O_RDWR, 0644);
-  if (metadata_fd_ == -1) {
-    root = std::make_unique<Node>();
-  } else {
+  metadata_fd_ = ::open(index_path.c_str(), O_RDWR, 0644);
+  try {
     auto pointer = ReadMetadata();
     root = std::make_unique<Node>(pointer.block_id, pointer.offset);
     root->SetSerialized();
     root->Deserialize(*this);
+  } catch (std::exception &e) {
+    root = std::make_unique<Node>();
   }
 }
 
@@ -192,12 +190,11 @@ BlockPointer ART::Serialize(Serializer &writer) {
 }
 
 void ART::Serialize() {
-  SequentialSerializer data_writer(index_path_);
-  BlockPointer pointer = BlockPointer();
   if (root->IsSet()) {
-    pointer = root->Serialize(*this, data_writer);
+    SequentialSerializer data_writer(index_path_, META_OFFSET);
+    auto pointer = root->Serialize(*this, data_writer);
     data_writer.Flush();
-    SequentialSerializer meta_writer(meta_path_);
+    SequentialSerializer meta_writer(index_path_);
     UpdateMetadata(pointer, meta_writer);
     meta_writer.Flush();
   }
@@ -208,19 +205,21 @@ void ART::UpdateMetadata(BlockPointer pointer, Serializer &writer) {
   writer.Write<uint32_t>(pointer.offset);
 }
 
-BlockPointer ART::ReadMetadata() {
+BlockPointer ART::ReadMetadata() const {
   if (metadata_fd_ == -1) {
     throw std::invalid_argument(fmt::format("no meta file"));
   }
-  BlockPointer pointer;
-  ::read(metadata_fd_, &pointer.block_id, sizeof(block_id_t));
-  ::read(metadata_fd_, &pointer.offset, sizeof(uint32_t));
-  return pointer;
+  BlockPointer pointer(0, 0);
+  BlockDeserializer reader(metadata_fd_, pointer);
+  BlockPointer root_pointer;
+  reader.ReadData(reinterpret_cast<data_ptr_t>(&root_pointer.block_id), sizeof(block_id_t));
+  reader.ReadData(reinterpret_cast<data_ptr_t>(&root_pointer.offset), sizeof(uint32_t));
+  return root_pointer;
 }
 
 void ART::Deserialize() { root->Deserialize(*this); }
 
-static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
+static idx_t SumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
   if (!node.IsSet()) {
     return 0;
   }
@@ -234,7 +233,7 @@ static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
   switch (type) {
     case NType::PREFIX: {
       auto &prefix = Prefix::Get(art, node);
-      auto sum = current + sumNoneLeafCount(art, prefix.ptr, count_leaf);
+      auto sum = current + SumNoneLeafCount(art, prefix.ptr, count_leaf);
       return sum;
     }
     case NType::LEAF: {
@@ -258,7 +257,7 @@ static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
       auto &n4 = Node4::Get(art, node);
       idx_t sum = current;
       for (idx_t i = 0; i < n4.count; i++) {
-        sum += sumNoneLeafCount(art, n4.children[i], count_leaf);
+        sum += SumNoneLeafCount(art, n4.children[i], count_leaf);
       }
       return sum;
     }
@@ -266,7 +265,7 @@ static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
       auto &n16 = Node16::Get(art, node);
       idx_t sum = current;
       for (idx_t i = 0; i < n16.count; i++) {
-        sum += sumNoneLeafCount(art, n16.children[i], count_leaf);
+        sum += SumNoneLeafCount(art, n16.children[i], count_leaf);
       }
       return sum;
     }
@@ -274,7 +273,7 @@ static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
       auto &n48 = Node48::Get(art, node);
       idx_t sum = current;
       for (idx_t i = 0; i < n48.count; i++) {
-        sum += sumNoneLeafCount(art, n48.children[i], count_leaf);
+        sum += SumNoneLeafCount(art, n48.children[i], count_leaf);
       }
       return sum;
     }
@@ -283,7 +282,7 @@ static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
       idx_t sum = current;
       for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
         if (n256.children[i].IsSet()) {
-          sum += sumNoneLeafCount(art, n256.children[i], count_leaf);
+          sum += SumNoneLeafCount(art, n256.children[i], count_leaf);
         }
       }
       return sum;
@@ -292,8 +291,8 @@ static idx_t sumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
   return 0;
 }
 
-idx_t ART::NoneLeafCount() { return sumNoneLeafCount(*this, *root, false); }
+idx_t ART::NoneLeafCount() { return SumNoneLeafCount(*this, *root, false); }
 
-idx_t ART::LeafCount() { return sumNoneLeafCount(*this, *root, true); }
+idx_t ART::LeafCount() { return SumNoneLeafCount(*this, *root, true); }
 
 }  // namespace part

@@ -60,29 +60,36 @@ class Deserializer {
 
 class SequentialSerializer : public Serializer {
  public:
-  explicit SequentialSerializer(std::string path, Allocator &allocator = Allocator::DefaultAllocator())
-      : block_id_(0), offset_(0), capacity_(BLOCK_SIZE), allocator(allocator), buf_offset_(0) {
+  SequentialSerializer(const std::string &path, uint32_t offset, Allocator &allocator = Allocator::DefaultAllocator())
+      : block_id_(0), offset_(offset), capacity_(BLOCK_SIZE), allocator(allocator), buf_offset_(0) {
     fd_ = ::open(path.c_str(), O_CREAT | O_RDWR, 0644);
     if (fd_ == -1) {
       throw std::invalid_argument(fmt::format("cannot open file {}, due to {}", path, strerror(errno)));
     }
+    if (offset > 0) {
+      block_id_ = offset / BLOCK_SIZE;
+      ::lseek(fd_, offset, SEEK_SET);
+    }
     buffer_ = allocator.AllocateData(capacity_);
   }
 
-  virtual void WriteData(const_data_ptr_t buffer, idx_t write_size) override;
+  explicit SequentialSerializer(const std::string &path, Allocator &allocator = Allocator::DefaultAllocator())
+      : SequentialSerializer(path, 0, allocator) {}
 
-  virtual BlockPointer GetBlockPointer() override;
+  void WriteData(const_data_ptr_t buffer, idx_t write_size) override;
+
+  BlockPointer GetBlockPointer() override;
 
   Allocator &allocator;
 
-  ~SequentialSerializer() {
+  ~SequentialSerializer() override {
     if (fd_ != -1) {
       ::close(fd_);
     }
     allocator.FreeData(buffer_, capacity_);
   }
 
-  virtual void Flush() override;
+  void Flush() override;
 
  private:
   std::string path_;
@@ -114,9 +121,9 @@ class BlockDeserializer : public Deserializer {
   BlockDeserializer(int fd, const BlockPointer &pointer, Allocator &allocator = Allocator::DefaultAllocator())
       : fd_(fd), block_id_(pointer.block_id), offset_(pointer.offset), allocator(allocator) {}
 
-  virtual void ReadData(data_ptr_t buffer, idx_t read_size) override;
+  void ReadData(data_ptr_t buffer, idx_t read_size) override;
 
-  virtual BlockPointer GetBlockPointer() override;
+  BlockPointer GetBlockPointer() override;
 
   Allocator &allocator;
 

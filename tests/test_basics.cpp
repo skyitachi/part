@@ -38,20 +38,21 @@ TEST(ARTSerializeTest, basic) {
   EXPECT_EQ(124, results[1]);
   EXPECT_EQ(123, results[2]);
 
-  SequentialSerializer writer("art.index");
+  SequentialSerializer writer("art.index", META_OFFSET);
 
   auto block_pointer = art.Serialize(writer);
 
   fmt::println("block_id: {}, offset_: {}", block_pointer.block_id, block_pointer.offset);
 
-  SequentialSerializer meta_writer("art.meta");
+  SequentialSerializer meta_writer("art.index");
 
   art.UpdateMetadata(block_pointer, meta_writer);
+
+  meta_writer.Flush();
 }
 
 TEST(ARTDeserializeTest, Basic) {
-  ART art("art.meta", "art.index");
-  art.Deserialize();
+  ART art("art.index");
   EXPECT_FALSE(art.root->IsSerialized());
 
   Allocator& allocator = Allocator::DefaultAllocator();

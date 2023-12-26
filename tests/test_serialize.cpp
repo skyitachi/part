@@ -87,16 +87,15 @@ class ARTSerializeTest : public testing::Test {
     return pairs;
   }
 
-  void SetUpFiles(const std::string &meta_path, const std::string &index_path) {
+  void SetUpFiles(const std::string &index_path) {
     std::lock_guard<std::mutex> lock(mu_);
-    meta_path_ = meta_path;
     index_path_ = index_path;
   }
 
-  std::pair<std::string, std::string> GetFiles() {
+  std::string GetFiles() {
     std::lock_guard<std::mutex> lock(mu_);
-    assert(!meta_path_.empty() && !index_path_.empty());
-    return {meta_path_, index_path_};
+    assert(!index_path_.empty());
+    return index_path_;
   }
 
   void SetUp() override {
@@ -111,8 +110,8 @@ class ARTSerializeTest : public testing::Test {
       return;
     }
     std::lock_guard<std::mutex> lock(mu_);
-    if (!meta_path_.empty() && !index_path_.empty()) {
-      removeFiles({index_path_, meta_path_});
+    if (!index_path_.empty()) {
+      removeFiles({index_path_});
     }
   }
 
@@ -120,7 +119,6 @@ class ARTSerializeTest : public testing::Test {
   std::unique_ptr<std::mt19937_64> gen_;
   std::unique_ptr<std::uniform_int_distribution<int64_t>> dist_;
 
-  std::string meta_path_;
   std::string index_path_;
 
   std::mutex mu_;
@@ -130,7 +128,7 @@ class ARTSerializeTest : public testing::Test {
 };
 
 TEST_F(ARTSerializeTest, JsonFileTest) {
-  auto kv_pairs = genRandomKvPairs(1000000);
+  auto kv_pairs = genRandomKvPairs(1000);
 
   ARTSerializeTest::kvPairToJsonFile(kv_pairs, "keys_int64.json");
 
@@ -142,13 +140,13 @@ TEST_F(ARTSerializeTest, JsonFileTest) {
 TEST_F(ARTSerializeTest, ARTSerializeBasicTest) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
-  SetUpFiles("i64_art.meta", "i64_art.data");
+  SetUpFiles("i64_art.data");
 
-  auto [meta_path, index_path] = GetFiles();
+  auto index_path = GetFiles();
 
   auto kv_pairs = ARTSerializeTest::readKVPairsFromFile("keys_int64.json");
 
-  ART art(meta_path, index_path);
+  ART art(index_path);
 
   for (const auto &kv : kv_pairs) {
     auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
@@ -157,7 +155,7 @@ TEST_F(ARTSerializeTest, ARTSerializeBasicTest) {
 
   art.Serialize();
 
-  ART art2(meta_path, index_path);
+  ART art2(index_path);
 
   for (const auto &kv : kv_pairs) {
     auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
@@ -170,22 +168,22 @@ TEST_F(ARTSerializeTest, ARTSerializeBasicTest) {
   }
 }
 
-TEST(ARTTest, ARTDebugTEST) { ART art("i64_art.meta", "i64_art.data"); }
+TEST(ARTTest, ARTDebugTEST) { ART art("i64_art.data"); }
 
 TEST_F(ARTSerializeTest, MediumARTTest) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  SetUpFiles("medium_i64_art.meta", "medium_i64_art.data");
+  SetUpFiles("medium_i64_art.data");
   auto kv_pairs = PrepareData(10000, "medium_kv_pairs.json");
 
   kv_pairs = readKVPairsFromFile("medium_kv_pairs.json");
 
   keep_file = false;
 
-  auto [meta_path, index_path] = GetFiles();
+  auto index_path = GetFiles();
 
-  ART art(meta_path, index_path);
+  ART art(index_path);
 
   for (const auto &kv : kv_pairs) {
     auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
@@ -194,7 +192,7 @@ TEST_F(ARTSerializeTest, MediumARTTest) {
 
   art.Serialize();
 
-  ART art2(meta_path, index_path);
+  ART art2(index_path);
 
   for (const auto &kv : kv_pairs) {
     auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
@@ -210,16 +208,16 @@ TEST_F(ARTSerializeTest, MediumARTTest) {
 TEST_F(ARTSerializeTest, BigARTTest) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
-  SetUpFiles("big_i64_art.meta", "big_i64_art.data");
+  SetUpFiles("big_i64_art.data");
   auto kv_pairs = PrepareData(1000000, "big_kv_pairs.json");
 
   kv_pairs = readKVPairsFromFile("big_kv_pairs.json");
 
   keep_file = true;
 
-  auto [meta_path, index_path] = GetFiles();
+  auto index_path = GetFiles();
 
-  ART art(meta_path, index_path);
+  ART art(index_path);
 
   for (const auto &kv : kv_pairs) {
     auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
@@ -228,7 +226,7 @@ TEST_F(ARTSerializeTest, BigARTTest) {
 
   art.Serialize();
 
-  ART art2(meta_path, index_path);
+  ART art2(index_path);
 
   for (const auto &kv : kv_pairs) {
     auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
@@ -270,6 +268,7 @@ TEST(SerializerTest, Basic) {
     reader.ReadData(data, str.size());
     std::string rv(reinterpret_cast<const char *>(data), str.size());
     EXPECT_EQ(rv, str);
+    allocator.FreeData(data, str.size());
   }
 
   std::string r_str = generateRandomString(10000);
@@ -289,6 +288,7 @@ TEST(SerializerTest, Basic) {
     std::string rv(reinterpret_cast<const char *>(data), r_str.size());
 
     EXPECT_EQ(rv, r_str);
+    allocator.FreeData(data, r_str.size());
   }
   {
     auto data = allocator.AllocateData(r_str2.size());
@@ -297,5 +297,29 @@ TEST(SerializerTest, Basic) {
     std::string rv(reinterpret_cast<const char *>(data), r_str2.size());
 
     EXPECT_EQ(rv, r_str2);
+    allocator.FreeData(data, r_str2.size());
   }
+}
+
+TEST(UIDIndexTest, Serialize) {
+  ART art("uid.idx");
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  ARTKey key = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1);
+  art.Put(key, 1);
+
+  art.Serialize();
+}
+
+TEST(UIDIndexTest, Deserialize) {
+  ART art("uid.idx");
+
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  ARTKey key = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1);
+  std::vector<idx_t> results;
+  bool success = art.Get(key, results);
+  EXPECT_TRUE(success);
+  EXPECT_EQ(1, results.size());
+  EXPECT_EQ(1, results[0]);
 }

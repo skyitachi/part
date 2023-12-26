@@ -24,7 +24,7 @@ class ART {
  public:
   explicit ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
 
-  explicit ART(const std::string &metadata_path, const std::string &index_path,
+  explicit ART(const std::string &index_path,
                const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
 
   ~ART();
@@ -47,7 +47,7 @@ class ART {
 
   void UpdateMetadata(BlockPointer pointer, Serializer &meta_writer);
 
-  BlockPointer ReadMetadata();
+  BlockPointer ReadMetadata() const;
 
   void Serialize();
 
@@ -64,7 +64,6 @@ class ART {
   int metadata_fd_;
   int index_fd_;
   std::string index_path_;
-  std::string meta_path_;
 };
 
 }  // namespace part

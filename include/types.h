@@ -26,6 +26,7 @@ using block_id_t = int64_t;
 #define MAXIMUM_BLOCK 4611686018427388000LL
 
 static constexpr const idx_t INVALID_INDEX = idx_t(-1);
+static constexpr const uint32_t META_OFFSET = 12;
 
 template <class SRC>
 data_ptr_t data_ptr_cast(SRC *src) {

@@ -8,7 +8,7 @@ namespace part {
 void SequentialSerializer::WriteData(const_data_ptr_t buffer, idx_t write_size) {
   idx_t copy = write_size;
   idx_t data_offset = 0;
-  while (offset_ + copy > capacity_) {
+  while (offset_ + copy >= capacity_) {
     size_t to_write = capacity_ - offset_;
     copy -= to_write;
     auto written = write(buffer + data_offset, to_write);
@@ -76,7 +76,6 @@ void BlockDeserializer::ReadData(data_ptr_t buffer, idx_t read_size) {
   auto offset = block_id_ * BLOCK_SIZE + offset_;
   ssize_t r = pread(fd_, buffer, read_size, offset);
   if (r != read_size) {
-    fmt::println("[Debug] ReadData block_id: {}, offset: {}", block_id_, offset_);
     throw std::invalid_argument(
         fmt::format("cannot read enough data: {}, expected: {}, read: {}", strerror(errno), read_size, r));
   }
