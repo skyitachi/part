@@ -84,14 +84,13 @@ int main(int argc, char** argv) {
   });
 
   register_benchmark("art_unordered_write_serialize_test", 1, [&](bm::State &st) {
-    ART art2("benchmark_i64.meta", "benchmark_i64.data");
+    ART art2("benchmark_i64.data");
     while (st.KeepRunning()) {
       for(int i = 0; i < limit; i++) {
         art2.Put(kv_pairs[i].first, kv_pairs[i].second);
       }
       art2.Serialize();
     }
-    std::filesystem::remove("benchmark_i64.meta");
     std::filesystem::remove("benchmark_i64.data");
   });
 
