@@ -169,6 +169,41 @@ bool ART::InsertToLeaf(Node &leaf, const idx_t row_id) {
   return true;
 }
 
+void ART::Delete(const ARTKey &key, idx_t doc_id) {
+
+}
+
+void ART::erase(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id) {
+  if (!node.IsSet()) {
+    return;
+  }
+
+  auto next_node = std::ref(node);
+  if (next_node.get().GetType() == NType::PREFIX) {
+    Prefix::Traverse(*this, next_node, key, depth);
+    if (next_node.get().GetType() == NType::PREFIX) {
+      return;
+    }
+  }
+
+  if (next_node.get().GetType() == NType::LEAF || next_node.get().GetType() == NType::LEAF_INLINED) {
+    if (Leaf::Remove(*this, next_node, doc_id)) {
+      Node::Free(*this, node);
+    }
+    return;
+  }
+
+  assert(depth < key.len);
+
+  auto child = next_node.get().GetChild(*this, key[depth]);
+  if (child) {
+    assert(child.value()->IsSet());
+
+  }
+
+
+}
+
 idx_t ART::GetMemoryUsage() {
   if (owns_data) {
     idx_t total = 0;
@@ -294,5 +329,6 @@ static idx_t SumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
 idx_t ART::NoneLeafCount() { return SumNoneLeafCount(*this, *root, false); }
 
 idx_t ART::LeafCount() { return SumNoneLeafCount(*this, *root, true); }
+
 
 }  // namespace part

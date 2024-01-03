@@ -174,4 +174,47 @@ void Leaf::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 }
 
+// TODO: a lot of improvements todo
+bool Leaf::Remove(ART &art, std::reference_wrapper<Node> &node, const idx_t row_id) {
+  assert(node.get().IsSet() && !node.get().IsSerialized());
+
+  if (node.get().GetType() == NType::LEAF_INLINED) {
+    return node.get().GetDocId() == row_id;
+  }
+
+  auto leaf = std::ref(Leaf::Get(art, node));
+  auto prev_leaf = std::ref(leaf);
+
+  while(leaf.get().ptr.IsSet()) {
+    prev_leaf = leaf;
+    if (leaf.get().ptr.IsSerialized()) {
+      leaf.get().ptr.Deserialize(art);
+    }
+    leaf = Leaf::Get(art, leaf.get().ptr);
+  }
+
+  auto last_idx = leaf.get().count;
+  auto last_row_id = leaf.get().row_ids[last_idx - 1];
+
+  if (leaf.get().count == 1) {
+    Node::Free(art, prev_leaf.get().ptr);
+    if (last_row_id == row_id) {
+      return false;
+    }
+  } else {
+    leaf.get().count--;
+  }
+  while (node.get().IsSet()) {
+    assert(!node.get().IsSerialized());
+    for (idx_t i = 0; i < leaf.get().count; i++) {
+      if (leaf.get().row_ids[i] == row_id) {
+        leaf.get().row_ids[i] = last_row_id;
+        return false;
+      }
+    }
+    node = leaf.get().ptr;
+  }
+  return false;
+}
+
 }  // namespace part
