@@ -131,3 +131,43 @@ TEST(ARTTest, ARTKeyMemoryLeak) {
     fmt::println("key ken: {}", pair.first.len);
   }
 }
+
+TEST(ARTTest, DeleteTest) {
+  ART art;
+
+  ArenaAllocator arena_allocator(Allocator::DefaultAllocator(), 16384);
+  Random random;
+
+  auto kv_pairs = random.GenKvPairs(10000, arena_allocator);
+
+  for(auto &pair: kv_pairs) {
+    art.Put(pair.first, pair.second);
+  }
+
+  for(auto &pair: kv_pairs) {
+    std::vector<idx_t> results;
+    EXPECT_TRUE(art.Get(pair.first, results));
+    EXPECT_EQ(results[0], pair.second);
+  }
+
+  for(auto &pair: kv_pairs) {
+    art.Delete(pair.first, pair.second);
+    std::vector<idx_t> results;
+//    bool success = art.Get(pair.first, results);
+    EXPECT_FALSE(art.Get(pair.first, results));
+  }
+
+//  ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1);
+//  art.Put(k1, 1);
+//
+//  art.Delete(k1, 1);
+//
+//  std::vector<idx_t> results;
+//  art.Get(k1, results);
+//  EXPECT_EQ(results.size(), 0);
+//
+//  ARTKey k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 2);
+//  art.Put(k2, 2);
+//
+//  EXPECT_EQ(results[0], 1);
+}

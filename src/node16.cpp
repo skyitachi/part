@@ -132,6 +132,10 @@ void Node16::DeleteChild(ART &art, Node &node, const uint8_t byte) {
 
   auto &n16 = Node16::Get(art, node);
 
+  if (n16.count == 0) {
+    return;
+  }
+
   idx_t child_pos = 0;
   for(; child_pos < n16.count; child_pos++) {
     if (n16.key[child_pos] == byte) {
@@ -148,7 +152,40 @@ void Node16::DeleteChild(ART &art, Node &node, const uint8_t byte) {
     n16.children[i] = n16.children[i + 1];
   }
 
-  // TODO: compress
+  if (n16.count < Node::NODE_4_CAPACITY) {
+    auto node16 = node;
+    Node4::ShrinkNode16(art, node, node16);
+  }
+}
+
+void Node16::ReplaceChild(const uint8_t byte, const Node child) {
+  for (idx_t i = 0; i < count; i++) {
+    if (key[i] == byte) {
+      children[i] = child;
+      return;
+    }
+  }
+}
+
+Node16 &Node16::ShrinkNode48(ART &art, Node &node16, Node &node48) {
+  // TODO: order matters
+  auto &n48 = Node48::Get(art, node48);
+  auto &n16 = Node16::New(art, node16);
+
+  n16.count = 0;
+
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    assert(n16.count <= Node::NODE_16_CAPACITY);
+    if (n48.child_index[i] != Node::EMPTY_MARKER) {
+      n16.key[n16.count] = i;
+      n16.children[n16.count] = n48.children[n48.child_index[i]];
+      n16.count++;
+    }
+  }
+
+  n48.count = 0;
+  Node::Free(art, node48);
+  return n16;
 }
 
 }  // namespace part

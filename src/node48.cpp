@@ -144,7 +144,45 @@ void Node48::DeleteChild(ART &art, Node &node, const uint8_t byte) {
   n48.count--;
 
   // TODO: compress
+  if (n48.count < Node::NODE_48_SHRINK_THRESHOLD) {
+    auto &node48 = node;
+    Node16::ShrinkNode48(art, node, node48);
+  }
+}
+void Node48::ReplaceChild(const uint8_t byte, const Node child) {
+  assert(child_index[byte] != Node::EMPTY_MARKER);
+  children[child_index[byte]] = child;
+}
 
+Node48 &Node48::ShrinkNode256(ART &art, Node &node48, Node &node256) {
+  // order matters
+  auto &n256 = Node256::Get(art, node256);
+  auto &n48 = Node48::New(art, node48);
+
+  n48.count = 0;
+
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    if (n256.count > Node::NODE_48_CAPACITY) {
+      fmt::println("node256 count = {}, node48 count = {}", n256.count, n48.count);
+    }
+    assert(n48.count < Node::NODE_48_CAPACITY);
+    if (n256.children[i].IsSet()) {
+      n48.child_index[i] = n48.count;
+      n48.children[n48.count] = n256.children[i];
+      n48.count++;
+    } else {
+      n48.child_index[i] = Node::EMPTY_MARKER;
+    }
+  }
+
+  for (idx_t i = n48.count; i < Node::NODE_48_CAPACITY; i++) {
+    // important for search
+    n48.children[i].Reset();
+  }
+
+  n256.count = 0;
+  Node::Free(art, node256);
+  return n48;
 }
 
 }  // namespace part

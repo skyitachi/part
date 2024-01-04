@@ -3,6 +3,7 @@
 //
 #include <node16.h>
 #include <node4.h>
+#include "prefix.h"
 
 namespace part {
 
@@ -89,7 +90,15 @@ void Node4::DeleteChild(ART &art, Node &node, Node &prefix, const uint8_t byte) 
     }
 
     if (n4.count == 1) {
-      // TODO compress
+      // compress to prefix
+      auto old_n4_node = node;
+
+      auto child = *n4.GetChild(n4.key[0]).value();
+      // indicates prefix node can be overwritten
+      Prefix::Concatenate(art, prefix, n4.key[0], child);
+
+      n4.count--;
+      Node::Free(art, old_n4_node);
     }
 }
 
@@ -135,6 +144,32 @@ void Node4::Deserialize(ART &art, Node &node, Deserializer &reader) {
   for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
     n4.children[i] = Node(reader);
   }
+}
+
+void Node4::ReplaceChild(const uint8_t byte, const Node child) {
+  for (idx_t i = 0; i < count; i++) {
+    if (key[i] == byte) {
+      children[i] = child;
+      return;
+    }
+  }
+}
+
+Node4 &Node4::ShrinkNode16(ART &art, Node &node4, Node &node16) {
+  auto &n4 = Node4::New(art, node4);
+  auto &n16 = Node16::Get(art, node16);
+
+  assert(n16.count <= Node::NODE_4_CAPACITY);
+  n4.count = n16.count;
+
+  for (idx_t i = 0; i < n16.count; i++) {
+    n4.key[i] = n16.key[i];
+    n4.children[i] = n16.children[i];
+  }
+
+  n16.count = 0;
+  Node::Free(art, node16);
+  return n4;
 }
 
 }  // namespace part

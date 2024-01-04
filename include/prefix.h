@@ -37,6 +37,8 @@ class Prefix {
 
   static void Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &child_node, idx_t position);
 
+  static void Concatenate(ART &art, Node &prefix_node, const uint8_t byte, Node &child_prefix_node);
+
   Prefix &Append(ART &art, const uint8_t byte);
 
   void Append(ART &art, Node other_prefix);
@@ -46,10 +48,13 @@ class Prefix {
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
 
- public:
   static Prefix &New(ART &art, Node &node);
+
   static void New(ART &art, std::reference_wrapper<Node> &node, const ARTKey &key, const uint32_t depth,
                   uint32_t count);
+
+  static Prefix &New(ART &art, Node &node, uint8_t byte, Node next);
+
   static idx_t TotalCount(ART &art, std::reference_wrapper<Node> &node);
 };
 }  // namespace part

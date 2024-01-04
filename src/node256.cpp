@@ -105,9 +105,13 @@ void Node256::DeleteChild(ART &art, Node &node, const uint8_t byte) {
   auto &n256 = Node256::Get(art, node);
 
   Node::Free(art, n256.children[byte]);
+  n256.children[byte].Reset();
   n256.count--;
 
-  // TODO compress
+  if (n256.count < Node::NODE_256_SHRINK_THRESHOLD) {
+    auto &node256 = node;
+    Node48::ShrinkNode256(art, node, node256);
+  }
 
 }
 }  // namespace part

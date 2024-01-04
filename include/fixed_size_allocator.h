@@ -64,11 +64,6 @@ class FixedSizeAllocator {
 
  private:
   inline data_ptr_t Get(const Node ptr) const {
-    if (ptr.GetBufferId() >= buffers.size()) {
-      fmt::println("node type: {}, buffer_id: {}, buffer size: {}, allocation_size: {}", (uint8_t)ptr.GetType(),
-                   ptr.GetBufferId(), buffers.size(), allocation_size);
-      ::fflush(stdout);
-    }
     assert(ptr.GetBufferId() < buffers.size());
     assert(ptr.GetOffset() < allocations_per_buffer);
     return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size + allocation_offset;

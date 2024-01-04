@@ -71,7 +71,6 @@ bool ART::Get(const ARTKey &key, std::vector<idx_t> &result_ids) {
 std::optional<Node *> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
   auto next_node = std::ref(node);
   while (next_node.get().IsSet()) {
-    // TODO: invalid GetType call
     if (next_node.get().GetType() == NType::PREFIX) {
       Prefix::Traverse(*this, next_node, key, depth);
       if (next_node.get().GetType() == NType::PREFIX) {
@@ -170,7 +169,7 @@ bool ART::InsertToLeaf(Node &leaf, const idx_t row_id) {
 }
 
 void ART::Delete(const ARTKey &key, idx_t doc_id) {
-
+  erase(*root, key, 0, doc_id);
 }
 
 void ART::erase(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id) {
@@ -181,9 +180,7 @@ void ART::erase(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id)
   auto next_node = std::ref(node);
   if (next_node.get().GetType() == NType::PREFIX) {
     Prefix::Traverse(*this, next_node, key, depth);
-    // prefix child_node is prefix node???
     if (next_node.get().GetType() == NType::PREFIX) {
-      // NOTE: need to understand
       return;
     }
   }

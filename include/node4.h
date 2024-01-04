@@ -37,6 +37,8 @@ class Node4 {
 
   static void DeleteChild(ART &art, Node &node, Node &prefix, const uint8_t byte);
 
+  static Node4 &ShrinkNode16(ART &art, Node &node4, Node &node16);
+
   void ReplaceChild(const uint8_t byte, const Node child);
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);

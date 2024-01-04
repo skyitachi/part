@@ -36,6 +36,8 @@ class Node16 {
 
   static void DeleteChild(ART &art, Node &node, const uint8_t byte);
 
+  static Node16 &ShrinkNode48(ART &art, Node &node16, Node &node48);
+
   void ReplaceChild(const uint8_t byte, const Node child);
 
   std::optional<Node *> GetChild(const uint8_t byte);

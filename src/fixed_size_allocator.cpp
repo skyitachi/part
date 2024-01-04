@@ -1,9 +1,10 @@
 //
 // Created by Shiping Yao on 2023/12/4.
 //
+#include <fmt/core.h>
+
 #include "fixed_size_allocator.h"
 
-#include "node48.h"
 
 namespace part {
 

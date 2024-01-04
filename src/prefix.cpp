@@ -152,6 +152,7 @@ void Prefix::Free(ART &art, Node &node) {
   }
 
   Node::Free(art, current_node);
+  node.Reset();
 }
 
 idx_t Prefix::TotalCount(ART &art, std::reference_wrapper<Node> &node) {
@@ -216,6 +217,54 @@ void Prefix::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 
   current_node.get() = Node(reader);
+}
+
+void Prefix::Concatenate(ART &art, Node &prefix_node, const uint8_t byte, Node &child_prefix_node) {
+  assert(prefix_node.IsSet() && !prefix_node.IsSerialized());
+  assert(child_prefix_node.IsSet());
+
+  if (child_prefix_node.IsSerialized()) {
+    child_prefix_node.Deserialize(art);
+  }
+
+  if (prefix_node.GetType() == NType::PREFIX) {
+    auto prefix = std::ref(Prefix::Get(art, prefix_node));
+
+    while (prefix.get().ptr.GetType() == NType::PREFIX) {
+      prefix = std::ref(Prefix::Get(art, prefix.get().ptr));
+      assert(prefix.get().ptr.IsSet() && !prefix.get().ptr.IsSerialized());
+    }
+
+    prefix = prefix.get().Append(art, byte);
+
+    if (child_prefix_node.GetType() == NType::PREFIX) {
+      prefix.get().Append(art, child_prefix_node);
+    } else {
+      prefix.get().ptr = child_prefix_node;
+    }
+    return;
+  }
+
+  // indicates that prefix_node can be reallocated
+  if (prefix_node.GetType() != NType::PREFIX && child_prefix_node.GetType() == NType::PREFIX) {
+    auto child_prefix = child_prefix_node;
+    auto &prefix = Prefix::New(art, prefix_node, byte, Node());
+    prefix.Append(art, child_prefix);
+    return;
+  }
+
+  Prefix::New(art, prefix_node, byte, child_prefix_node);
+}
+
+Prefix &Prefix::New(ART &art, Node &node, uint8_t byte, Node next) {
+  node = Node::GetAllocator(art, NType::PREFIX).New();
+  node.SetType((uint8_t)NType::PREFIX);
+
+  auto &prefix = Prefix::Get(art, node);
+  prefix.data[Node::PREFIX_SIZE] = 1;
+  prefix.data[0] = byte;
+  prefix.ptr = next;
+  return prefix;
 }
 
 }  // namespace part
