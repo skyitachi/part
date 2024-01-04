@@ -127,4 +127,28 @@ void Node16::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 }
 
+void Node16::DeleteChild(ART &art, Node &node, const uint8_t byte) {
+  assert(node.IsSet() && !node.IsSerialized());
+
+  auto &n16 = Node16::Get(art, node);
+
+  idx_t child_pos = 0;
+  for(; child_pos < n16.count; child_pos++) {
+    if (n16.key[child_pos] == byte) {
+      break;
+    }
+  }
+
+  assert(child_pos < n16.count);
+
+  Node::Free(art, n16.children[child_pos]);
+  n16.count--;
+  for(idx_t i = child_pos; i < n16.count; i++) {
+    n16.key[i] = n16.key[i + 1];
+    n16.children[i] = n16.children[i + 1];
+  }
+
+  // TODO: compress
+}
+
 }  // namespace part

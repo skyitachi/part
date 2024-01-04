@@ -134,4 +134,17 @@ void Node48::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 }
 
+void Node48::DeleteChild(ART &art, Node &node, const uint8_t byte) {
+  assert(node.IsSet() && !node.IsSerialized());
+
+  auto &n48 = Node48::Get(art, node);
+
+  Node::Free(art, n48.children[n48.child_index[byte]]);
+  n48.child_index[byte] = Node::EMPTY_MARKER;
+  n48.count--;
+
+  // TODO: compress
+
+}
+
 }  // namespace part

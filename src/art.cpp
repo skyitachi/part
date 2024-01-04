@@ -181,7 +181,9 @@ void ART::erase(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id)
   auto next_node = std::ref(node);
   if (next_node.get().GetType() == NType::PREFIX) {
     Prefix::Traverse(*this, next_node, key, depth);
+    // prefix child_node is prefix node???
     if (next_node.get().GetType() == NType::PREFIX) {
+      // NOTE: need to understand
       return;
     }
   }
@@ -199,9 +201,28 @@ void ART::erase(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id)
   if (child) {
     assert(child.value()->IsSet());
 
+    auto temp_depth = depth + 1;
+    auto child_node = std::ref(*child.value());
+    if (child_node.get().GetType() == NType::PREFIX) {
+      Prefix::Traverse(*this, child_node, key, temp_depth);
+      // same as previous
+      if (child_node.get().GetType() == NType::PREFIX) {
+        return;
+      }
+    }
+
+    if (child_node.get().GetType() == NType::LEAF || child_node.get().GetType() == NType::LEAF_INLINED) {
+      if (Leaf::Remove(*this, child_node, doc_id)) {
+        // NOTE: why is node ??? node is just use for compress
+        Node::DeleteChild(*this, next_node, node, key[depth]);
+      }
+      return;
+    }
+
+    erase(*child.value(), key, depth + 1, doc_id);
+    // NOTE: necessary???
+    next_node.get().ReplaceChild(*this, key[depth], *child.value());
   }
-
-
 }
 
 idx_t ART::GetMemoryUsage() {

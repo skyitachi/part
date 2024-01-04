@@ -120,6 +120,11 @@ class Node {
 
   static void InsertChild(ART &art, Node &node, const uint8_t byte, const Node child);
 
+  static void DeleteChild(ART &art, Node &node, Node &prefix, const uint8_t byte);
+
+  // duckdb api design is bad too...
+  void ReplaceChild(const ART &art, const uint8_t byte, const Node child);
+
   BlockPointer Serialize(ART &art, Serializer &serializer);
 
   void Deserialize(ART &art);

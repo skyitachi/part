@@ -100,4 +100,14 @@ void Node256::Deserialize(ART &art, Node &node, Deserializer &reader) {
     n256.children[i] = Node(reader);
   }
 }
+void Node256::DeleteChild(ART &art, Node &node, const uint8_t byte) {
+  assert(node.IsSet() && !node.IsSerialized());
+  auto &n256 = Node256::Get(art, node);
+
+  Node::Free(art, n256.children[byte]);
+  n256.count--;
+
+  // TODO compress
+
+}
 }  // namespace part

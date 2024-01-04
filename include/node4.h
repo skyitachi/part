@@ -35,6 +35,10 @@ class Node4 {
 
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
 
+  static void DeleteChild(ART &art, Node &node, Node &prefix, const uint8_t byte);
+
+  void ReplaceChild(const uint8_t byte, const Node child);
+
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
 };
 }  // namespace part

@@ -31,6 +31,10 @@ class Node48 {
 
   static void InsertChild(ART &art, Node &node, const uint8_t byte, const Node child);
 
+  static void DeleteChild(ART &art, Node &node, const uint8_t byte);
+
+  void ReplaceChild(const uint8_t byte, const Node child);
+
   std::optional<Node *> GetChild(const uint8_t byte);
 
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);

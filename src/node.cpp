@@ -182,4 +182,34 @@ void Node::Deserialize(ART &art) {
   }
 }
 
+void Node::DeleteChild(ART &art, Node &node, Node &prefix, const uint8_t byte) {
+  switch (node.GetType()) {
+    case NType::NODE_4:
+      return Node4::DeleteChild(art, node, prefix, byte);
+    case NType::NODE_16:
+      return Node16::DeleteChild(art, node, byte);
+    case NType::NODE_48:
+      return Node48::DeleteChild(art, node, byte);
+    case NType::NODE_256:
+      return Node256::DeleteChild(art, node, byte);
+    default:
+      throw std::invalid_argument("Invalid node type for DeleteChild.");
+  }
+}
+
+void Node::ReplaceChild(const ART &art, const uint8_t byte, const Node child) {
+  switch (GetType()) {
+    case NType::NODE_4:
+      return Node4::Get(art, *this).ReplaceChild(byte, child);
+    case NType::NODE_16:
+      return Node16::Get(art, *this).ReplaceChild(byte, child);
+    case NType::NODE_48:
+      return Node48::Get(art, *this).ReplaceChild(byte, child);
+    case NType::NODE_256:
+      return Node256::Get(art, *this).ReplaceChild(byte, child);
+    default:
+      throw std::invalid_argument("Invalid node type for ReplaceChild.");
+  }
+}
+
 }  // namespace part

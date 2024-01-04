@@ -66,6 +66,33 @@ void Node4::Free(ART &art, Node &node) {
   }
 }
 
+void Node4::DeleteChild(ART &art, Node &node, Node &prefix, const uint8_t byte) {
+    assert(node.IsSet() && !node.IsSerialized());
+
+    auto &n4 = Node4::Get(art, node);
+
+    idx_t child_pos = 0;
+    for (; child_pos < n4.count; child_pos++) {
+      if (n4.key[child_pos] == byte) {
+        break;
+      }
+    }
+    assert(child_pos < n4.count);
+    assert(n4.count > 1);
+
+    Node::Free(art, n4.children[child_pos]);
+    n4.count--;
+
+    for (idx_t i = child_pos; i < n4.count; i++) {
+      n4.key[i] = n4.key[i + 1];
+      n4.children[i] = n4.children[i + 1];
+    }
+
+    if (n4.count == 1) {
+      // TODO compress
+    }
+}
+
 BlockPointer Node4::Serialize(ART &art, Node &node, Serializer &writer) {
   assert(node.IsSet() && !node.IsSerialized());
   auto &n4 = Node4::Get(art, node);
