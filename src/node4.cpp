@@ -3,6 +3,7 @@
 //
 #include <node16.h>
 #include <node4.h>
+
 #include "prefix.h"
 
 namespace part {
@@ -68,38 +69,38 @@ void Node4::Free(ART &art, Node &node) {
 }
 
 void Node4::DeleteChild(ART &art, Node &node, Node &prefix, const uint8_t byte) {
-    assert(node.IsSet() && !node.IsSerialized());
+  assert(node.IsSet() && !node.IsSerialized());
 
-    auto &n4 = Node4::Get(art, node);
+  auto &n4 = Node4::Get(art, node);
 
-    idx_t child_pos = 0;
-    for (; child_pos < n4.count; child_pos++) {
-      if (n4.key[child_pos] == byte) {
-        break;
-      }
+  idx_t child_pos = 0;
+  for (; child_pos < n4.count; child_pos++) {
+    if (n4.key[child_pos] == byte) {
+      break;
     }
-    assert(child_pos < n4.count);
-    assert(n4.count > 1);
+  }
+  assert(child_pos < n4.count);
+  assert(n4.count > 1);
 
-    Node::Free(art, n4.children[child_pos]);
+  Node::Free(art, n4.children[child_pos]);
+  n4.count--;
+
+  for (idx_t i = child_pos; i < n4.count; i++) {
+    n4.key[i] = n4.key[i + 1];
+    n4.children[i] = n4.children[i + 1];
+  }
+
+  if (n4.count == 1) {
+    // compress to prefix
+    auto old_n4_node = node;
+
+    auto child = *n4.GetChild(n4.key[0]).value();
+    // indicates prefix node can be overwritten
+    Prefix::Concatenate(art, prefix, n4.key[0], child);
+
     n4.count--;
-
-    for (idx_t i = child_pos; i < n4.count; i++) {
-      n4.key[i] = n4.key[i + 1];
-      n4.children[i] = n4.children[i + 1];
-    }
-
-    if (n4.count == 1) {
-      // compress to prefix
-      auto old_n4_node = node;
-
-      auto child = *n4.GetChild(n4.key[0]).value();
-      // indicates prefix node can be overwritten
-      Prefix::Concatenate(art, prefix, n4.key[0], child);
-
-      n4.count--;
-      Node::Free(art, old_n4_node);
-    }
+    Node::Free(art, old_n4_node);
+  }
 }
 
 BlockPointer Node4::Serialize(ART &art, Node &node, Serializer &writer) {

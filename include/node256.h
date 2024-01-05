@@ -30,9 +30,7 @@ class Node256 {
 
   static void DeleteChild(ART &art, Node &node, const uint8_t byte);
 
-  inline void ReplaceChild(const uint8_t byte, const Node child) {
-    children[byte] = child;
-  }
+  inline void ReplaceChild(const uint8_t byte, const Node child) { children[byte] = child; }
 
   std::optional<Node *> GetChild(const uint8_t byte);
 

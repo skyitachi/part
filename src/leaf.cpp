@@ -185,7 +185,7 @@ bool Leaf::Remove(ART &art, std::reference_wrapper<Node> &node, const idx_t row_
   auto leaf = std::ref(Leaf::Get(art, node));
   auto prev_leaf = std::ref(leaf);
 
-  while(leaf.get().ptr.IsSet()) {
+  while (leaf.get().ptr.IsSet()) {
     prev_leaf = leaf;
     if (leaf.get().ptr.IsSerialized()) {
       leaf.get().ptr.Deserialize(art);

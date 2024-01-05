@@ -168,9 +168,7 @@ bool ART::InsertToLeaf(Node &leaf, const idx_t row_id) {
   return true;
 }
 
-void ART::Delete(const ARTKey &key, idx_t doc_id) {
-  erase(*root, key, 0, doc_id);
-}
+void ART::Delete(const ARTKey &key, idx_t doc_id) { erase(*root, key, 0, doc_id); }
 
 void ART::erase(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id) {
   if (!node.IsSet()) {
@@ -347,6 +345,5 @@ static idx_t SumNoneLeafCount(ART &art, Node &node, bool count_leaf = false) {
 idx_t ART::NoneLeafCount() { return SumNoneLeafCount(*this, *root, false); }
 
 idx_t ART::LeafCount() { return SumNoneLeafCount(*this, *root, true); }
-
 
 }  // namespace part

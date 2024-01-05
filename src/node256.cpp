@@ -114,6 +114,5 @@ void Node256::DeleteChild(ART &art, Node &node, const uint8_t byte) {
     auto node256 = node;
     Node48::ShrinkNode256(art, node, node256);
   }
-
 }
 }  // namespace part
