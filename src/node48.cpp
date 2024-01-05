@@ -144,7 +144,7 @@ void Node48::DeleteChild(ART &art, Node &node, const uint8_t byte) {
   n48.count--;
 
   if (n48.count < Node::NODE_48_SHRINK_THRESHOLD) {
-    auto &node48 = node;
+    auto node48 = node;
     Node16::ShrinkNode48(art, node, node48);
   }
 }
@@ -155,16 +155,12 @@ void Node48::ReplaceChild(const uint8_t byte, const Node child) {
 }
 
 Node48 &Node48::ShrinkNode256(ART &art, Node &node48, Node &node256) {
-  // TODO: order matters
   auto &n48 = Node48::New(art, node48);
   auto &n256 = Node256::Get(art, node256);
 
   n48.count = 0;
 
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-    if (n256.count > Node::NODE_48_CAPACITY) {
-      fmt::println("node256 count = {}, node48 count = {}", n256.count, n48.count);
-    }
     assert(n48.count < Node::NODE_48_CAPACITY);
     if (n256.children[i].IsSet()) {
       n48.child_index[i] = n48.count;

@@ -100,6 +100,7 @@ void Node256::Deserialize(ART &art, Node &node, Deserializer &reader) {
     n256.children[i] = Node(reader);
   }
 }
+
 void Node256::DeleteChild(ART &art, Node &node, const uint8_t byte) {
   assert(node.IsSet() && !node.IsSerialized());
   auto &n256 = Node256::Get(art, node);
@@ -109,7 +110,8 @@ void Node256::DeleteChild(ART &art, Node &node, const uint8_t byte) {
   n256.count--;
 
   if (n256.count < Node::NODE_256_SHRINK_THRESHOLD) {
-    auto &node256 = node;
+    // NOTE: important cannot pass reference
+    auto node256 = node;
     Node48::ShrinkNode256(art, node, node256);
   }
 

@@ -92,7 +92,6 @@ Node FixedSizeAllocator::New() {
   if (buffers_with_free_space.empty()) {
     idx_t buffer_id = buffers.size();
     auto buffer = allocator.AllocateData(BUFFER_ALLOC_SIZE);
-    fmt::println("[New] allocation_size: {}, allocate addr: {}", allocation_size, fmt::ptr(buffer));
     buffers.emplace_back(buffer, 0);
     buffers_with_free_space.insert(buffer_id);
 
@@ -111,7 +110,6 @@ Node FixedSizeAllocator::New() {
   if (buffers[buffer_id].allocation_count == allocations_per_buffer) {
     buffers_with_free_space.erase(buffer_id);
   }
-  fmt::println("[New] allocated ptr: {}", fmt::ptr(buffers[buffer_id].ptr + offset * allocation_size));
   return Node(buffer_id, offset);
 }
 
@@ -122,13 +120,11 @@ void FixedSizeAllocator::Free(const Node ptr) {
 
   assert(buffer_id < buffers.size());
   auto &buffer = buffers[buffer_id];
-  fmt::println("[Free] ptr: {}", fmt::ptr(buffers[buffer_id].ptr + offset * allocation_size + allocation_offset));
 
   auto bitmask_ptr = reinterpret_cast<validity_t *>(buffer.ptr);
   ValidityMask mask(bitmask_ptr);
 
   assert(!mask.RowIsValid(offset));
-  // TODO: why need this
   mask.SetValid(offset);
 
   buffer.allocation_count--;
