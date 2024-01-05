@@ -143,21 +143,21 @@ void Node48::DeleteChild(ART &art, Node &node, const uint8_t byte) {
   n48.child_index[byte] = Node::EMPTY_MARKER;
   n48.count--;
 
-  // TODO: compress
   if (n48.count < Node::NODE_48_SHRINK_THRESHOLD) {
     auto &node48 = node;
     Node16::ShrinkNode48(art, node, node48);
   }
 }
+
 void Node48::ReplaceChild(const uint8_t byte, const Node child) {
   assert(child_index[byte] != Node::EMPTY_MARKER);
   children[child_index[byte]] = child;
 }
 
 Node48 &Node48::ShrinkNode256(ART &art, Node &node48, Node &node256) {
-  // order matters
-  auto &n256 = Node256::Get(art, node256);
+  // TODO: order matters
   auto &n48 = Node48::New(art, node48);
+  auto &n256 = Node256::Get(art, node256);
 
   n48.count = 0;
 
