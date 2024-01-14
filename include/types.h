@@ -28,6 +28,9 @@ using block_id_t = int64_t;
 static constexpr const idx_t INVALID_INDEX = idx_t(-1);
 static constexpr const uint32_t META_OFFSET = 12;
 
+template <typename T>
+using reference = std::reference_wrapper<T>;
+
 template <class SRC>
 data_ptr_t data_ptr_cast(SRC *src) {
   return reinterpret_cast<data_ptr_t>(src);

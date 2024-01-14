@@ -171,3 +171,34 @@ TEST(ARTTest, DeleteTest) {
   //
   //  EXPECT_EQ(results[0], 1);
 }
+
+TEST(ARTTest, MergeTest) {
+  ART left;
+  ArenaAllocator arena_allocator(Allocator::DefaultAllocator(), 16384);
+  auto k1 = ARTKey::CreateARTKey(arena_allocator, 10);
+  auto k2 = ARTKey::CreateARTKey(arena_allocator, 11);
+  left.Put(k1, 1000);
+
+  std::vector<idx_t> results;
+  EXPECT_TRUE(left.Get(k1, results));
+  EXPECT_EQ(1, results.size());
+  EXPECT_EQ(1000, results[0]);
+  results.clear();
+
+  ART right;
+  right.Put(k2, 1001);
+
+  EXPECT_TRUE(right.Get(k2, results));
+  EXPECT_EQ(1, results.size());
+  EXPECT_EQ(1001, results[0]);
+
+  left.Merge(right);
+
+  fmt::println("after merge");
+  ::fflush(stdout);
+
+  // TODO: failed
+  EXPECT_TRUE(left.Get(k2, results));
+  EXPECT_EQ(1, results.size());
+  EXPECT_EQ(1001, results[0]);
+}

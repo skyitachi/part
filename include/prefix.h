@@ -35,7 +35,11 @@ class Prefix {
 
   static idx_t Traverse(ART &art, std::reference_wrapper<Node> &prefix_node, const ARTKey &key, idx_t &depth);
 
+  static bool Traverse(ART &art, reference<Node> &l_node, reference<Node> &r_node, idx_t &mismatch_position);
+
   static void Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &child_node, idx_t position);
+
+  static void Reduce(ART &art, Node &prefix_node, const idx_t n);
 
   static void Concatenate(ART &art, Node &prefix_node, const uint8_t byte, Node &child_prefix_node);
 

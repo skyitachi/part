@@ -181,4 +181,15 @@ Node48 &Node48::ShrinkNode256(ART &art, Node &node48, Node &node256) {
   return n48;
 }
 
+std::optional<Node *> Node48::GetNextChild(uint8_t &byte) {
+  for (idx_t i = byte; i < Node::NODE_256_CAPACITY; i++) {
+    if (child_index[i] != Node::EMPTY_MARKER) {
+      byte = i;
+      assert(children[child_index[i]].IsSet());
+      return &children[child_index[i]];
+    }
+  }
+  return std::nullopt;
+}
+
 }  // namespace part

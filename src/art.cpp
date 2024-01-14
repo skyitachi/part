@@ -346,4 +346,6 @@ idx_t ART::NoneLeafCount() { return SumNoneLeafCount(*this, *root, false); }
 
 idx_t ART::LeafCount() { return SumNoneLeafCount(*this, *root, true); }
 
+void ART::Merge(ART &other) { root->Merge(*this, *other.root); }
+
 }  // namespace part

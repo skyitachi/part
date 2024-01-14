@@ -20,6 +20,9 @@ class Node;
 class FixedSizeAllocator;
 class ARTKey;
 
+template <typename T>
+using reference = std::reference_wrapper<T>;
+
 class ART {
  public:
   explicit ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
@@ -38,6 +41,8 @@ class ART {
   bool Get(const ARTKey &key, std::vector<idx_t> &result_ids);
 
   void Delete(const ARTKey &key, idx_t doc_id);
+
+  void Merge(ART &other);
 
   idx_t GetMemoryUsage();
 

@@ -33,6 +33,8 @@ class Leaf {
 
   static bool Remove(ART &art, std::reference_wrapper<Node> &node, const idx_t row_id);
 
+  static void Merge(ART &art, Node &l_node, Node &r_node);
+
  public:
   //! The number of row IDs in this leaf
   uint8_t count;

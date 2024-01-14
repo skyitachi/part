@@ -212,4 +212,154 @@ void Node::ReplaceChild(const ART &art, const uint8_t byte, const Node child) {
   }
 }
 
+void Node::Merge(ART &art, Node &other) {
+  assert(IsSet());
+  if (!IsSet()) {
+    *this = other;
+    other = Node();
+    return;
+  }
+  ResolvePrefixes(art, other);
+}
+
+bool Node::ResolvePrefixes(ART &art, Node &other) {
+  assert(IsSet() && other.IsSet());
+
+  // case 1: both nodes have no prefix
+  if (GetType() != NType::PREFIX && other.GetType() != NType::PREFIX) {
+    return MergeInternal(art, other);
+  }
+
+  auto l_node = std::ref(*this);
+  auto r_node = std::ref(other);
+
+  idx_t mismatch_position = INVALID_INDEX;
+
+  // traverse prefixes
+  if (l_node.get().GetType() == NType::PREFIX && r_node.get().GetType() == NType::PREFIX) {
+    if (!Prefix::Traverse(art, l_node, r_node, mismatch_position)) {
+      return false;
+    }
+
+    if (mismatch_position == INVALID_INDEX) {
+      return true;
+    }
+  } else {
+    if (l_node.get().GetType() == NType::PREFIX) {
+      std::swap(*this, other);
+    }
+    mismatch_position = 0;
+  }
+
+  assert(mismatch_position != INVALID_INDEX);
+
+  // case 2: none prefix type merge with prefix type node
+  if (l_node.get().GetType() != NType::PREFIX && r_node.get().GetType() == NType::PREFIX) {
+    return MergePrefixContainsOtherPrefix(art, l_node, r_node, mismatch_position);
+  }
+
+  // case 3:prefixes differ at a specific byte
+  MergePrefixesDiffer(art, l_node, r_node, mismatch_position);
+
+  return false;
+}
+
+bool Node::MergeInternal(ART &art, Node &other) {
+  assert(IsSet() && other.IsSet());
+  assert(GetType() != NType::PREFIX && other.GetType() != NType::PREFIX);
+
+  // merge smaller nodes into bigger node
+  if (GetType() < other.GetType()) {
+    std::swap(*this, other);
+  }
+
+  Node empty_node;
+  auto &l_node = *this;
+  auto &r_node = other;
+
+  // l->GetType() >= r->GetType()
+  if (l_node.GetType() == NType::LEAF || r_node.GetType() == NType::LEAF_INLINED) {
+    assert(r_node.GetType() == NType::LEAF || l_node.GetType() == NType::LEAF_INLINED);
+
+    Leaf::Merge(art, l_node, r_node);
+    return true;
+  }
+
+  uint8_t byte = 0;
+  auto r_child = r_node.GetNextChild(art, byte);
+
+  while (r_child) {
+    auto l_child = l_node.GetChild(art, byte);
+    if (!l_child) {
+      InsertChild(art, l_node, byte, *r_child.value());
+      r_node.ReplaceChild(art, byte, empty_node);
+    } else {
+      if (!l_child.value()->ResolvePrefixes(art, *r_child.value())) {
+        return false;
+      }
+    }
+    if (byte == std::numeric_limits<uint8_t>::max()) {
+      break;
+    }
+    byte++;
+    r_child = r_node.GetNextChild(art, byte);
+  }
+
+  // NOTE: memory management
+  Free(art, r_node);
+  return true;
+}
+
+std::optional<Node *> Node::GetNextChild(ART &art, uint8_t &byte) const {
+  assert(IsSet());
+  switch (GetType()) {
+    case NType::NODE_4:
+      return Node4::Get(art, *this).GetNextChild(byte);
+    case NType::NODE_16:
+      return Node16::Get(art, *this).GetNextChild(byte);
+    case NType::NODE_48:
+      return Node48::Get(art, *this).GetNextChild(byte);
+    case NType::NODE_256:
+      return Node256::Get(art, *this).GetNextChild(byte);
+    default:
+      throw std::invalid_argument("Invalid node type for GetNextChild");
+  }
+}
+
+void Node::MergePrefixesDiffer(ART &art, reference<Node> &l_node, reference<Node> &r_node, idx_t &mismatched_position) {
+  Node l_child;
+  auto l_byte = Prefix::GetByte(art, l_node, mismatched_position);
+  Prefix::Split(art, l_node, l_child, mismatched_position);
+
+  Node4::New(art, l_node);
+  Node4::InsertChild(art, l_node, l_byte, l_child);
+  auto r_byte = Prefix::GetByte(art, r_node, mismatched_position);
+  // reduce
+  Prefix::Reduce(art, r_node, mismatched_position);
+  Node4::InsertChild(art, l_node, r_byte, r_node);
+
+  r_node.get().Reset();
+}
+
+bool Node::MergePrefixContainsOtherPrefix(ART &art, reference<Node> &l_node, reference<Node> &r_node,
+                                          idx_t &mismatch_position) {
+  // r_node's prefix contains l_node's prefix
+  assert(l_node.get().GetType() != NType::LEAF && l_node.get().GetType() != NType::LEAF_INLINED);
+
+  auto mismatch_byte = Prefix::GetByte(art, r_node, mismatch_position);
+  auto child_node = l_node.get().GetChild(art, mismatch_byte);
+
+  Prefix::Reduce(art, r_node, mismatch_position);
+
+  if (!child_node) {
+    Node::InsertChild(art, l_node, mismatch_byte, r_node);
+    r_node.get().Reset();
+    return true;
+  }
+
+  return child_node.value()->ResolvePrefixes(art, r_node);
+
+  return false;
+}
+
 }  // namespace part

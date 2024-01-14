@@ -217,4 +217,54 @@ bool Leaf::Remove(ART &art, std::reference_wrapper<Node> &node, const idx_t row_
   return false;
 }
 
+// NOTE: 这个效率实在是太低了啊
+void Leaf::Merge(ART &art, Node &l_node, Node &r_node) {
+  assert(l_node.IsSet() && r_node.IsSet());
+
+  if (r_node.GetType() == NType::LEAF_INLINED) {
+    Insert(art, l_node, r_node.GetDocId());
+    r_node.Reset();
+    return;
+  }
+
+  if (l_node.GetType() == NType::LEAF_INLINED) {
+    auto doc_id = l_node.GetDocId();
+    l_node = r_node;
+    Insert(art, l_node, doc_id);
+    r_node.Reset();
+  }
+
+  assert(l_node.GetType() != NType::LEAF_INLINED);
+  assert(r_node.GetType() != NType::LEAF_INLINED);
+
+  auto l_node_ref = std::ref(l_node);
+  auto &l_leaf = Leaf::Get(art, l_node_ref);
+
+  while (l_leaf.count == Node::LEAF_SIZE) {
+    l_node_ref = l_leaf.ptr;
+
+    if (!l_leaf.ptr.IsSet()) {
+      break;
+    }
+
+    l_leaf = Leaf::Get(art, l_node_ref);
+  }
+
+  auto last_leaf_node = l_node_ref.get();
+  l_node_ref.get() = r_node;
+  r_node.Reset();
+
+  if (last_leaf_node.IsSet()) {
+    l_leaf = Leaf::Get(art, l_node_ref);
+    while (l_leaf.ptr.IsSet()) {
+      l_leaf = Leaf::Get(art, l_leaf.ptr);
+    }
+    auto &last_leaf = Leaf::Get(art, last_leaf_node);
+    for (idx_t i = 0; i < last_leaf.count; i++) {
+      l_leaf = l_leaf.Append(art, last_leaf.row_ids[i]);
+    }
+    Node::GetAllocator(art, NType::LEAF).Free(last_leaf_node);
+  }
+}
+
 }  // namespace part

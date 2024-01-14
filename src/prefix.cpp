@@ -52,13 +52,43 @@ idx_t Prefix::Traverse(ART &art, std::reference_wrapper<Node> &prefix_node, cons
       depth++;
     }
     prefix_node = prefix.ptr;
-    assert(prefix_node.get().IsSet());
+    P_ASSERT(prefix_node.get().IsSet());
     if (prefix_node.get().IsSerialized()) {
       prefix_node.get().Deserialize(art);
     }
   }
 
   return INVALID_INDEX;
+}
+
+bool Prefix::Traverse(ART &art, reference<Node> &l_node, reference<Node> &r_node, idx_t &mismatch_position) {
+  auto &l_prefix = Prefix::Get(art, l_node);
+  auto &r_prefix = Prefix::Get(art, r_node);
+
+  idx_t max_count = std::min(l_prefix.data[Node::PREFIX_SIZE], r_prefix.data[Node::PREFIX_SIZE]);
+  for (idx_t i = 0; i < max_count; i++) {
+    if (l_prefix.data[i] != r_prefix.data[i]) {
+      mismatch_position = i;
+      break;
+    }
+  }
+
+  if (mismatch_position == INVALID_INDEX) {
+    if (l_prefix.data[Node::PREFIX_SIZE] == r_prefix.data[Node::PREFIX_SIZE]) {
+      return l_prefix.ptr.ResolvePrefixes(art, r_prefix.ptr);
+    }
+
+    mismatch_position = max_count;
+
+    if (r_prefix.ptr.GetType() != NType::PREFIX && r_prefix.data[Node::PREFIX_SIZE] == max_count) {
+      std::swap(l_node.get(), r_node.get());
+      l_node = r_prefix.ptr;
+    } else {
+      l_node = l_prefix.ptr;
+    }
+  }
+
+  return true;
 }
 
 void Prefix::Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &child_node, idx_t position) {
@@ -265,6 +295,30 @@ Prefix &Prefix::New(ART &art, Node &node, uint8_t byte, Node next) {
   prefix.data[0] = byte;
   prefix.ptr = next;
   return prefix;
+}
+
+void Prefix::Reduce(ART &art, Node &prefix_node, const idx_t n) {
+  assert(prefix_node.IsSet() && n < Node::PREFIX_SIZE);
+
+  auto &prefix = Prefix::Get(art, prefix_node);
+
+  // remove prefix node necessary
+  if (n == (idx_t)(prefix.data[Node::PREFIX_SIZE] - 1)) {
+    auto next_ptr = prefix.ptr;
+    assert(next_ptr.IsSet());
+    prefix.ptr.Reset();
+    Node::Free(art, prefix_node);
+    prefix_node = next_ptr;
+    return;
+  }
+
+  for (idx_t i = 0; i < Node::PREFIX_SIZE - n - 1; i++) {
+    prefix.data[i] = prefix.data[n + i + 1];
+  }
+  assert(n < (idx_t)(prefix.data[Node::PREFIX_SIZE] - 1));
+  prefix.data[Node::PREFIX_SIZE] -= n + 1;
+
+  prefix.Append(art, prefix.ptr);
 }
 
 }  // namespace part

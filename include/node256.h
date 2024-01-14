@@ -34,6 +34,8 @@ class Node256 {
 
   std::optional<Node *> GetChild(const uint8_t byte);
 
+  std::optional<Node *> GetNextChild(uint8_t &byte);
+
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);

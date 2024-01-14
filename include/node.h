@@ -118,9 +118,23 @@ class Node {
 
   std::optional<Node *> GetChild(ART &art, const uint8_t byte) const;
 
+  std::optional<Node *> GetNextChild(ART &art, uint8_t &byte) const;
+
   static void InsertChild(ART &art, Node &node, const uint8_t byte, const Node child);
 
   static void DeleteChild(ART &art, Node &node, Node &prefix, const uint8_t byte);
+
+  void Merge(ART &art, Node &other);
+
+  bool ResolvePrefixes(ART &art, Node &other);
+
+  bool MergeInternal(ART &art, Node &other);
+
+  static void MergePrefixesDiffer(ART &art, reference<Node> &l_node, reference<Node> &r_node,
+                                  idx_t &mismatched_position);
+
+  static bool MergePrefixContainsOtherPrefix(ART &art, reference<Node> &l_node, reference<Node> &r_node,
+                                             idx_t &mismatch_position);
 
   // duckdb api design is bad too...
   void ReplaceChild(const ART &art, const uint8_t byte, const Node child);

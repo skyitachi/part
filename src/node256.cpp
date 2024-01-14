@@ -115,4 +115,14 @@ void Node256::DeleteChild(ART &art, Node &node, const uint8_t byte) {
     Node48::ShrinkNode256(art, node, node256);
   }
 }
+
+std::optional<Node *> Node256::GetNextChild(uint8_t &byte) {
+  for (idx_t i = byte; i < Node::NODE_256_CAPACITY; i++) {
+    if (children[i].IsSet()) {
+      byte = i;
+      return &children[i];
+    }
+  }
+  return std::nullopt;
+}
 }  // namespace part

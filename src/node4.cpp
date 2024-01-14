@@ -173,4 +173,15 @@ Node4 &Node4::ShrinkNode16(ART &art, Node &node4, Node &node16) {
   return n4;
 }
 
+std::optional<Node *> Node4::GetNextChild(uint8_t &byte) {
+  for (idx_t i = 0; i < count; i++) {
+    if (key[i] >= byte) {
+      byte = key[i];
+      assert(children[i].IsSet());
+      return &children[i];
+    }
+  }
+  return std::nullopt;
+}
+
 }  // namespace part

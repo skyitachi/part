@@ -27,6 +27,7 @@ set(SRC_FILES
         src/node48.cpp
         src/node256.cpp
         src/serializer.cpp
+        src/helper.cpp
 )
 
 add_library(part SHARED ${SRC_FILES})
@@ -38,6 +39,7 @@ add_subdirectory(examples)
 include_directories(thirdparty/googletest/googletest/include)
 
 add_subdirectory(thirdparty/googletest)
+add_subdirectory(thirdparty/benchmark)
 
 add_subdirectory(tests)
 
