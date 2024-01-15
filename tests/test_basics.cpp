@@ -4,7 +4,16 @@
 #include <fmt/core.h>
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "art.h"
+#include "leaf.h"
+#include "node.h"
+#include "node16.h"
+#include "node256.h"
+#include "node4.h"
+#include "node48.h"
+#include "prefix.h"
 #include "util.h"
 
 using namespace part;
@@ -173,10 +182,20 @@ TEST(ARTTest, DeleteTest) {
 }
 
 TEST(ARTTest, MergeTest) {
-  ART left;
+  // important
+  auto allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
+  allocators->emplace_back(sizeof(Prefix), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Leaf), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Node4), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Node16), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Node48), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Node256), Allocator::DefaultAllocator());
+
+  ART left(allocators);
+  // TODO: 不支持32位integer
   ArenaAllocator arena_allocator(Allocator::DefaultAllocator(), 16384);
-  auto k1 = ARTKey::CreateARTKey(arena_allocator, 10);
-  auto k2 = ARTKey::CreateARTKey(arena_allocator, 11);
+  auto k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
+  auto k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 11);
   left.Put(k1, 1000);
 
   std::vector<idx_t> results;
@@ -185,19 +204,16 @@ TEST(ARTTest, MergeTest) {
   EXPECT_EQ(1000, results[0]);
   results.clear();
 
-  ART right;
+  ART right(allocators);
   right.Put(k2, 1001);
 
   EXPECT_TRUE(right.Get(k2, results));
   EXPECT_EQ(1, results.size());
   EXPECT_EQ(1001, results[0]);
+  results.clear();
 
   left.Merge(right);
 
-  fmt::println("after merge");
-  ::fflush(stdout);
-
-  // TODO: failed
   EXPECT_TRUE(left.Get(k2, results));
   EXPECT_EQ(1, results.size());
   EXPECT_EQ(1001, results[0]);

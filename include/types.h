@@ -36,6 +36,18 @@ data_ptr_t data_ptr_cast(SRC *src) {
   return reinterpret_cast<data_ptr_t>(src);
 }
 
+template <class SRC>
+const_data_ptr_t const_data_ptr_cast(const SRC *src) {
+  return reinterpret_cast<const_data_ptr_t>(src);
+}
+
+template <typename T>
+const T Load(const_data_ptr_t ptr) {
+  T ret;
+  memcpy(&ret, ptr, sizeof(ret));
+  return ret;
+}
+
 #ifndef STANDARD_VECTOR_SIZE
 #define STANDARD_VECTOR_SIZE 2048
 #endif
