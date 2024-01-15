@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <fstream>
 
 #include "arena_allocator.h"
 #include "art_key.h"
@@ -61,6 +62,15 @@ class ART {
   void Deserialize();
 
   int GetIndexFileFd() { return index_fd_; }
+
+  void Draw(const std::string &outf) {
+    std::ofstream out(outf);
+    out << "digraph G {" << std::endl;
+    idx_t id = 0;
+    root->ToGraph(*this, out, id);
+    out << "}" << std::endl;
+    out.close();
+  }
 
  private:
   void insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);

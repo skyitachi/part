@@ -261,7 +261,7 @@ bool Node::ResolvePrefixes(ART &art, Node &other) {
   // case 3:prefixes differ at a specific byte
   MergePrefixesDiffer(art, l_node, r_node, mismatch_position);
 
-  return false;
+  return true;
 }
 
 bool Node::MergeInternal(ART &art, Node &other) {
@@ -294,6 +294,7 @@ bool Node::MergeInternal(ART &art, Node &other) {
       InsertChild(art, l_node, byte, *r_child.value());
       r_node.ReplaceChild(art, byte, empty_node);
     } else {
+      // recursive
       if (!l_child.value()->ResolvePrefixes(art, *r_child.value())) {
         return false;
       }
@@ -338,6 +339,7 @@ void Node::MergePrefixesDiffer(ART &art, reference<Node> &l_node, reference<Node
   Prefix::Reduce(art, r_node, mismatched_position);
   Node4::InsertChild(art, l_node, r_byte, r_node);
 
+  // NOTE: why reset
   r_node.get().Reset();
 }
 
@@ -358,8 +360,125 @@ bool Node::MergePrefixContainsOtherPrefix(ART &art, reference<Node> &l_node, ref
   }
 
   return child_node.value()->ResolvePrefixes(art, r_node);
+}
 
-  return false;
+void Node::ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_id) {
+  switch (GetType()) {
+    case NType::LEAF: {
+      id++;
+      auto &leaf = Leaf::Get(art, *this);
+      std::string leaf_prefix("LEAF_");
+      out << leaf_prefix << id;
+      out << "[shape=plain color=green ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+      out << "<TR><TD COLSPAN=\"" << leaf.count << "\">P=" << id << "</TD></TR><TR>\n";
+      for (int i = 0; i < leaf.count; i++) {
+        out << "<TD>" << leaf.row_ids[i] << "</TD>\n";
+      }
+      out << "</TR></TABLE>>];\n";
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << leaf_prefix << id << ";\n";
+      }
+      break;
+    }
+    case NType::LEAF_INLINED: {
+      id++;
+      std::string leaf_prefix("LEAF_INLINED_");
+      out << leaf_prefix << id;
+      out << "[shape=plain color=green ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+      out << "<TR><TD COLSPAN=\"" << 1 << "\">"<< "leaf_" << id << "</TD></TR><TR>\n";
+      for (int i = 0; i < 1; i++) {
+        out << "<TD>" << GetDocId() << "</TD>\n";
+      }
+      out << "</TR></TABLE>>];\n";
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << leaf_prefix << id << ";\n";
+      }
+      break;
+    }
+    case NType::PREFIX: {
+      id++;
+      std::string prefix_prefix("PREFIX_");
+      std::string current_id_str = fmt::format("{}{}", prefix_prefix, id);
+      auto &prefix = Prefix::Get(art, *this);
+      out << prefix_prefix << id;
+      out << "[shape=plain color=pink ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)prefix.data[PREFIX_SIZE] << "\"> prefix_" << id <<  "</TD></TR>\n";
+      out << "<TR>\n";
+      for (int i = 0; i < prefix.data[PREFIX_SIZE]; i++) {
+        out << "<TD>" << (uint32_t)prefix.data[i] << "</TD>\n";
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      if (prefix.ptr.IsSet()) {
+        prefix.ptr.ToGraph(art, out, id, current_id_str);
+      }
+      break;
+    }
+    case NType::NODE_4: {
+      id++;
+      std::string node_prefix("NODE4_");
+      std::string current_id_str = fmt::format("{}{}", node_prefix, id);
+      auto &node4 = Node4::Get(art, *this);
+      out << node_prefix << id;
+      out << "[shape=plain color=yellow ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node4.count << "\"> node4_" << id <<  "</TD></TR>\n";
+      out << "<TR>\n";
+      for (int i = 0; i < node4.count; i++) {
+        out << "<TD>" << (uint32_t)node4.key[i] << "</TD>\n";
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      for (int i = 0; i < node4.count; i++) {
+        node4.children[i].ToGraph(art, out, id, current_id_str);
+      }
+      break;
+    }
+    case NType::NODE_16: {
+      id++;
+      std::string node_prefix("NODE16_");
+      std::string current_id_str = fmt::format("{}{}", node_prefix, id);
+      auto &node16 = Node16::Get(art, *this);
+      out << node_prefix << id;
+      out << "[shape=plain color=yellow ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node16.count << "\"> node16_" << id <<  "</TD></TR>\n";
+      out << "<TR>\n";
+      for (int i = 0; i < node16.count; i++) {
+        out << "<TD>" << (uint32_t)node16.key[i] << "</TD>\n";
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      for (int i = 0; i < node16.count; i++) {
+        node16.children[i].ToGraph(art, out, id, current_id_str);
+      }
+      break;
+    }
+  }
 }
 
 }  // namespace part

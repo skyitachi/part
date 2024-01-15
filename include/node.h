@@ -10,6 +10,7 @@
 
 #include "serializer.h"
 #include "types.h"
+#include "helper.h"
 
 namespace part {
 
@@ -73,7 +74,7 @@ class Node {
     assert(!IsSerialized());
     auto type = data >> Node::SHIFT_TYPE;
     assert(type >= (uint8_t)NType::PREFIX);
-    assert(type <= (uint8_t)NType::LEAF_INLINED);
+    P_ASSERT(type <= (uint8_t)NType::LEAF_INLINED);
     return NType(type);
   }
 
@@ -142,6 +143,8 @@ class Node {
   BlockPointer Serialize(ART &art, Serializer &serializer);
 
   void Deserialize(ART &art);
+
+  void ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_id="");
 
  private:
   uint64_t data;

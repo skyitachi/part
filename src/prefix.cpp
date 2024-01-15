@@ -312,12 +312,14 @@ void Prefix::Reduce(ART &art, Node &prefix_node, const idx_t n) {
     return;
   }
 
+  // why not prefix.data[Node::PREFIX_SIZE]
   for (idx_t i = 0; i < Node::PREFIX_SIZE - n - 1; i++) {
     prefix.data[i] = prefix.data[n + i + 1];
   }
   assert(n < (idx_t)(prefix.data[Node::PREFIX_SIZE] - 1));
   prefix.data[Node::PREFIX_SIZE] -= n + 1;
 
+  // if prefix.ptr is not prefix, nothing happens
   prefix.Append(art, prefix.ptr);
 }
 

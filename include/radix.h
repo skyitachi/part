@@ -8,6 +8,7 @@
 #include <cmath>
 #include <numeric>
 #include <string>
+#include <cfloat>
 
 #include "types.h"
 

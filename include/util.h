@@ -37,7 +37,7 @@ class Random {
         rk = NextLong();
       } while (key_sets.contains(rk));
       auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, rk);
-      kv_pairs.emplace_back(art_key, i);
+      kv_pairs.emplace_back(art_key, rk >> 8);
       key_sets.insert(rk);
     }
     return kv_pairs;

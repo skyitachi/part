@@ -32,7 +32,6 @@ void Node4::InsertChild(ART &art, Node &node, uint8_t byte, const Node child) {
 
   auto &n4 = Node4::Get(art, node);
 
-  // TODO: this assertion may failed
   for (idx_t i = 0; i < n4.count; i++) {
     assert(n4.key[i] != byte);
   }
