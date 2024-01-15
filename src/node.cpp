@@ -387,7 +387,8 @@ void Node::ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_i
       out << leaf_prefix << id;
       out << "[shape=plain color=green ";
       out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
-      out << "<TR><TD COLSPAN=\"" << 1 << "\">"<< "leaf_" << id << "</TD></TR><TR>\n";
+      out << "<TR><TD COLSPAN=\"" << 1 << "\">"
+          << "leaf_" << id << "</TD></TR><TR>\n";
       for (int i = 0; i < 1; i++) {
         out << "<TD>" << GetDocId() << "</TD>\n";
       }
@@ -406,7 +407,7 @@ void Node::ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_i
       out << "[shape=plain color=pink ";
       out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
 
-      out << "<TR><TD COLSPAN=\"" << (uint32_t)prefix.data[PREFIX_SIZE] << "\"> prefix_" << id <<  "</TD></TR>\n";
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)prefix.data[PREFIX_SIZE] << "\"> prefix_" << id << "</TD></TR>\n";
       out << "<TR>\n";
       for (int i = 0; i < prefix.data[PREFIX_SIZE]; i++) {
         out << "<TD>" << (uint32_t)prefix.data[i] << "</TD>\n";
@@ -433,7 +434,7 @@ void Node::ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_i
       out << "[shape=plain color=yellow ";
       out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
 
-      out << "<TR><TD COLSPAN=\"" << (uint32_t)node4.count << "\"> node4_" << id <<  "</TD></TR>\n";
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node4.count << "\"> node4_" << id << "</TD></TR>\n";
       out << "<TR>\n";
       for (int i = 0; i < node4.count; i++) {
         out << "<TD>" << (uint32_t)node4.key[i] << "</TD>\n";
@@ -460,7 +461,7 @@ void Node::ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_i
       out << "[shape=plain color=yellow ";
       out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
 
-      out << "<TR><TD COLSPAN=\"" << (uint32_t)node16.count << "\"> node16_" << id <<  "</TD></TR>\n";
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node16.count << "\"> node16_" << id << "</TD></TR>\n";
       out << "<TR>\n";
       for (int i = 0; i < node16.count; i++) {
         out << "<TD>" << (uint32_t)node16.key[i] << "</TD>\n";

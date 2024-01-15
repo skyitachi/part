@@ -8,9 +8,9 @@
 #include <cstring>
 #include <optional>
 
+#include "helper.h"
 #include "serializer.h"
 #include "types.h"
-#include "helper.h"
 
 namespace part {
 
@@ -144,7 +144,7 @@ class Node {
 
   void Deserialize(ART &art);
 
-  void ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_id="");
+  void ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_id = "");
 
  private:
   uint64_t data;

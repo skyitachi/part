@@ -5,10 +5,10 @@
 #ifndef PART_RADIX_H
 #define PART_RADIX_H
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <numeric>
 #include <string>
-#include <cfloat>
 
 #include "types.h"
 

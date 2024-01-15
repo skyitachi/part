@@ -4,10 +4,10 @@
 
 #ifndef PART_ART_H
 #define PART_ART_H
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <vector>
-#include <fstream>
 
 #include "arena_allocator.h"
 #include "art_key.h"

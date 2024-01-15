@@ -236,10 +236,10 @@ TEST(ARTTest, MergeMediumTest) {
   for (idx_t i = 0; i < kv_pairs.size() / 2; i++) {
     left.Put(kv_pairs[i].first, kv_pairs[i].second);
   }
-//  left.Draw("left.dot");
+  //  left.Draw("left.dot");
 
   for (idx_t i = 0; i < kv_pairs.size() / 2; i++) {
-    std::vector<idx_t > results;
+    std::vector<idx_t> results;
     auto success = left.Get(kv_pairs[i].first, results);
     EXPECT_TRUE(success);
     EXPECT_EQ(1, results.size());
@@ -250,28 +250,26 @@ TEST(ARTTest, MergeMediumTest) {
   for (idx_t i = kv_pairs.size() / 2; i < kv_pairs.size(); i++) {
     right.Put(kv_pairs[i].first, kv_pairs[i].second);
   }
-//  right.Draw("right.dot");
+  //  right.Draw("right.dot");
 
   for (idx_t i = kv_pairs.size() / 2; i < kv_pairs.size(); i++) {
-    std::vector<idx_t > results;
+    std::vector<idx_t> results;
     auto success = right.Get(kv_pairs[i].first, results);
     EXPECT_TRUE(success);
     EXPECT_EQ(1, results.size());
     EXPECT_EQ(kv_pairs[i].second, results[0]);
   }
 
-
   left.Merge(right);
 
-//  left.Draw("merge.dot");
-  for (auto &pair: kv_pairs) {
-    std::vector<idx_t > results;
+  //  left.Draw("merge.dot");
+  for (auto& pair : kv_pairs) {
+    std::vector<idx_t> results;
     auto success = left.Get(pair.first, results);
     EXPECT_TRUE(success);
     EXPECT_EQ(1, results.size());
     EXPECT_EQ(pair.second, results[0]);
   }
-
 }
 
 TEST(ARTTest, DrawTest) {
@@ -289,9 +287,7 @@ TEST(ARTTest, DrawTest) {
   art.Put(k4, 4);
 
   art.Draw("art.dot");
-
 }
-
 
 TEST(ARTTest, MergeFixture) {
   auto allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
@@ -304,16 +300,11 @@ TEST(ARTTest, MergeFixture) {
 
   ArenaAllocator arena_allocator(Allocator::DefaultAllocator(), 16384);
   uint8_t data[10][8] = {
-      {183,40, 50, 212, 24, 77, 123, 190},
-      {190,71, 43, 17, 99, 135, 96, 191},
-      {195,234, 91, 93,96, 212, 213,162},
-      {203,69, 104, 75, 223, 166, 177, 80},
-      {237,52, 189, 151, 236, 111, 170, 65},
-      {143, 83, 232, 152, 224, 234, 235, 150},
-      {159, 110, 8, 28, 255, 206, 172, 222},
-      {172,4, 180, 145, 143, 21, 41, 4},
-      {190,98, 215, 234, 15, 132, 127, 87},
-      {246,59, 249, 227, 205, 232, 110, 91},
+      {183, 40, 50, 212, 24, 77, 123, 190},   {190, 71, 43, 17, 99, 135, 96, 191},
+      {195, 234, 91, 93, 96, 212, 213, 162},  {203, 69, 104, 75, 223, 166, 177, 80},
+      {237, 52, 189, 151, 236, 111, 170, 65}, {143, 83, 232, 152, 224, 234, 235, 150},
+      {159, 110, 8, 28, 255, 206, 172, 222},  {172, 4, 180, 145, 143, 21, 41, 4},
+      {190, 98, 215, 234, 15, 132, 127, 87},  {246, 59, 249, 227, 205, 232, 110, 91},
   };
 
   std::vector<std::pair<ARTKey, long>> kv_pairs;
@@ -329,7 +320,7 @@ TEST(ARTTest, MergeFixture) {
   left.Draw("left_fixture.dot");
 
   for (idx_t i = 0; i < kv_pairs.size() / 2; i++) {
-    std::vector<idx_t > results;
+    std::vector<idx_t> results;
     auto success = left.Get(kv_pairs[i].first, results);
     EXPECT_TRUE(success);
     EXPECT_EQ(1, results.size());
@@ -343,19 +334,18 @@ TEST(ARTTest, MergeFixture) {
   right.Draw("right_fixture.dot");
 
   for (idx_t i = kv_pairs.size() / 2; i < kv_pairs.size(); i++) {
-    std::vector<idx_t > results;
+    std::vector<idx_t> results;
     auto success = right.Get(kv_pairs[i].first, results);
     EXPECT_TRUE(success);
     EXPECT_EQ(1, results.size());
     EXPECT_EQ(kv_pairs[i].second, results[0]);
   }
 
-
   left.Merge(right);
 
   left.Draw("merge_fixture.dot");
-  for (auto &pair: kv_pairs) {
-    std::vector<idx_t > results;
+  for (auto& pair : kv_pairs) {
+    std::vector<idx_t> results;
     auto success = left.Get(pair.first, results);
     if (!success) {
       fmt::println("{} failed", pair.second);
