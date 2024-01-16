@@ -130,7 +130,7 @@ void Node48::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 
   for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
-    n48.children[i] = Node(reader);
+    n48.children[i] = Node(art, reader);
   }
 }
 

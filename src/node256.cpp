@@ -97,7 +97,7 @@ void Node256::Deserialize(ART &art, Node &node, Deserializer &reader) {
   n256.count = reader.Read<uint16_t>();
 
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-    n256.children[i] = Node(reader);
+    n256.children[i] = Node(art, reader);
   }
 }
 

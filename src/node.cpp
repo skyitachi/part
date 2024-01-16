@@ -16,7 +16,6 @@
 namespace part {
 
 Node::Node(Deserializer &reader) {
-  auto previous_block_pointer = reader.GetBlockPointer();
   auto block_id = reader.Read<block_id_t>();
   auto offset = reader.Read<uint32_t>();
 
@@ -28,6 +27,12 @@ Node::Node(Deserializer &reader) {
 
   SetSerialized();
   SetPtr(block_id, offset);
+}
+
+Node::Node(ART &art, Deserializer &reader) : Node(reader) {
+  if (IsSet() && IsSerialized()) {
+    Deserialize(art);
+  }
 }
 
 FixedSizeAllocator &Node::GetAllocator(const ART &art, NType type) { return (*art.allocators)[(uint8_t)type - 1]; }
@@ -337,9 +342,10 @@ void Node::MergePrefixesDiffer(ART &art, reference<Node> &l_node, reference<Node
   auto r_byte = Prefix::GetByte(art, r_node, mismatched_position);
   // reduce
   Prefix::Reduce(art, r_node, mismatched_position);
+  // NOTE: child will copy r_node
   Node4::InsertChild(art, l_node, r_byte, r_node);
 
-  // NOTE: why reset
+  // NOTE: InsertChild already copy child, so need to reset here
   r_node.get().Reset();
 }
 

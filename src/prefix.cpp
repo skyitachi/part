@@ -246,7 +246,7 @@ void Prefix::Deserialize(ART &art, Node &node, Deserializer &reader) {
     prefix.ptr.Reset();
   }
 
-  current_node.get() = Node(reader);
+  current_node.get() = Node(art, reader);
 }
 
 void Prefix::Concatenate(ART &art, Node &prefix_node, const uint8_t byte, Node &child_prefix_node) {

@@ -341,14 +341,59 @@ TEST(ARTTest, MergeFixture) {
     EXPECT_EQ(kv_pairs[i].second, results[0]);
   }
 
+  // serialized tree cannot merge
   left.Merge(right);
 
   left.Draw("merge_fixture.dot");
   for (auto& pair : kv_pairs) {
     std::vector<idx_t> results;
     auto success = left.Get(pair.first, results);
-    if (!success) {
-      fmt::println("{} failed", pair.second);
+    EXPECT_TRUE(success);
+    EXPECT_EQ(1, results.size());
+    EXPECT_EQ(pair.second, results[0]);
+  }
+}
+
+TEST(ARTTest, SerializedMergeTest) {
+  ART left("left.idx");
+  Allocator& allocator = Allocator::DefaultAllocator();
+
+  ArenaAllocator arena_allocator(allocator, 16384);
+  Random random;
+
+  auto allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
+  allocators->emplace_back(sizeof(Prefix), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Leaf), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Node4), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Node16), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Node48), Allocator::DefaultAllocator());
+  allocators->emplace_back(sizeof(Node256), Allocator::DefaultAllocator());
+
+  auto kv_pairs = random.GenKvPairs(10000, arena_allocator);
+
+  for (idx_t i = 0; i < kv_pairs.size() / 2; i++) {
+    left.Put(kv_pairs[i].first, kv_pairs[i].second);
+  }
+  left.Serialize();
+
+  ART right("right.idx");
+  for (idx_t i = kv_pairs.size() / 2; i < kv_pairs.size(); i++) {
+    right.Put(kv_pairs[i].first, kv_pairs[i].second);
+  }
+  right.Serialize();
+
+  // deserialize
+  {
+    ART left1("left.idx", allocators);
+    ART right1("right.idx", allocators);
+
+    left1.Merge(right1);
+    for (auto& pair : kv_pairs) {
+      std::vector<idx_t> results;
+      auto success = left1.Get(pair.first, results);
+      EXPECT_TRUE(success);
+      EXPECT_EQ(1, results.size());
+      EXPECT_EQ(pair.second, results[0]);
     }
   }
 }

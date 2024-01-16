@@ -58,6 +58,8 @@ class Node {
 
   Node(Deserializer &reader);
 
+  Node(ART &art, Deserializer &reader);
+
   static void Free(ART &art, Node &node);
 
   inline void Reset() { data = 0; }

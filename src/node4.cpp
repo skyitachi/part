@@ -142,7 +142,7 @@ void Node4::Deserialize(ART &art, Node &node, Deserializer &reader) {
   }
 
   for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
-    n4.children[i] = Node(reader);
+    n4.children[i] = Node(art, reader);
   }
 }
 
