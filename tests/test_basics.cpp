@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <type_traits>
 
 #include "art.h"
 #include "leaf.h"
@@ -396,4 +397,18 @@ TEST(ARTTest, SerializedMergeTest) {
       EXPECT_EQ(pair.second, results[0]);
     }
   }
+}
+
+TEST(ARTTest, TypeTraitsTest) {
+  auto ret = std::is_trivially_copyable<Node>::value;
+  fmt::println("copyable: {}", ret);
+  ret = std::is_copy_constructible<Node>::value;
+  fmt::println("construct: {}", ret);
+  ret = std::is_move_constructible<Node>::value;
+  fmt::println("move construct: {}", ret);
+  ret = std::is_copy_assignable<Node>::value;
+  fmt::println("copy construct: {}", ret);
+  ret = std::is_move_assignable<Node>::value;
+
+  fmt::println("move assign: {}", ret);
 }
