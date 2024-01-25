@@ -16,6 +16,7 @@
 #include "node16.h"
 #include "node4.h"
 #include "prefix.h"
+#include "concurrent_node.h"
 
 namespace part {
 
@@ -70,8 +71,10 @@ bool ART::Get(const ARTKey &key, std::vector<idx_t> &result_ids) {
 
 std::optional<Node *> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
   auto next_node = std::ref(node);
+  // next_node rlock
   while (next_node.get().IsSet()) {
     if (next_node.get().GetType() == NType::PREFIX) {
+      // next_node will change, first unlock origin node and lock new node
       Prefix::Traverse(*this, next_node, key, depth);
       if (next_node.get().GetType() == NType::PREFIX) {
         return std::nullopt;
@@ -93,12 +96,17 @@ std::optional<Node *> ART::lookup(Node node, const ARTKey &key, idx_t depth) {
   return std::nullopt;
 }
 
+// TODO: 要保证路径上的node 至少是rlocked
 void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id) {
+  // TODO: node RLock
   if (!node.IsSet()) {
     assert(depth <= key.len);
     std::reference_wrapper<Node> ref_node(node);
     Prefix::New(*this, ref_node, key, depth, key.len - depth);
+    // TODO assert ref_node RLocked
+    // ref_node upgrade to WLock
     Leaf::New(ref_node, doc_id);
+    // release WLock
     return;
   }
 
@@ -112,8 +120,11 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
   if (node_type != NType::PREFIX) {
     assert(depth < key.len);
 
+
+    // TODO: assert node is RLOCKed
     auto child = node.GetChild(*this, key[depth]);
     if (child) {
+      // TODO: child.RLock
       insert(*child.value(), key, depth + 1, doc_id);
       // need to replace child for node
       return;
@@ -123,6 +134,7 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
 
     auto ref_node = std::ref(leaf_node);
     if (depth + 1 < key.len) {
+      // TODO 按照prefix::new的逻辑
       Prefix::New(*this, ref_node, key, depth + 1, key.len - depth - 1);
     }
 
@@ -164,7 +176,9 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
 bool ART::InsertToLeaf(Node &leaf, const idx_t row_id) {
   // NOTE: no constraints check
 
+  // assert Leaf is RLocked
   Leaf::Insert(*this, leaf, row_id);
+  // release Lock
   return true;
 }
 
@@ -347,5 +361,31 @@ idx_t ART::NoneLeafCount() { return SumNoneLeafCount(*this, *root, false); }
 idx_t ART::LeafCount() { return SumNoneLeafCount(*this, *root, true); }
 
 void ART::Merge(ART &other) { root->Merge(*this, *other.root); }
+
+ART::ART(const std::string &index_path, bool is_concurrent,
+         const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr) {
+  if (!is_concurrent) {
+    ART(index_path, allocators_ptr);
+    return;
+  }
+
+  index_path_ = index_path;
+
+  index_fd_ = ::open(index_path.c_str(), O_CREAT | O_RDWR, 0644);
+  if (index_fd_ == -1) {
+    throw std::invalid_argument(fmt::format("cann open {} index file, error: {}", index_path, strerror(errno)));
+  }
+
+  metadata_fd_ = ::open(index_path.c_str(), O_RDWR, 0644);
+  try {
+    auto pointer = ReadMetadata();
+    root = std::make_unique<ConcurrentNode>(pointer.block_id, pointer.offset);
+    root->SetSerialized();
+    root->Deserialize(*this);
+  } catch (std::exception &e) {
+    root = std::make_unique<ConcurrentNode>();
+  }
+
+}
 
 }  // namespace part

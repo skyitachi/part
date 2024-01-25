@@ -41,7 +41,7 @@ void Node4::InsertChild(ART &art, Node &node, uint8_t byte, const Node child) {
     while (child_pos < n4.count && n4.key[child_pos] < byte) {
       child_pos++;
     }
-
+    // TODO: upgrade NODE to WLOCK
     for (idx_t i = n4.count; i > child_pos; i--) {
       n4.key[i] = n4.key[i - 1];
       n4.children[i] = n4.children[i - 1];
@@ -50,9 +50,12 @@ void Node4::InsertChild(ART &art, Node &node, uint8_t byte, const Node child) {
     n4.key[child_pos] = byte;
     n4.children[child_pos] = child;
     n4.count++;
+    // downgrade to RLock
   } else {
     auto node4 = node;
+    // 要WLOCK parent  的node， 然后replace 原来的指针
     Node16::GrowNode4(art, node, node4);
+    // assert new node WLocked
     Node16::InsertChild(art, node, byte, child);
   }
 }

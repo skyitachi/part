@@ -31,6 +31,10 @@ class ART {
   explicit ART(const std::string &index_path,
                const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
 
+  explicit ART(const std::string &index_path,
+               bool is_concurrent = false,
+               const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
+
   ~ART();
   std::unique_ptr<Node> root;
   std::shared_ptr<std::vector<FixedSizeAllocator>> allocators;

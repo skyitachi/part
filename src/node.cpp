@@ -64,6 +64,7 @@ std::optional<Node *> Node::GetChild(ART &art, const uint8_t byte) const {
 }
 
 void Node::InsertChild(ART &art, Node &node, uint8_t byte, const Node child) {
+  // assert node RLOCKED
   switch (node.GetType()) {
     case NType::NODE_4:
       Node4::InsertChild(art, node, byte, child);

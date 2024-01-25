@@ -17,6 +17,7 @@ void Prefix::New(ART &art, std::reference_wrapper<Node> &node, const ARTKey &key
   idx_t copy_count = 0;
 
   while (count > 0) {
+    // assert node.get().IsRLocked and node.get().Upgrade to Lock
     node.get() = Node::GetAllocator(art, NType::PREFIX).New();
     node.get().SetType((uint8_t)NType::PREFIX);
     auto &prefix = Prefix::Get(art, node);
@@ -25,7 +26,9 @@ void Prefix::New(ART &art, std::reference_wrapper<Node> &node, const ARTKey &key
     prefix.data[Node::PREFIX_SIZE] = (uint8_t)this_count;
     std::memcpy(prefix.data, key.data + depth + copy_count, this_count);
 
+    // TODO: release lock in node
     node = prefix.ptr;
+    // TODO: Rlock prefix.ptr
     copy_count += this_count;
     count -= this_count;
   }
