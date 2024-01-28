@@ -1,9 +1,11 @@
 //
 // Created by skyitachi on 24-1-25.
 //
+#include "concurrent_node.h"
+
 #include <thread>
 
-#include "concurrent_node.h"
+#include "concurrent_art.h"
 
 namespace part {
 constexpr uint32_t RETRY_THRESHOLD = 100;
@@ -65,7 +67,7 @@ void ConcurrentNode::Lock() {
 
 void ConcurrentNode::Unlock() {
   int retry = 0;
-  while(true) {
+  while (true) {
     uint64_t prev = lock_;
     if (prev == HAS_WRITER) {
       if (lock_.compare_exchange_weak(prev, 0)) {
@@ -89,7 +91,7 @@ void ConcurrentNode::Downgrade() {
 // TODO: need test
 void ConcurrentNode::Upgrade() {
   int retry = 0;
-  while(true) {
+  while (true) {
     uint64_t prev = lock_;
     if (lock_.compare_exchange_weak(prev, HAS_WRITER)) {
       return;
@@ -102,4 +104,19 @@ void ConcurrentNode::Upgrade() {
   }
 }
 
+// NOTE: not exactly right
+bool ConcurrentNode::RLocked() const {
+  auto cur = lock_.load();
+  return cur > 0 && cur != HAS_WRITER;
 }
+
+bool ConcurrentNode::Locked() const {
+  auto cur = lock_.load();
+  return cur == HAS_WRITER;
+}
+
+FixedSizeAllocator& ConcurrentNode::GetAllocator(const ConcurrentART& art, NType type) {
+  return (*art.allocators)[(uint8_t)type - 1];
+}
+
+}  // namespace part

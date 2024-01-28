@@ -12,6 +12,7 @@
 #include "arena_allocator.h"
 #include "art_key.h"
 #include "block.h"
+#include "concurrent_node.h"
 #include "node.h"
 #include "serializer.h"
 #include "types.h"
@@ -31,8 +32,7 @@ class ART {
   explicit ART(const std::string &index_path,
                const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
 
-  explicit ART(const std::string &index_path,
-               bool is_concurrent = false,
+  explicit ART(const std::string &index_path, bool is_concurrent = false,
                const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
 
   ~ART();
@@ -67,6 +67,9 @@ class ART {
 
   int GetIndexFileFd() { return index_fd_; }
 
+  // Concurrent API
+  bool ConcGet(const ARTKey &key, std::vector<idx_t> &result_ids);
+
   void Draw(const std::string &outf) {
     std::ofstream out(outf);
     out << "digraph G {" << std::endl;
@@ -80,6 +83,9 @@ class ART {
   void insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);
   void erase(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);
   std::optional<Node *> lookup(Node node, const ARTKey &key, idx_t depth);
+
+  bool conc_lookup(ConcurrentNode &node, const ARTKey &key, idx_t depth);
+
   //! Insert a row ID into a leaf
   bool InsertToLeaf(Node &leaf, const idx_t row_id);
 

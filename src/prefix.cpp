@@ -326,4 +326,38 @@ void Prefix::Reduce(ART &art, Node &prefix_node, const idx_t n) {
   prefix.Append(art, prefix.ptr);
 }
 
+// NOTE: keep checks IsDeleted
+idx_t CPrefix::Traverse(ConcurrentART &cart, reference<ConcurrentNode> &prefix_node, const ARTKey &key, idx_t &depth,
+                        bool &retry) {
+  assert(prefix_node.get().RLocked() && !prefix_node.get().IsDeleted());
+  assert(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
+  assert(prefix_node.get().GetType() == NType::PREFIX);
+
+  // assert prefix_node is RLocked
+  while (prefix_node.get().GetType() == NType::PREFIX) {
+    assert(prefix_node.get().RLocked() && !prefix_node.get().IsDeleted());
+
+    auto &cprefix = CPrefix::Get(cart, prefix_node);
+    for (idx_t i = 0; i < cprefix.data[Node::PREFIX_SIZE]; i++) {
+      if (cprefix.data[i] != key[depth]) {
+        // NOTE: keep this node RLocked
+        return i;
+      }
+      depth++;
+      // NOTE: RUnlock asap
+      prefix_node.get().RUnlock();
+      cprefix.ptr.RLocked();
+      if (cprefix.ptr.IsDeleted()) {
+        // NOTE: this node deleted, need a retry
+        retry = true;
+        return INVALID_INDEX;
+      }
+      prefix_node = cprefix.ptr;
+      P_ASSERT(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
+    }
+    // NOTE: node ptr is changed
+  }
+  return INVALID_INDEX;
+}
+
 }  // namespace part

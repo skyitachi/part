@@ -9,16 +9,20 @@
 #include "node.h"
 
 namespace part {
+class ConcurrentART;
 
-class ConcurrentNode: public Node {
+// NOTE: 1. node cannot be serialized when accessed, different from Node (currently for simplicity)
+class ConcurrentNode : public Node {
  public:
   ConcurrentNode(const uint32_t buffer_id, const uint32_t offset) { SetPtr(buffer_id, offset); }
 
-  ConcurrentNode(Deserializer &reader): Node(reader) {}
+  ConcurrentNode(Deserializer &reader) : Node(reader) {}
 
-  ConcurrentNode(ART &art, Deserializer &reader): Node(art, reader) {}
+  ConcurrentNode(ART &art, Deserializer &reader) : Node(art, reader) {}
 
-  ConcurrentNode() {};
+  ConcurrentNode(){};
+
+  static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
 
   void Lock();
   void Unlock();
@@ -27,10 +31,12 @@ class ConcurrentNode: public Node {
   void Downgrade();
   void Upgrade();
 
+  bool RLocked() const;
+  bool Locked() const;
+
  private:
   std::atomic<uint64_t> lock_;
-
 };
 
-}
+}  // namespace part
 #endif  // PART_CONCURRENT_NODE_H

@@ -29,6 +29,7 @@ set(SRC_FILES
         src/serializer.cpp
         src/helper.cpp
         src/concurrent_node.cpp
+        src/concurrent_art.cpp
 )
 
 add_library(part SHARED ${SRC_FILES})

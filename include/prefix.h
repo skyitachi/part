@@ -7,6 +7,8 @@
 #include <cassert>
 
 #include "art.h"
+#include "concurrent_art.h"
+#include "concurrent_node.h"
 #include "fixed_size_allocator.h"
 #include "node.h"
 
@@ -60,6 +62,24 @@ class Prefix {
   static Prefix &New(ART &art, Node &node, uint8_t byte, Node next);
 
   static idx_t TotalCount(ART &art, std::reference_wrapper<Node> &node);
+};
+
+class CPrefix {
+ public:
+  uint8_t data[Node::PREFIX_SIZE + 1];
+
+  ConcurrentNode ptr;
+
+  static void Free(ConcurrentART &art, ConcurrentNode &node);
+
+  static inline CPrefix &Get(const ConcurrentART &art, const ConcurrentNode &ptr) {
+    assert(!ptr.IsSerialized());
+    assert(ptr.Locked() || ptr.RLocked());
+    return *ConcurrentNode::GetAllocator(art, NType::PREFIX).Get<CPrefix>(ptr);
+  }
+
+  static idx_t Traverse(ConcurrentART &cart, reference<ConcurrentNode> &prefix_node, const ARTKey &key, idx_t &depth,
+                        bool &retry);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H

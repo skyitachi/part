@@ -41,6 +41,7 @@ class Node {
   static constexpr uint64_t SHIFT_OFFSET = 32;
   static constexpr uint64_t SHIFT_TYPE = 56;
   static constexpr uint64_t SHIFT_SERIALIZED_FLAG = 63;
+  static constexpr uint64_t SHIFT_DELETED_FLAG = 62;
   //! AND operations
   static constexpr uint64_t AND_OFFSET = 0x0000000000FFFFFF;
   static constexpr uint64_t AND_BUFFER_ID = 0x00000000FFFFFFFF;
@@ -48,6 +49,9 @@ class Node {
   static constexpr uint64_t AND_RESET = 0x00FFFFFFFFFFFFFF;
   //! OR operations
   static constexpr uint64_t SET_SERIALIZED_FLAG = 0x8000000000000000;
+
+  static constexpr uint64_t SET_DELETED_FLAG = 0x4000000000000000;
+
   //! Other constants
   static constexpr uint8_t EMPTY_MARKER = 48;
   static constexpr uint8_t LEAF_SIZE = 4;
@@ -70,6 +74,8 @@ class Node {
 
   //! Returns whether the node is serialized or not (zero bit)
   inline bool IsSerialized() const { return data >> Node::SHIFT_SERIALIZED_FLAG; }
+
+  inline bool IsDeleted() const { return (data >> Node::SHIFT_DELETED_FLAG) & (0x1); }
 
   //! Get the type (1st to 7th bit)
   inline NType GetType() const {
@@ -98,6 +104,12 @@ class Node {
     data &= Node::AND_RESET;
     data |= Node::SET_SERIALIZED_FLAG;
   }
+
+  inline void SetDeleted() {
+    data &= Node::AND_RESET;
+    data != Node::SET_DELETED_FLAG;
+  }
+
   //! Set the type (1st to 7th bit)
   inline void SetType(const uint8_t type) {
     assert(!IsSerialized());

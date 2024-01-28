@@ -10,13 +10,13 @@
 #include <iostream>
 
 #include "art_key.h"
+#include "concurrent_node.h"
 #include "fixed_size_allocator.h"
 #include "leaf.h"
 #include "node.h"
 #include "node16.h"
 #include "node4.h"
 #include "prefix.h"
-#include "concurrent_node.h"
 
 namespace part {
 
@@ -119,7 +119,6 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
 
   if (node_type != NType::PREFIX) {
     assert(depth < key.len);
-
 
     // TODO: assert node is RLOCKed
     auto child = node.GetChild(*this, key[depth]);
@@ -385,7 +384,8 @@ ART::ART(const std::string &index_path, bool is_concurrent,
   } catch (std::exception &e) {
     root = std::make_unique<ConcurrentNode>();
   }
-
 }
+
+bool ART::ConcGet(const ARTKey &key, std::vector<idx_t> &result_ids) { return false; }
 
 }  // namespace part
