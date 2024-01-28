@@ -278,4 +278,52 @@ void Leaf::Merge(ART &art, Node &l_node, Node &r_node) {
   }
 }
 
+// node is not updated, so need unlock in this method internally
+bool CLeaf::GetDocIds(ConcurrentART &art,
+                      ConcurrentNode &node,
+                      std::vector<idx_t> &result_ids,
+                      idx_t max_count,
+                      bool &retry) {
+  assert(node.RLocked());
+  assert(node.IsSet());
+
+  // NOTE: Leaf::TotalCount fully deserializes the leaf
+  assert(!node.IsSerialized());
+
+  if (node.GetType() == NType::LEAF_INLINED) {
+    result_ids.push_back(node.GetDocId());
+    return true;
+  }
+  auto last_leaf_ref = std::ref(node);
+  while (last_leaf_ref.get().IsSet()) {
+    if (last_leaf_ref.get().IsDeleted()) {
+      retry = true;
+      last_leaf_ref.get().RUnlock();
+      return false;
+    }
+    auto &leaf = CLeaf::Get(art, last_leaf_ref);
+    for (idx_t i = 0; i < leaf.count; i++) {
+      result_ids.push_back(leaf.row_ids[i]);
+      if (result_ids.size() >= max_count) {
+        last_leaf_ref.get().RUnlock();
+        return true;
+      }
+    }
+
+    // NOTE: release lock asap
+    last_leaf_ref.get().RUnlock();
+    leaf.ptr.RLock();
+    assert(leaf.ptr.IsSerialized());
+    last_leaf_ref = leaf.ptr;
+  }
+  last_leaf_ref.get().RUnlock();
+  return true;
+}
+
+CLeaf &CLeaf::Get(ConcurrentART &art, const ConcurrentNode &ptr) {
+  assert(ptr.RLocked() || ptr.Locked());
+  assert(!ptr.IsSerialized());
+  return *ConcurrentNode::GetAllocator(art, NType::LEAF).Get<CLeaf>(ptr);
+}
+
 }  // namespace part

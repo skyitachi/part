@@ -9,6 +9,8 @@
 #include "fixed_size_allocator.h"
 #include "node.h"
 #include "types.h"
+#include "concurrent_node.h"
+#include "concurrent_art.h"
 
 namespace part {
 
@@ -47,6 +49,21 @@ class Leaf {
  private:
   static void MoveInlinedToLeaf(ART &art, Node &node);
   Leaf &Append(ART &art, const idx_t row_id);
+};
+
+class CLeaf {
+ public:
+  uint8_t count;
+  idx_t row_ids[Node::LEAF_SIZE];
+  ConcurrentNode ptr;
+
+  static CLeaf &Get(ConcurrentART &art, const ConcurrentNode &ptr);
+  static bool GetDocIds(ConcurrentART &art,
+                        ConcurrentNode &node,
+                        std::vector<idx_t> &result_ids,
+                        idx_t max_count,
+                        bool &retry);
+
 };
 }  // namespace part
 
