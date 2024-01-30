@@ -57,6 +57,9 @@ class Prefix {
   static void New(ART &art, std::reference_wrapper<Node> &node, const ARTKey &key, const uint32_t depth,
                   uint32_t count);
 
+  static void ConcNew(ART &art, reference<ConcurrentNode> &node, const ARTKey &key, const uint32_t depth,
+                      uint32_t count);
+
   static Prefix &New(ART &art, Node &node, uint8_t byte, Node next);
 
   static idx_t TotalCount(ART &art, std::reference_wrapper<Node> &node);

@@ -85,7 +85,6 @@ void Leaf::Insert(ART &art, Node &node, const idx_t row_id) {
     }
     // TODO: downgrade to rlock
     leaf = Leaf::Get(art, leaf.get().ptr);
-
   }
   // TODO: assert RLocked , upgrade to WLock
   leaf.get().Append(art, row_id);

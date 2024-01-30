@@ -326,4 +326,32 @@ void Prefix::Reduce(ART &art, Node &prefix_node, const idx_t n) {
   prefix.Append(art, prefix.ptr);
 }
 
+void Prefix::ConcNew(ART &art, reference<ConcurrentNode> &node, const ARTKey &key, const uint32_t depth,
+                     uint32_t count) {
+  if (count == 0) {
+    return;
+  }
+  idx_t copy_count = 0;
+
+  while (count > 0) {
+    node.get().Lock();
+    Node next = Node::GetAllocator(art, NType::PREFIX).New();
+    node.get().UpdateByNode(next);
+    auto &prefix = Prefix::Get(art, next);
+
+    auto this_count = std::min((uint32_t)Node::PREFIX_SIZE, count);
+    prefix.data[Node::PREFIX_SIZE] = (uint8_t)this_count;
+    std::memcpy(prefix.data, key.data + depth + copy_count, this_count);
+
+    node.get().Unlock();
+    ConcurrentNode next_conc;
+    next_conc.UpdateByNode(prefix.ptr);
+
+    node = next_conc;
+    node.get().RLock();
+    copy_count += this_count;
+    count -= this_count;
+  }
+}
+
 }  // namespace part

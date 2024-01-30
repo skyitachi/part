@@ -1,9 +1,9 @@
 //
 // Created by skyitachi on 24-1-25.
 //
-#include <thread>
-
 #include "concurrent_node.h"
+
+#include <thread>
 
 namespace part {
 constexpr uint32_t RETRY_THRESHOLD = 100;
@@ -65,7 +65,7 @@ void ConcurrentNode::Lock() {
 
 void ConcurrentNode::Unlock() {
   int retry = 0;
-  while(true) {
+  while (true) {
     uint64_t prev = lock_;
     if (prev == HAS_WRITER) {
       if (lock_.compare_exchange_weak(prev, 0)) {
@@ -89,10 +89,13 @@ void ConcurrentNode::Downgrade() {
 // TODO: need test
 void ConcurrentNode::Upgrade() {
   int retry = 0;
-  while(true) {
+  while (true) {
     uint64_t prev = lock_;
-    if (lock_.compare_exchange_weak(prev, HAS_WRITER)) {
-      return;
+    // only one reader left
+    if (prev == 1) {
+      if (lock_.compare_exchange_weak(prev, HAS_WRITER)) {
+        return;
+      }
     }
     retry++;
     if (retry > RETRY_THRESHOLD) {
@@ -102,4 +105,4 @@ void ConcurrentNode::Upgrade() {
   }
 }
 
-}
+}  // namespace part

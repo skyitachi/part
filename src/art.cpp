@@ -10,13 +10,13 @@
 #include <iostream>
 
 #include "art_key.h"
+#include "concurrent_node.h"
 #include "fixed_size_allocator.h"
 #include "leaf.h"
 #include "node.h"
 #include "node16.h"
 #include "node4.h"
 #include "prefix.h"
-#include "concurrent_node.h"
 
 namespace part {
 
@@ -120,7 +120,6 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
   if (node_type != NType::PREFIX) {
     assert(depth < key.len);
 
-
     // TODO: assert node is RLOCKed
     auto child = node.GetChild(*this, key[depth]);
     if (child) {
@@ -171,6 +170,23 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
 
   Leaf::New(ref_node, doc_id);
   Node4::InsertChild(*this, next_node, key[depth], leaf_node);
+}
+
+bool ART::conc_insert(part::ConcurrentNode &node, const part::ARTKey &key, part::idx_t depth,
+                      const part::idx_t &value) {
+  node.RLock();
+  if (node.IsDeleted()) {
+    return true;
+  }
+  if (!node.IsSet()) {
+    assert(depth <= key.len);
+    auto ref_node = std::ref(node);
+    Prefix::ConcNew(*this, ref_node, key, depth, key.len - depth);
+    ref_node.get().Upgrade();
+    // TODO: new leaf
+
+    return false;
+  }
 }
 
 bool ART::InsertToLeaf(Node &leaf, const idx_t row_id) {
@@ -385,7 +401,6 @@ ART::ART(const std::string &index_path, bool is_concurrent,
   } catch (std::exception &e) {
     root = std::make_unique<ConcurrentNode>();
   }
-
 }
 
 }  // namespace part
