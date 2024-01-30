@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "allocator.h"
+#include "concurrent_node.h"
 #include "node.h"
 #include "validity_mask.h"
 
@@ -50,6 +51,8 @@ class FixedSizeAllocator {
   Node New();
 
   void Free(const Node ptr);
+
+  ConcurrentNode ConcNew();
 
   template <class T>
   inline T *Get(const Node ptr) const {

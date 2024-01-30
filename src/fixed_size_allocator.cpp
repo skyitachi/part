@@ -112,6 +112,31 @@ Node FixedSizeAllocator::New() {
   return Node(buffer_id, offset);
 }
 
+ConcurrentNode FixedSizeAllocator::ConcNew() {
+  if (buffers_with_free_space.empty()) {
+    idx_t buffer_id = buffers.size();
+    auto buffer = allocator.AllocateData(BUFFER_ALLOC_SIZE);
+    buffers.emplace_back(buffer, 0);
+    buffers_with_free_space.insert(buffer_id);
+
+    ValidityMask mask(reinterpret_cast<validity_t *>(buffer));
+    mask.SetAllValid(allocations_per_buffer);
+  }
+  assert(!buffers_with_free_space.empty());
+  auto buffer_id = (uint32_t)*buffers_with_free_space.begin();
+
+  auto bitmask_ptr = reinterpret_cast<validity_t *>(buffers[buffer_id].ptr);
+  ValidityMask mask(bitmask_ptr);
+  auto offset = GetOffset(mask, buffers[buffer_id].allocation_count);
+
+  buffers[buffer_id].allocation_count++;
+  total_allocations++;
+  if (buffers[buffer_id].allocation_count == allocations_per_buffer) {
+    buffers_with_free_space.erase(buffer_id);
+  }
+  return ConcurrentNode(buffer_id, offset);
+}
+
 // not reclaim memory
 void FixedSizeAllocator::Free(const Node ptr) {
   auto buffer_id = ptr.GetBufferId();

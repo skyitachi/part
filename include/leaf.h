@@ -6,11 +6,11 @@
 #define PART_LEAF_H
 #include <vector>
 
+#include "concurrent_art.h"
+#include "concurrent_node.h"
 #include "fixed_size_allocator.h"
 #include "node.h"
 #include "types.h"
-#include "concurrent_node.h"
-#include "concurrent_art.h"
 
 namespace part {
 
@@ -58,12 +58,10 @@ class CLeaf {
   ConcurrentNode ptr;
 
   static CLeaf &Get(ConcurrentART &art, const ConcurrentNode &ptr);
-  static bool GetDocIds(ConcurrentART &art,
-                        ConcurrentNode &node,
-                        std::vector<idx_t> &result_ids,
-                        idx_t max_count,
+  static bool GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_t> &result_ids, idx_t max_count,
                         bool &retry);
 
+  static void New(ConcurrentNode &node, const idx_t doc_id);
 };
 }  // namespace part
 

@@ -22,6 +22,17 @@ class ConcurrentNode : public Node {
 
   ConcurrentNode(){};
 
+  ConcurrentNode(const ConcurrentNode &other) {
+    SetPtr(other.GetBufferId(), other.GetOffset());
+    lock_ = 0;
+  }
+
+  ConcurrentNode &operator=(const ConcurrentNode &other) {
+    SetPtr(other.GetBufferId(), other.GetOffset());
+    lock_ = 0;
+    return *this;
+  }
+
   static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
 
   void Lock();

@@ -360,4 +360,31 @@ idx_t CPrefix::Traverse(ConcurrentART &cart, reference<ConcurrentNode> &prefix_n
   return INVALID_INDEX;
 }
 
+void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ARTKey &key, const uint32_t depth,
+                  uint32_t count) {
+  if (count == 0) {
+    return;
+  }
+  assert(node.get().Locked());
+
+  idx_t copy_count = 0;
+
+  while (count > 0) {
+    node.get() = ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew();
+    node.get().SetType((uint8_t)NType::PREFIX);
+    auto &cprefix = CPrefix::Get(art, node);
+
+    auto this_count = std::min((uint32_t)Node::PREFIX_SIZE, count);
+    cprefix.data[Node::PREFIX_SIZE] = (uint8_t)this_count;
+    std::memcpy(cprefix.data, key.data + depth + copy_count, this_count);
+
+    node.get().Unlock();
+    node = cprefix.ptr;
+    // NOTE: keep node.Locked invariants
+    node.get().Lock();
+    copy_count += this_count;
+    count -= this_count;
+  }
+}
+
 }  // namespace part

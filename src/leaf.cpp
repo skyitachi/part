@@ -279,10 +279,7 @@ void Leaf::Merge(ART &art, Node &l_node, Node &r_node) {
 }
 
 // node is not updated, so need unlock in this method internally
-bool CLeaf::GetDocIds(ConcurrentART &art,
-                      ConcurrentNode &node,
-                      std::vector<idx_t> &result_ids,
-                      idx_t max_count,
+bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_t> &result_ids, idx_t max_count,
                       bool &retry) {
   assert(node.RLocked());
   assert(node.IsSet());
@@ -324,6 +321,13 @@ CLeaf &CLeaf::Get(ConcurrentART &art, const ConcurrentNode &ptr) {
   assert(ptr.RLocked() || ptr.Locked());
   assert(!ptr.IsSerialized());
   return *ConcurrentNode::GetAllocator(art, NType::LEAF).Get<CLeaf>(ptr);
+}
+
+void CLeaf::New(ConcurrentNode &node, const idx_t doc_id) {
+  assert(node.Locked());
+  node.Reset();
+  node.SetType((uint8_t)NType::LEAF_INLINED);
+  node.SetDocID(doc_id);
 }
 
 }  // namespace part

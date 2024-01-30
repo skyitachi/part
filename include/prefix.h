@@ -72,6 +72,9 @@ class CPrefix {
 
   static void Free(ConcurrentART &art, ConcurrentNode &node);
 
+  static void New(ConcurrentART &art, reference<ConcurrentNode> &node, const ARTKey &key, const uint32_t depth,
+                  uint32_t count);
+
   static inline CPrefix &Get(const ConcurrentART &art, const ConcurrentNode &ptr) {
     assert(!ptr.IsSerialized());
     assert(ptr.Locked() || ptr.RLocked());

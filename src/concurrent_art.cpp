@@ -5,6 +5,7 @@
 
 #include <thread>
 
+#include "leaf.h"
 #include "prefix.h"
 
 namespace part {
@@ -50,9 +51,37 @@ bool ConcurrentART::lookup(ConcurrentNode& node, const ARTKey& key, idx_t depth,
 
     //
     if (next_node.get().GetType() == NType::LEAF) {
-      // TODO:
+      auto& cleaf = CLeaf::Get(*this, next_node.get());
+      // NOTE: GetDocIds already released lock
+      cleaf.GetDocIds(*this, next_node.get(), result_ids, std::numeric_limits<int64_t>::max(), retry);
+      return retry;
     }
   }
+  return false;
+}
+
+void ConcurrentART::Put(const ARTKey& key, idx_t doc_id) {
+  while (insert(*root, key, 0, doc_id)) {
+    std::this_thread::yield();
+  }
+}
+
+bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth, const idx_t& doc_id) {
+  node.RLock();
+  if (node.IsDeleted()) {
+    return true;
+  }
+  if (!node.IsSet()) {
+    assert(depth <= key.len);
+    auto ref = std::ref(node);
+    ref.get().Upgrade();
+    CPrefix::New(*this, ref, key, depth, key.len - depth);
+    assert(ref.get().Locked());
+    CLeaf::New(ref, doc_id);
+    ref.get().Unlock();
+    return false;
+  }
+  // TODO:
   return false;
 }
 

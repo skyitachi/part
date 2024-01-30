@@ -33,8 +33,12 @@ class ConcurrentART {
 
   bool Get(const ARTKey &key, std::vector<idx_t> &result_ids);
 
+  void Put(const ARTKey &key, idx_t doc_id);
+
  private:
   bool lookup(ConcurrentNode &node, const ARTKey &key, idx_t depth, std::vector<idx_t> &result_ids);
+  // if need retry
+  bool insert(ConcurrentNode &node, const ARTKey &key, idx_t depth, const idx_t &doc_id);
 };
 }  // namespace part
 #endif  // PART_CONCURRENT_ART_H
