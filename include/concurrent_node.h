@@ -4,6 +4,8 @@
 
 #ifndef PART_CONCURRENT_NODE_H
 #define PART_CONCURRENT_NODE_H
+#include <fmt/core.h>
+
 #include <atomic>
 
 #include "node.h"
@@ -14,7 +16,11 @@ class ConcurrentART;
 // NOTE: 1. node cannot be serialized when accessed, different from Node (currently for simplicity)
 class ConcurrentNode : public Node {
  public:
-  ConcurrentNode(const uint32_t buffer_id, const uint32_t offset) { SetPtr(buffer_id, offset); }
+  ConcurrentNode(const uint32_t buffer_id, const uint32_t offset) {
+    SetPtr(buffer_id, offset);
+    // important
+    lock_ = 0;
+  }
 
   ConcurrentNode(Deserializer &reader) : Node(reader) {}
 
@@ -28,10 +34,16 @@ class ConcurrentNode : public Node {
   }
 
   ConcurrentNode &operator=(const ConcurrentNode &other) {
+    fmt::println("in the assign operator");
+    ::fflush(stdout);
+
     SetPtr(other.GetBufferId(), other.GetOffset());
     lock_ = 0;
     return *this;
   }
+
+  // keep lock_ states
+  void Update(const ConcurrentNode &&other) { SetPtr(other.GetBufferId(), other.GetOffset()); }
 
   static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
 
@@ -45,8 +57,13 @@ class ConcurrentNode : public Node {
   bool RLocked() const;
   bool Locked() const;
 
+  inline void ResetAll() {
+    Reset();
+    lock_ = 0;
+  }
+
  private:
-  std::atomic<uint64_t> lock_;
+  std::atomic<uint64_t> lock_ = {0};
 };
 
 }  // namespace part

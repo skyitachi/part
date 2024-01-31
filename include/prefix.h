@@ -76,8 +76,8 @@ class CPrefix {
                   uint32_t count);
 
   static inline CPrefix &Get(const ConcurrentART &art, const ConcurrentNode &ptr) {
-    assert(!ptr.IsSerialized());
-    assert(ptr.Locked() || ptr.RLocked());
+    P_ASSERT(!ptr.IsSerialized());
+    P_ASSERT(ptr.Locked() || ptr.RLocked());
     return *ConcurrentNode::GetAllocator(art, NType::PREFIX).Get<CPrefix>(ptr);
   }
 

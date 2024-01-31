@@ -26,9 +26,7 @@ void Prefix::New(ART &art, std::reference_wrapper<Node> &node, const ARTKey &key
     prefix.data[Node::PREFIX_SIZE] = (uint8_t)this_count;
     std::memcpy(prefix.data, key.data + depth + copy_count, this_count);
 
-    // TODO: release lock in node
     node = prefix.ptr;
-    // TODO: Rlock prefix.ptr
     copy_count += this_count;
     count -= this_count;
   }
@@ -346,13 +344,14 @@ idx_t CPrefix::Traverse(ConcurrentART &cart, reference<ConcurrentNode> &prefix_n
       depth++;
       // NOTE: RUnlock asap
       prefix_node.get().RUnlock();
-      cprefix.ptr.RLocked();
+      // important
+      cprefix.ptr.RLock();
       if (cprefix.ptr.IsDeleted()) {
         // NOTE: this node deleted, need a retry
         retry = true;
         return INVALID_INDEX;
       }
-      prefix_node = cprefix.ptr;
+      prefix_node = std::ref(cprefix.ptr);
       P_ASSERT(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
     }
     // NOTE: node ptr is changed
@@ -370,7 +369,8 @@ void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ART
   idx_t copy_count = 0;
 
   while (count > 0) {
-    node.get() = ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew();
+    // only update data pointer
+    node.get().Update(ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew());
     node.get().SetType((uint8_t)NType::PREFIX);
     auto &cprefix = CPrefix::Get(art, node);
 
@@ -379,7 +379,10 @@ void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ART
     std::memcpy(cprefix.data, key.data + depth + copy_count, this_count);
 
     node.get().Unlock();
-    node = cprefix.ptr;
+    // NOTE: is this necessary, important
+    cprefix.ptr.ResetAll();
+    assert(!cprefix.ptr.IsSet());
+    node = std::ref(cprefix.ptr);
     // NOTE: keep node.Locked invariants
     node.get().Lock();
     copy_count += this_count;

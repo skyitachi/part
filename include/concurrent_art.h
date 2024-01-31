@@ -20,25 +20,32 @@ class ConcurrentART {
   using FixedSizeAllocatorListPtr = std::shared_ptr<std::vector<FixedSizeAllocator>>;
 
  public:
-  explicit ConcurrentART(const FixedSizeAllocatorListPtr &allocators_ptr = nullptr);
+  explicit ConcurrentART(const FixedSizeAllocatorListPtr allocators_ptr = nullptr);
 
-  explicit ConcurrentART(const std::string &index_path, const FixedSizeAllocatorListPtr &allocators_ptr = nullptr);
+  explicit ConcurrentART(const std::string &index_path, const FixedSizeAllocatorListPtr allocators_ptr = nullptr);
 
   ~ConcurrentART();
 
   std::unique_ptr<ConcurrentNode> root;
 
   FixedSizeAllocatorListPtr allocators;
+
   bool owns_data;
 
   bool Get(const ARTKey &key, std::vector<idx_t> &result_ids);
 
   void Put(const ARTKey &key, idx_t doc_id);
 
+  BlockPointer ReadMetadata() const;
+
  private:
   bool lookup(ConcurrentNode &node, const ARTKey &key, idx_t depth, std::vector<idx_t> &result_ids);
   // if need retry
   bool insert(ConcurrentNode &node, const ARTKey &key, idx_t depth, const idx_t &doc_id);
+
+  int metadata_fd_ = -1;
+  int index_fd_ = -1;
+  std::string index_path_;
 };
 }  // namespace part
 #endif  // PART_CONCURRENT_ART_H

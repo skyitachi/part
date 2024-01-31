@@ -3,6 +3,8 @@
 //
 #include "concurrent_node.h"
 
+#include <fmt/core.h>
+
 #include <thread>
 
 #include "concurrent_art.h"
@@ -22,6 +24,7 @@ void ConcurrentNode::RLock() {
       }
     }
     retry++;
+    fmt::println("rlock retry {}", retry);
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
@@ -58,6 +61,7 @@ void ConcurrentNode::Lock() {
     }
 
     retry++;
+    fmt::println("lock retry {}", retry);
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
