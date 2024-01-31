@@ -345,7 +345,7 @@ void CLeaf::Insert(ConcurrentART &art, ConcurrentNode &node, const idx_t row_id,
   auto ref = std::ref(CLeaf::Get(art, node));
   ref.get().ptr.RLock();
 
-  while(ref.get().ptr.IsSet()) {
+  while (ref.get().ptr.IsSet()) {
     assert(ref.get().ptr.RLocked());
     if (ref.get().ptr.IsDeleted()) {
       node.RLock();
@@ -376,7 +376,6 @@ void CLeaf::MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node) {
   cleaf.row_ids[0] = doc_id;
   cleaf.ptr.ResetAll();
 }
-
 
 CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode &node, const idx_t doc_id) {
   auto leaf = std::ref(*this);

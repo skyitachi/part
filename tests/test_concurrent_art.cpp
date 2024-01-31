@@ -22,7 +22,9 @@ TEST(ConcurrentARTTest, Basic) {
 
   ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
 
+  fmt::println("before first put success");
   art.Put(k1, 1);
+  fmt::println("first put success");
 
   std::vector<idx_t> results_ids;
 
@@ -30,14 +32,13 @@ TEST(ConcurrentARTTest, Basic) {
   EXPECT_EQ(results_ids.size(), 1);
   EXPECT_EQ(results_ids[0], 1);
 
-
   art.Put(k1, 2);
 
   results_ids.clear();
   art.Get(k1, results_ids);
   EXPECT_EQ(results_ids.size(), 2);
   EXPECT_EQ(results_ids[0], 1);
-  EXPECT_EQ(results_ids[0], 2);
+  EXPECT_EQ(results_ids[1], 2);
 }
 
 TEST(ConcurrentARTTest, ConcurrentTest) {

@@ -62,13 +62,18 @@ bool ConcurrentART::lookup(ConcurrentNode& node, const ARTKey& key, idx_t depth,
 }
 
 void ConcurrentART::Put(const ARTKey& key, idx_t doc_id) {
-  while (insert(*root, key, 0, doc_id)) {
-    std::this_thread::yield();
-  }
+  bool retry = false;
+  do {
+    root->RLock();
+    retry = insert(*root, key, 0, doc_id);
+    if (retry) {
+      std::this_thread::yield();
+    }
+  } while (retry);
 }
 
 bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth, const idx_t& doc_id) {
-  node.RLock();
+  assert(node.RLocked());
   if (node.IsDeleted()) {
     node.RUnlock();
     return true;
@@ -89,6 +94,26 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     // insert into leaf
     return insertToLeaf(node, doc_id);
   }
+
+  if (node_type != NType::PREFIX) {
+    // TODO: non prefix insert
+    return false;
+  }
+
+  auto next_node = std::ref(node);
+  bool retry = false;
+  auto mismatch_position = CPrefix::Traverse(*this, next_node, key, depth, retry);
+  if (retry) {
+    // need retry
+    next_node.get().RUnlock();
+    return true;
+  }
+
+  assert(next_node.get().RLocked());
+  if (next_node.get().GetType() != NType::PREFIX) {
+    return insert(next_node.get(), key, depth, doc_id);
+  }
+
   return false;
 }
 
@@ -141,6 +166,7 @@ ConcurrentART::~ConcurrentART() { root->Reset(); }
 bool ConcurrentART::insertToLeaf(ConcurrentNode& leaf, const idx_t doc_id) {
   assert(leaf.RLocked());
   bool retry = false;
+  // make sure leaf unlocked after insert
   CLeaf::Insert(*this, leaf, doc_id, retry);
   return retry;
 }

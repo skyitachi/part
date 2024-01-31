@@ -43,7 +43,10 @@ class ConcurrentNode : public Node {
   }
 
   // keep lock_ states
-  void Update(const ConcurrentNode &&other) { SetPtr(other.GetBufferId(), other.GetOffset()); }
+  void Update(const ConcurrentNode &&other) {
+    Reset();
+    SetPtr(other.GetBufferId(), other.GetOffset());
+  }
 
   static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
 
