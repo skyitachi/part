@@ -77,9 +77,7 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   if (!node.IsSet()) {
     assert(depth <= key.len);
     auto ref = std::ref(node);
-    fmt::println("before lock upgrade");
     ref.get().Upgrade();
-    fmt::println("lock upgraded");
     CPrefix::New(*this, ref, key, depth, key.len - depth);
     P_ASSERT(ref.get().Locked());
     CLeaf::New(ref, doc_id);
@@ -87,6 +85,12 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     return false;
   }
   // TODO:
+  auto node_type = node.GetType();
+
+  if (node_type == NType::LEAF || node_type == NType::LEAF_INLINED) {
+    // insert into leaf
+    return false;
+  }
   return false;
 }
 
@@ -134,5 +138,6 @@ BlockPointer ConcurrentART::ReadMetadata() const {
 }
 
 ConcurrentART::~ConcurrentART() { root->Reset(); }
+bool ConcurrentART::insertToLeaf(ConcurrentNode& leaf, const idx_t doc_id) { return false; }
 
 }  // namespace part
