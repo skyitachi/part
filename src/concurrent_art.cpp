@@ -51,7 +51,6 @@ bool ConcurrentART::lookup(ConcurrentNode& node, const ARTKey& key, idx_t depth,
       return false;
     }
 
-    //
     if (next_node.get().GetType() == NType::LEAF) {
       auto& cleaf = CLeaf::Get(*this, next_node.get());
       // NOTE: GetDocIds already released lock
@@ -84,7 +83,6 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     ref.get().Unlock();
     return false;
   }
-  // TODO:
   auto node_type = node.GetType();
 
   if (node_type == NType::LEAF || node_type == NType::LEAF_INLINED) {
@@ -119,6 +117,7 @@ ConcurrentART::ConcurrentART(const std::string& index_path,
     auto pointer = ReadMetadata();
     root = std::make_unique<ConcurrentNode>(pointer.block_id, pointer.offset);
     root->SetSerialized();
+    // TODO: Deserialize
     //    root->Deserialize(*this);
   } catch (std::exception& e) {
     root = std::make_unique<ConcurrentNode>();

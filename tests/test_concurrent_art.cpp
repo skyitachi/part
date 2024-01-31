@@ -7,6 +7,7 @@
 #include <chrono>
 #include <mutex>
 #include <shared_mutex>
+#include <thread>
 
 #include "concurrent_art.h"
 #include "leaf.h"
@@ -28,6 +29,15 @@ TEST(ConcurrentARTTest, Basic) {
   art.Get(k1, results_ids);
   EXPECT_EQ(results_ids.size(), 1);
   EXPECT_EQ(results_ids[0], 1);
+
+
+  art.Put(k1, 2);
+
+  results_ids.clear();
+  art.Get(k1, results_ids);
+  EXPECT_EQ(results_ids.size(), 2);
+  EXPECT_EQ(results_ids[0], 1);
+  EXPECT_EQ(results_ids[0], 2);
 }
 
 TEST(ConcurrentARTTest, ConcurrentTest) {
