@@ -5,11 +5,12 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <mutex>
+#include <shared_mutex>
 
 #include "concurrent_art.h"
 #include "leaf.h"
 #include "prefix.h"
-
 using namespace part;
 
 TEST(ConcurrentARTTest, Basic) {
@@ -61,4 +62,5 @@ TEST(ConcurrentARTTest, ConcurrentTest) {
 TEST(ConcurrentARTTest, Memory) {
   fmt::println("CPrefix size {}, CLeaf size {}", sizeof(CPrefix), sizeof(CLeaf));
   fmt::println("Prefix size {}, Leaf size {}", sizeof(Prefix), sizeof(Leaf));
+  fmt::println("sizeof mutex: {}, shared_mutex: {}", sizeof(std::mutex), sizeof(std::shared_mutex));
 }
