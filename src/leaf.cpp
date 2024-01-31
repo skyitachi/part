@@ -330,4 +330,78 @@ void CLeaf::New(ConcurrentNode &node, const idx_t doc_id) {
   node.SetDocID(doc_id);
 }
 
+void CLeaf::Insert(ConcurrentART &art, ConcurrentNode &node, const idx_t row_id, bool &retry) {
+  assert((node.RLocked()) && !node.IsDeleted());
+  assert(node.IsSet() && !node.IsSerialized());
+  if (node.GetType() == NType::LEAF_INLINED) {
+    node.Upgrade();
+    CLeaf::MoveInlinedToLeaf(art, node);
+    CLeaf::Insert(art, node, row_id, retry);
+    // NOTE: important
+    node.Downgrade();
+    return;
+  }
+
+  auto ref = std::ref(CLeaf::Get(art, node));
+  ref.get().ptr.RLock();
+
+  while(ref.get().ptr.IsSet()) {
+    assert(ref.get().ptr.RLocked());
+    if (ref.get().ptr.IsDeleted()) {
+      node.RLock();
+      ref.get().ptr.RLock();
+      retry = true;
+      return;
+    }
+    if (ref.get().ptr.IsSerialized()) {
+      // TODO: Deserialize
+    }
+    node.RUnlock();
+    node = ref.get().ptr;
+    ref = std::ref(CLeaf::Get(art, node));
+    node.RLock();
+  }
+  assert(node.RLocked());
+  ref.get().Append(art, node, row_id);
+}
+
+void CLeaf::MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node) {
+  assert(node.GetType() == NType::LEAF_INLINED && node.Locked() && !node.IsDeleted());
+  auto doc_id = node.GetDocId();
+  node.Update(ConcurrentNode::GetAllocator(art, NType::LEAF).ConcNew());
+  node.SetType((uint8_t)NType::LEAF);
+
+  auto &cleaf = CLeaf::Get(art, node);
+  cleaf.count = 1;
+  cleaf.row_ids[0] = doc_id;
+  cleaf.ptr.ResetAll();
+}
+
+
+CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode &node, const idx_t doc_id) {
+  auto leaf = std::ref(*this);
+  assert(node.RLocked());
+  node.Upgrade();
+
+  if (leaf.get().count == Node::LEAF_SIZE) {
+    leaf.get().ptr.ResetAll();
+    leaf.get().ptr.Update(ConcurrentNode::GetAllocator(art, NType::LEAF).ConcNew());
+    leaf.get().ptr.SetType((uint8_t)NType::LEAF);
+
+    node.Unlock();
+    node = leaf.get().ptr;
+    node.Lock();
+    leaf = CLeaf::Get(art, leaf.get().ptr);
+    leaf.get().count = 0;
+    leaf.get().ptr.Reset();
+  }
+
+  assert(node.Locked());
+  leaf.get().row_ids[leaf.get().count] = doc_id;
+  leaf.get().count++;
+
+  node.Unlock();
+  return leaf.get();
+}
+
 }  // namespace part

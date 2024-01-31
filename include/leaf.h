@@ -62,6 +62,12 @@ class CLeaf {
                         bool &retry);
 
   static void New(ConcurrentNode &node, const idx_t doc_id);
+
+  static void Insert(ConcurrentART &art, ConcurrentNode &node, const idx_t row_id, bool &retry);
+
+  static void MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node);
+
+  CLeaf &Append(ConcurrentART &art, ConcurrentNode &node, const idx_t doc_id);
 };
 }  // namespace part
 

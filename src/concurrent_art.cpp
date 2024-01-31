@@ -89,7 +89,7 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
 
   if (node_type == NType::LEAF || node_type == NType::LEAF_INLINED) {
     // insert into leaf
-    return false;
+    return insertToLeaf(node, doc_id);
   }
   return false;
 }
@@ -138,6 +138,12 @@ BlockPointer ConcurrentART::ReadMetadata() const {
 }
 
 ConcurrentART::~ConcurrentART() { root->Reset(); }
-bool ConcurrentART::insertToLeaf(ConcurrentNode& leaf, const idx_t doc_id) { return false; }
+
+bool ConcurrentART::insertToLeaf(ConcurrentNode& leaf, const idx_t doc_id) {
+  assert(leaf.RLocked());
+  bool retry = false;
+  CLeaf::Insert(*this, leaf, doc_id, retry);
+  return retry;
+}
 
 }  // namespace part

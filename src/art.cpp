@@ -113,12 +113,9 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
   if (node_type != NType::PREFIX) {
     assert(depth < key.len);
 
-    // TODO: assert node is RLOCKed
     auto child = node.GetChild(*this, key[depth]);
     if (child) {
-      // TODO: child.RLock
       insert(*child.value(), key, depth + 1, doc_id);
-      // need to replace child for node
       return;
     }
 
@@ -126,7 +123,6 @@ void ART::insert(Node &node, const ARTKey &key, idx_t depth, const idx_t &doc_id
 
     auto ref_node = std::ref(leaf_node);
     if (depth + 1 < key.len) {
-      // TODO 按照prefix::new的逻辑
       Prefix::New(*this, ref_node, key, depth + 1, key.len - depth - 1);
     }
 
