@@ -41,6 +41,28 @@ TEST(ConcurrentARTTest, Basic) {
   EXPECT_EQ(results_ids[1], 2);
 }
 
+TEST(ConcurrentARTTest, LeafExpand) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
+
+  std::vector<idx_t> result_ids;
+  std::vector<idx_t> doc_ids = {1, 2, 3, 4, 5};
+  for(int i = 0; i < doc_ids.size(); i++) {
+    result_ids.clear();
+    art.Put(k1, doc_ids[i]);
+    art.Get(k1, result_ids);
+    EXPECT_EQ(result_ids.size(), i + 1);
+    for (int k = 0; k < result_ids.size(); k++) {
+      EXPECT_EQ(result_ids[k], doc_ids[k]);
+    }
+  }
+
+}
+
 TEST(ConcurrentARTTest, ConcurrentTest) {
   ConcurrentART art;
 

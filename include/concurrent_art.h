@@ -43,7 +43,7 @@ class ConcurrentART {
   // if need retry
   bool insert(ConcurrentNode &node, const ARTKey &key, idx_t depth, const idx_t &doc_id);
 
-  bool insertToLeaf(ConcurrentNode &leaf, const idx_t doc_id);
+  bool insertToLeaf(ConcurrentNode * leaf, const idx_t doc_id);
 
   int metadata_fd_ = -1;
   int index_fd_ = -1;

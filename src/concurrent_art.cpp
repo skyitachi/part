@@ -92,7 +92,7 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
 
   if (node_type == NType::LEAF || node_type == NType::LEAF_INLINED) {
     // insert into leaf
-    return insertToLeaf(node, doc_id);
+    return insertToLeaf(&node, doc_id);
   }
 
   if (node_type != NType::PREFIX) {
@@ -163,11 +163,13 @@ BlockPointer ConcurrentART::ReadMetadata() const {
 
 ConcurrentART::~ConcurrentART() { root->Reset(); }
 
-bool ConcurrentART::insertToLeaf(ConcurrentNode& leaf, const idx_t doc_id) {
-  assert(leaf.RLocked());
+bool ConcurrentART::insertToLeaf(ConcurrentNode *leaf, const idx_t doc_id) {
+  assert(leaf->RLocked());
   bool retry = false;
   // make sure leaf unlocked after insert
+  leaf->Upgrade();
   CLeaf::Insert(*this, leaf, doc_id, retry);
+  leaf->Downgrade();
   return retry;
 }
 

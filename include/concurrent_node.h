@@ -34,11 +34,9 @@ class ConcurrentNode : public Node {
   }
 
   ConcurrentNode &operator=(const ConcurrentNode &other) {
-    fmt::println("in the assign operator");
-    ::fflush(stdout);
-
     SetPtr(other.GetBufferId(), other.GetOffset());
-    lock_ = 0;
+    // NOTE: is this ok???
+    lock_ = other.lock_.load();
     return *this;
   }
 
@@ -66,6 +64,7 @@ class ConcurrentNode : public Node {
   }
 
  private:
+  // NOTE: 如何传递锁状态是个问题
   std::atomic<uint64_t> lock_ = {0};
 };
 
