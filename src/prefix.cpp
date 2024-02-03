@@ -345,13 +345,14 @@ idx_t CPrefix::Traverse(ConcurrentART &cart, reference<ConcurrentNode> &prefix_n
       // NOTE: RUnlock asap
       prefix_node.get().RUnlock();
       // important
-      cprefix.ptr.RLock();
-      if (cprefix.ptr.IsDeleted()) {
+      assert(cprefix.ptr);
+      cprefix.ptr->RLock();
+      if (cprefix.ptr->IsDeleted()) {
         // NOTE: this node deleted, need a retry
         retry = true;
         return INVALID_INDEX;
       }
-      prefix_node = std::ref(cprefix.ptr);
+      prefix_node = std::ref(*cprefix.ptr);
       P_ASSERT(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
     }
     // NOTE: node ptr is changed
@@ -378,11 +379,13 @@ void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ART
     cprefix.data[Node::PREFIX_SIZE] = (uint8_t)this_count;
     std::memcpy(cprefix.data, key.data + depth + copy_count, this_count);
 
+    cprefix.ptr = std::make_unique<ConcurrentNode>();
+
     node.get().Unlock();
     // NOTE: is this necessary, important
-    cprefix.ptr.ResetAll();
-    assert(!cprefix.ptr.IsSet());
-    node = std::ref(cprefix.ptr);
+    cprefix.ptr->ResetAll();
+    assert(!cprefix.ptr->IsSet());
+    node = std::ref(*cprefix.ptr);
     // NOTE: keep node.Locked invariants
     node.get().Lock();
     copy_count += this_count;

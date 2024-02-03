@@ -51,7 +51,7 @@ TEST(ConcurrentARTTest, LeafExpand) {
 
   std::vector<idx_t> result_ids;
   std::vector<idx_t> doc_ids = {1, 2, 3, 4, 5};
-  for(int i = 0; i < doc_ids.size(); i++) {
+  for (int i = 0; i < doc_ids.size(); i++) {
     result_ids.clear();
     art.Put(k1, doc_ids[i]);
     art.Get(k1, result_ids);
@@ -60,7 +60,6 @@ TEST(ConcurrentARTTest, LeafExpand) {
       EXPECT_EQ(result_ids[k], doc_ids[k]);
     }
   }
-
 }
 
 TEST(ConcurrentARTTest, ConcurrentTest) {

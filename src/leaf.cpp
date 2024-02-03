@@ -309,9 +309,10 @@ bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_
 
     // NOTE: release lock asap
     last_leaf_ref.get().RUnlock();
-    leaf.ptr.RLock();
-    assert(!leaf.ptr.IsSerialized());
-    last_leaf_ref = leaf.ptr;
+    assert(leaf.ptr);
+    leaf.ptr->RLock();
+    assert(!leaf.ptr->IsSerialized());
+    last_leaf_ref = *leaf.ptr;
   }
   last_leaf_ref.get().RUnlock();
   return true;
@@ -323,14 +324,16 @@ CLeaf &CLeaf::Get(ConcurrentART &art, const ConcurrentNode &ptr) {
   return *ConcurrentNode::GetAllocator(art, NType::LEAF).Get<CLeaf>(ptr);
 }
 
+// NOTE: default is inline
 void CLeaf::New(ConcurrentNode &node, const idx_t doc_id) {
   assert(node.Locked());
   node.Reset();
   node.SetType((uint8_t)NType::LEAF_INLINED);
   node.SetDocID(doc_id);
+  //  node.ptr = std::make_unique<ConcurrentNode>();
 }
 
-void CLeaf::Insert(ConcurrentART &art, ConcurrentNode* &node, const idx_t row_id, bool &retry) {
+void CLeaf::Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id, bool &retry) {
   assert((node->Locked()) && !node->IsDeleted());
   assert(node->IsSet() && !node->IsSerialized());
   if (node->GetType() == NType::LEAF_INLINED) {
@@ -340,23 +343,25 @@ void CLeaf::Insert(ConcurrentART &art, ConcurrentNode* &node, const idx_t row_id
   }
 
   auto ref = std::ref(CLeaf::Get(art, *node));
-  ref.get().ptr.RLock();
+  assert(ref.get().ptr);
+  ref.get().ptr->RLock();
 
   bool need_upgrade = false;
-  while (ref.get().ptr.IsSet()) {
-    assert(ref.get().ptr.RLocked());
-    if (ref.get().ptr.IsDeleted()) {
+  while (ref.get().ptr->IsSet()) {
+    assert(ref.get().ptr->RLocked());
+    if (ref.get().ptr->IsDeleted()) {
       node->RUnlock();
-      ref.get().ptr.RLock();
+      ref.get().ptr->RLock();
       retry = true;
       return;
     }
-    if (ref.get().ptr.IsSerialized()) {
+    if (ref.get().ptr->IsSerialized()) {
       // TODO: Deserialize
     }
     node->RUnlock();
     // NOTE: need keep ref.get().ptr and node all lock
-    node = &ref.get().ptr;
+    // NOTE: insert params need to check
+    node = ref.get().ptr.get();
     ref = std::ref(CLeaf::Get(art, *node));
     node->RLock();
     need_upgrade = true;
@@ -377,28 +382,31 @@ void CLeaf::MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node) {
   auto &cleaf = CLeaf::Get(art, node);
   cleaf.count = 1;
   cleaf.row_ids[0] = doc_id;
-  cleaf.ptr.ResetAll();
+  // NOTE: important, initialize the ptr here
+  cleaf.ptr = std::make_unique<ConcurrentNode>();
+  cleaf.ptr->ResetAll();
 }
 
-CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode * &node, const idx_t doc_id) {
+CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, const idx_t doc_id) {
   // NOTE: node points to leaf
   auto leaf = std::ref(*this);
   assert(node->Locked());
+  assert(leaf.get().ptr);
 
   if (leaf.get().count == Node::LEAF_SIZE) {
-    leaf.get().ptr.ResetAll();
-    leaf.get().ptr.Update(ConcurrentNode::GetAllocator(art, NType::LEAF).ConcNew());
-    leaf.get().ptr.SetType((uint8_t)NType::LEAF);
+    leaf.get().ptr->ResetAll();
+    leaf.get().ptr->Update(ConcurrentNode::GetAllocator(art, NType::LEAF).ConcNew());
+    leaf.get().ptr->SetType((uint8_t)NType::LEAF);
 
     node->Unlock();
     // ConcurrentNode is non-trivial, when use this get method will lose lock state
     // it's a design problem
-    leaf = CLeaf::Get(art, leaf.get().ptr);
-    leaf.get().ptr.ResetAll();
-    leaf.get().ptr.Lock();
+    leaf = CLeaf::Get(art, *leaf.get().ptr);
+    leaf.get().ptr->ResetAll();
+    leaf.get().ptr->Lock();
     leaf.get().count = 0;
-    node = &leaf.get().ptr;
-    // 如何传递指针是个问题
+    // TODO: check if node parameter is right
+    node = leaf.get().ptr.get();
   }
 
   assert(node->Locked());

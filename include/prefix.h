@@ -5,6 +5,7 @@
 #ifndef PART_PREFIX_H
 #define PART_PREFIX_H
 #include <cassert>
+#include <memory>
 
 #include "art.h"
 #include "concurrent_art.h"
@@ -68,7 +69,9 @@ class CPrefix {
  public:
   uint8_t data[Node::PREFIX_SIZE + 1];
 
-  ConcurrentNode ptr;
+  //  ConcurrentNode ptr;
+
+  std::unique_ptr<ConcurrentNode> ptr;
 
   static void Free(ConcurrentART &art, ConcurrentNode &node);
 

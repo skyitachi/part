@@ -412,3 +412,24 @@ TEST(ARTTest, TypeTraitsTest) {
 
   fmt::println("move assign: {}", ret);
 }
+
+struct IndexPointer {
+  uint64_t data;
+  std::atomic<int64_t> lock;
+};
+
+struct CNode {
+  IndexPointer* ptr;
+};
+
+struct CNode2 {
+  std::unique_ptr<IndexPointer> ptr;
+};
+
+TEST(ARTTest, PointerTest) {
+  fmt::println("sizeof(uintptr_t) = {}, sizeof(IndexPointer) = {} ", sizeof(uintptr_t), sizeof(IndexPointer));
+  int64_t a = 1;
+  //  uintptr_t ptr = &a;
+  fmt::println("sizeof(CNode) = {}", sizeof(CNode));
+  fmt::println("sizeof(CNode2) = {}", sizeof(CNode2));
+}

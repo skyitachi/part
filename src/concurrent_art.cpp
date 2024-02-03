@@ -163,7 +163,7 @@ BlockPointer ConcurrentART::ReadMetadata() const {
 
 ConcurrentART::~ConcurrentART() { root->Reset(); }
 
-bool ConcurrentART::insertToLeaf(ConcurrentNode *leaf, const idx_t doc_id) {
+bool ConcurrentART::insertToLeaf(ConcurrentNode* leaf, const idx_t doc_id) {
   assert(leaf->RLocked());
   bool retry = false;
   // make sure leaf unlocked after insert
