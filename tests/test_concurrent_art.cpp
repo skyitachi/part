@@ -96,3 +96,17 @@ TEST(ConcurrentARTTest, Memory) {
   fmt::println("Prefix size {}, Leaf size {}", sizeof(Prefix), sizeof(Leaf));
   fmt::println("sizeof mutex: {}, shared_mutex: {}", sizeof(std::mutex), sizeof(std::shared_mutex));
 }
+
+TEST(ConcurrentARTTest, PointerBasedTest) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
+
+  fmt::println("before first put success");
+  art.Put(k1, 1);
+  fmt::println("first put success");
+
+}

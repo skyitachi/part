@@ -415,7 +415,7 @@ TEST(ARTTest, TypeTraitsTest) {
 
 struct IndexPointer {
   uint64_t data;
-  std::atomic<int64_t> lock;
+  std::atomic<int64_t> lock = {0};
 };
 
 struct CNode {
@@ -427,9 +427,18 @@ struct CNode2 {
 };
 
 TEST(ARTTest, PointerTest) {
-  fmt::println("sizeof(uintptr_t) = {}, sizeof(IndexPointer) = {} ", sizeof(uintptr_t), sizeof(IndexPointer));
+  fmt::println("sizeof(uintptr_t) = {}, sizeof(IndexPointer) = {} ",
+               sizeof(uintptr_t), sizeof(IndexPointer));
   int64_t a = 1;
   //  uintptr_t ptr = &a;
   fmt::println("sizeof(CNode) = {}", sizeof(CNode));
   fmt::println("sizeof(CNode2) = {}", sizeof(CNode2));
+
+  auto iptr = std::make_unique<IndexPointer>();
+  iptr->data = 10;
+
+  iptr->lock.store(10);
+  auto v = iptr->lock.load();
+
+  fmt::println("value = {}", v);
 }
