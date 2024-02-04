@@ -379,7 +379,7 @@ void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ART
     cprefix.data[Node::PREFIX_SIZE] = (uint8_t)this_count;
     std::memcpy(cprefix.data, key.data + depth + copy_count, this_count);
 
-    cprefix.ptr = std::make_unique<ConcurrentNode>();
+    cprefix.ptr = new ConcurrentNode();
 
     node.get().Unlock();
     // NOTE: is this necessary, important
@@ -391,6 +391,18 @@ void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ART
     copy_count += this_count;
     count -= this_count;
   }
+}
+
+void CPrefix::Free(ConcurrentART &art, ConcurrentNode &node) {
+  //  ConcurrentNode current_node = node;
+  //  ConcurrentNode next_node;
+  //  while (current_node.IsSet() && current_node.GetType() == NType::PREFIX) {
+  //    next_node = CPrefix::Get(art, current_node).ptr;
+  //    Node::GetAllocator(art, NType::PREFIX).Free(current_node);
+  //    current_node = next_node;
+  //  }
+  //
+  //  node.ResetAll();
 }
 
 }  // namespace part

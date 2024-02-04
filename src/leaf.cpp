@@ -361,7 +361,7 @@ void CLeaf::Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id
     node->RUnlock();
     // NOTE: need keep ref.get().ptr and node all lock
     // NOTE: insert params need to check
-    node = ref.get().ptr.get();
+    node = ref.get().ptr;
     ref = std::ref(CLeaf::Get(art, *node));
     node->RLock();
     need_upgrade = true;
@@ -383,7 +383,7 @@ void CLeaf::MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node) {
   cleaf.count = 1;
   cleaf.row_ids[0] = doc_id;
   // NOTE: important, initialize the ptr here
-  cleaf.ptr = std::make_unique<ConcurrentNode>();
+  cleaf.ptr = new ConcurrentNode();
   cleaf.ptr->ResetAll();
 }
 
@@ -406,7 +406,7 @@ CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, const idx_t doc_
     leaf.get().ptr->Lock();
     leaf.get().count = 0;
     // TODO: check if node parameter is right
-    node = leaf.get().ptr.get();
+    node = leaf.get().ptr;
   }
 
   assert(node->Locked());

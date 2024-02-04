@@ -33,13 +33,13 @@ TEST(ConcurrentARTTest, Basic) {
   EXPECT_EQ(results_ids.size(), 1);
   EXPECT_EQ(results_ids[0], 1);
 
-//  art.Put(k1, 2);
-//
-//  results_ids.clear();
-//  art.Get(k1, results_ids);
-//  EXPECT_EQ(results_ids.size(), 2);
-//  EXPECT_EQ(results_ids[0], 1);
-//  EXPECT_EQ(results_ids[1], 2);
+  //  art.Put(k1, 2);
+  //
+  //  results_ids.clear();
+  //  art.Get(k1, results_ids);
+  //  EXPECT_EQ(results_ids.size(), 2);
+  //  EXPECT_EQ(results_ids[0], 1);
+  //  EXPECT_EQ(results_ids[1], 2);
 }
 
 TEST(ConcurrentARTTest, LeafExpand) {
@@ -109,7 +109,6 @@ TEST(ConcurrentARTTest, PointerBasedTest) {
   fmt::println("before first put success");
   art.Put(k1, 1);
   fmt::println("first put success");
-
 }
 
 TEST(ConcurrentARTTest, ConcurrentNode) {
@@ -117,22 +116,21 @@ TEST(ConcurrentARTTest, ConcurrentNode) {
   ptr->Lock();
   ptr->Unlock();
 
-
-//  char *prefix_addr = (char *)malloc(sizeof(CPrefix));
-//  auto *cprefix = new (prefix_addr)CPrefix();
-  CPrefix *cprefix = new CPrefix;
-  cprefix->ptr = std::make_unique<ConcurrentNode>();
+  //  char *prefix_addr = (char *)malloc(sizeof(CPrefix));
+  //  auto *cprefix = new (prefix_addr)CPrefix();
+  CPrefix* cprefix = new CPrefix;
+  cprefix->ptr = new ConcurrentNode();
   cprefix->ptr->Lock();
   cprefix->ptr->Unlock();
 
-//  delete prefix_addr;
-//  free(prefix_addr);
+  //  delete prefix_addr;
+  //  free(prefix_addr);
   delete cprefix;
 
   fmt::println("CPrefix is trivial = {}", std::is_trivial<CPrefix>::value);
 
-  CPrefix *cprefix2 = (CPrefix *)malloc(sizeof(CPrefix));
-  cprefix2->ptr = std::make_unique<ConcurrentNode>();
+  CPrefix* cprefix2 = (CPrefix*)malloc(sizeof(CPrefix));
+  cprefix2->ptr = new ConcurrentNode();
   cprefix2->ptr->Lock();
   cprefix2->ptr->Unlock();
 }

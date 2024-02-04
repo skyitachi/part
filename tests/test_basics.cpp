@@ -425,12 +425,11 @@ struct CNode {
 
 struct CNode2 {
   char data[10];
-  IndexPointer *ptr;
+  IndexPointer* ptr;
 };
 
 TEST(ARTTest, PointerTest) {
-  fmt::println("sizeof(uintptr_t) = {}, sizeof(IndexPointer) = {} ",
-               sizeof(uintptr_t), sizeof(IndexPointer));
+  fmt::println("sizeof(uintptr_t) = {}, sizeof(IndexPointer) = {} ", sizeof(uintptr_t), sizeof(IndexPointer));
   int64_t a = 1;
   //  uintptr_t ptr = &a;
   fmt::println("sizeof(CNode) = {}", sizeof(CNode));
@@ -444,19 +443,23 @@ TEST(ARTTest, PointerTest) {
 
   fmt::println("value = {}", v);
 
-  char *addr = (char *)malloc(sizeof(CNode));
-  auto cnode = new (addr)CNode();
+  char* addr = (char*)malloc(sizeof(CNode));
+  auto cnode = new (addr) CNode();
 
   cnode->ptr = std::make_unique<IndexPointer>();
   cnode->ptr->data = 100;
   cnode->ptr->lock.store(10);
 
   fmt::println("lock value: {}", cnode->ptr->lock.load());
+  // NOTE: manual manage unique_ptr memory, placement new memory cannot use smart pointer directly
+  cnode->ptr.reset(nullptr);
+
+  free(addr);
 
   fmt::println("CNode is trivial: {}", std::is_trivial<CNode>::value);
   fmt::println("CNode2 is trivial: {}", std::is_trivial<CNode2>::value);
 
-  CNode2 *cnode2 = (CNode2 *)malloc(sizeof(CNode2));
+  CNode2* cnode2 = (CNode2*)malloc(sizeof(CNode2));
   cnode2->ptr = new IndexPointer();
 
   delete cnode2->ptr;

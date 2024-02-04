@@ -69,9 +69,8 @@ class CPrefix {
  public:
   uint8_t data[Node::PREFIX_SIZE + 1];
 
-  //  ConcurrentNode ptr;
-
-  std::unique_ptr<ConcurrentNode> ptr;
+  //  ConcurrentNode ptr or maybe called next more clearly
+  ConcurrentNode *ptr;
 
   static void Free(ConcurrentART &art, ConcurrentNode &node);
 

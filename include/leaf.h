@@ -55,7 +55,7 @@ class CLeaf {
  public:
   uint8_t count;
   idx_t row_ids[Node::LEAF_SIZE];
-  std::unique_ptr<ConcurrentNode> ptr;
+  ConcurrentNode *ptr;
 
   static CLeaf &Get(ConcurrentART &art, const ConcurrentNode &ptr);
   static bool GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_t> &result_ids, idx_t max_count,
