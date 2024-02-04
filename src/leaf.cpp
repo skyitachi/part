@@ -342,30 +342,42 @@ void CLeaf::Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id
     return;
   }
 
+  // node points to ref
   auto ref = std::ref(CLeaf::Get(art, *node));
   assert(ref.get().ptr);
-  ref.get().ptr->RLock();
+  auto next_node = ref.get().ptr;
+  next_node->RLock();
 
   bool need_upgrade = false;
-  while (ref.get().ptr->IsSet()) {
-    assert(ref.get().ptr->RLocked());
-    if (ref.get().ptr->IsDeleted()) {
+  bool holds_write_lock = true;
+  while (next_node->IsSet()) {
+    assert(next_node->RLocked());
+    if (next_node->IsDeleted()) {
       node->RUnlock();
-      ref.get().ptr->RLock();
+      next_node->RUnlock();
       retry = true;
       return;
     }
-    if (ref.get().ptr->IsSerialized()) {
+    if (next_node->IsSerialized()) {
       // TODO: Deserialize
     }
-    node->RUnlock();
+    if (holds_write_lock) {
+      node->Unlock();
+      holds_write_lock = false;
+    } else {
+      node->RUnlock();
+    }
     // NOTE: need keep ref.get().ptr and node all lock
     // NOTE: insert params need to check
-    node = ref.get().ptr;
+    node = next_node;
     ref = std::ref(CLeaf::Get(art, *node));
-    node->RLock();
+    next_node = ref.get().ptr;
+    next_node->RLock();
     need_upgrade = true;
   }
+  assert(next_node->RLocked());
+  next_node->RUnlock();
+
   if (need_upgrade) {
     node->Upgrade();
   }
@@ -383,7 +395,7 @@ void CLeaf::MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node) {
   cleaf.count = 1;
   cleaf.row_ids[0] = doc_id;
   // NOTE: important, initialize the ptr here
-  cleaf.ptr = new ConcurrentNode();
+  cleaf.ptr = art.AllocateNode();
   cleaf.ptr->ResetAll();
 }
 
@@ -401,12 +413,13 @@ CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, const idx_t doc_
     node->Unlock();
     // ConcurrentNode is non-trivial, when use this get method will lose lock state
     // it's a design problem
-    leaf = CLeaf::Get(art, *leaf.get().ptr);
-    leaf.get().ptr->ResetAll();
-    leaf.get().ptr->Lock();
-    leaf.get().count = 0;
-    // TODO: check if node parameter is right
     node = leaf.get().ptr;
+    node->Lock();
+    leaf = CLeaf::Get(art, *node);
+    // NOTE: important initialize
+    leaf.get().ptr = art.AllocateNode();
+    leaf.get().ptr->ResetAll();
+    leaf.get().count = 0;
   }
 
   assert(node->Locked());

@@ -161,7 +161,12 @@ BlockPointer ConcurrentART::ReadMetadata() const {
   return root_pointer;
 }
 
-ConcurrentART::~ConcurrentART() { root->Reset(); }
+ConcurrentART::~ConcurrentART() {
+  root->Reset();
+  for (auto* node_ptr : node_allocators_) {
+    delete node_ptr;
+  }
+}
 
 bool ConcurrentART::insertToLeaf(ConcurrentNode* leaf, const idx_t doc_id) {
   assert(leaf->RLocked());
@@ -171,6 +176,11 @@ bool ConcurrentART::insertToLeaf(ConcurrentNode* leaf, const idx_t doc_id) {
   CLeaf::Insert(*this, leaf, doc_id, retry);
   leaf->Downgrade();
   return retry;
+}
+
+ConcurrentNode* ConcurrentART::AllocateNode() {
+  node_allocators_.push_back(new ConcurrentNode());
+  return node_allocators_.back();
 }
 
 }  // namespace part

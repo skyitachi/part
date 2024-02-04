@@ -23,9 +23,7 @@ TEST(ConcurrentARTTest, Basic) {
 
   ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
 
-  fmt::println("before first put success");
   art.Put(k1, 1);
-  fmt::println("first put success");
 
   std::vector<idx_t> results_ids;
 
@@ -33,13 +31,13 @@ TEST(ConcurrentARTTest, Basic) {
   EXPECT_EQ(results_ids.size(), 1);
   EXPECT_EQ(results_ids[0], 1);
 
-  //  art.Put(k1, 2);
-  //
-  //  results_ids.clear();
-  //  art.Get(k1, results_ids);
-  //  EXPECT_EQ(results_ids.size(), 2);
-  //  EXPECT_EQ(results_ids[0], 1);
-  //  EXPECT_EQ(results_ids[1], 2);
+  art.Put(k1, 2);
+
+  results_ids.clear();
+  art.Get(k1, results_ids);
+  EXPECT_EQ(results_ids.size(), 2);
+  EXPECT_EQ(results_ids[0], 1);
+  EXPECT_EQ(results_ids[1], 2);
 }
 
 TEST(ConcurrentARTTest, LeafExpand) {
@@ -51,7 +49,7 @@ TEST(ConcurrentARTTest, LeafExpand) {
   ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
 
   std::vector<idx_t> result_ids;
-  std::vector<idx_t> doc_ids = {1, 2, 3, 4, 5};
+  std::vector<idx_t> doc_ids = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
   for (int i = 0; i < doc_ids.size(); i++) {
     result_ids.clear();
     art.Put(k1, doc_ids[i]);

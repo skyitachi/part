@@ -360,6 +360,7 @@ idx_t CPrefix::Traverse(ConcurrentART &cart, reference<ConcurrentNode> &prefix_n
   return INVALID_INDEX;
 }
 
+// NOTE: 只要保证write 和 read 不冲突就行
 void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ARTKey &key, const uint32_t depth,
                   uint32_t count) {
   if (count == 0) {
@@ -379,7 +380,7 @@ void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ART
     cprefix.data[Node::PREFIX_SIZE] = (uint8_t)this_count;
     std::memcpy(cprefix.data, key.data + depth + copy_count, this_count);
 
-    cprefix.ptr = new ConcurrentNode();
+    cprefix.ptr = art.AllocateNode();
 
     node.get().Unlock();
     // NOTE: is this necessary, important
@@ -394,15 +395,15 @@ void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ART
 }
 
 void CPrefix::Free(ConcurrentART &art, ConcurrentNode &node) {
-  //  ConcurrentNode current_node = node;
-  //  ConcurrentNode next_node;
-  //  while (current_node.IsSet() && current_node.GetType() == NType::PREFIX) {
-  //    next_node = CPrefix::Get(art, current_node).ptr;
-  //    Node::GetAllocator(art, NType::PREFIX).Free(current_node);
-  //    current_node = next_node;
-  //  }
-  //
-  //  node.ResetAll();
+  ConcurrentNode *current_node = &node;
+  ConcurrentNode *next_node;
+  while (current_node->IsSet() && current_node->GetType() == NType::PREFIX) {
+    next_node = CPrefix::Get(art, *current_node).ptr;
+    ConcurrentNode::GetAllocator(art, NType::PREFIX).Free(*current_node);
+    current_node = next_node;
+  }
+
+  node.ResetAll();
 }
 
 }  // namespace part

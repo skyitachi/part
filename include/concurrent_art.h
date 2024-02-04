@@ -5,6 +5,7 @@
 #ifndef PART_CONCURRENT_ART_H
 #define PART_CONCURRENT_ART_H
 #include <fstream>
+#include <list>
 #include <memory>
 #include <vector>
 
@@ -38,6 +39,8 @@ class ConcurrentART {
 
   BlockPointer ReadMetadata() const;
 
+  ConcurrentNode *AllocateNode();
+
  private:
   bool lookup(ConcurrentNode &node, const ARTKey &key, idx_t depth, std::vector<idx_t> &result_ids);
   // if need retry
@@ -48,6 +51,8 @@ class ConcurrentART {
   int metadata_fd_ = -1;
   int index_fd_ = -1;
   std::string index_path_;
+
+  std::list<ConcurrentNode *> node_allocators_;
 };
 }  // namespace part
 #endif  // PART_CONCURRENT_ART_H
