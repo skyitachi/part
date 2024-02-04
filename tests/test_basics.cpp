@@ -419,11 +419,13 @@ struct IndexPointer {
 };
 
 struct CNode {
-  IndexPointer* ptr;
+  char data[10];
+  std::unique_ptr<IndexPointer> ptr;
 };
 
 struct CNode2 {
-  std::unique_ptr<IndexPointer> ptr;
+  char data[10];
+  IndexPointer *ptr;
 };
 
 TEST(ARTTest, PointerTest) {
@@ -441,4 +443,22 @@ TEST(ARTTest, PointerTest) {
   auto v = iptr->lock.load();
 
   fmt::println("value = {}", v);
+
+  char *addr = (char *)malloc(sizeof(CNode));
+  auto cnode = new (addr)CNode();
+
+  cnode->ptr = std::make_unique<IndexPointer>();
+  cnode->ptr->data = 100;
+  cnode->ptr->lock.store(10);
+
+  fmt::println("lock value: {}", cnode->ptr->lock.load());
+
+  fmt::println("CNode is trivial: {}", std::is_trivial<CNode>::value);
+  fmt::println("CNode2 is trivial: {}", std::is_trivial<CNode2>::value);
+
+  CNode2 *cnode2 = (CNode2 *)malloc(sizeof(CNode2));
+  cnode2->ptr = new IndexPointer();
+
+  delete cnode2->ptr;
+  free(cnode2);
 }
