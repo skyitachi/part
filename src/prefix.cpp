@@ -406,4 +406,101 @@ void CPrefix::Free(ConcurrentART &art, ConcurrentNode &node) {
   node.ResetAll();
 }
 
+// TODO: 考虑retry
+bool CPrefix::Split(ConcurrentART &art, reference<ConcurrentNode> &prefix_node, ConcurrentNode *&child_node,
+                    idx_t position) {
+  assert(prefix_node.get().RLocked());
+  assert(prefix_node.get().IsSet() && !prefix_node.get().IsSerialized());
+
+  auto &cprefix = CPrefix::Get(art, prefix_node);
+  if (position + 1 == Node::PREFIX_SIZE) {
+    prefix_node.get().Upgrade();
+    cprefix.data[Node::PREFIX_SIZE]--;
+    prefix_node.get().Unlock();
+    assert(cprefix.ptr);
+    cprefix.ptr->RLock();
+    prefix_node = *cprefix.ptr;
+    child_node = cprefix.ptr;
+    return false;
+  }
+
+  if (position + 1 < cprefix.data[Node::PREFIX_SIZE]) {
+    auto child_prefix = std::ref(CPrefix::New(art, *child_node));
+    for (idx_t i = position + 1; i < cprefix.data[Node::PREFIX_SIZE]; i++) {
+      // child prefix is new node
+      child_prefix = child_prefix.get().NewPrefixAppend(art, cprefix.data[i]);
+    }
+
+    // not release here
+    //    prefix_node.get().RUnlock();
+    cprefix.ptr->RLock();
+    if (cprefix.ptr->IsDeleted()) {
+      cprefix.ptr->RUnlock();
+      return true;
+    }
+    assert(cprefix.ptr && cprefix.ptr->IsSet());
+    if (cprefix.ptr->IsSerialized()) {
+      // TODO: deseralize
+    }
+
+    //
+    if (cprefix.ptr->GetType() == NType::PREFIX) {
+      // TODO:
+    } else {
+      child_prefix.get().ptr = cprefix.ptr;
+    }
+    cprefix.ptr->RUnlock();
+  }
+
+  assert(prefix_node.get().RLocked());
+  if (position + 1 == cprefix.data[Node::PREFIX_SIZE]) {
+    child_node = cprefix.ptr;
+  }
+
+  prefix_node.get().Upgrade();
+  cprefix.data[Node::PREFIX_SIZE] = position;
+
+  if (position == 0) {
+    // TODO: free nodes, important
+  }
+
+  prefix_node.get().Unlock();
+  // keep prefix_node hold read lock???
+  cprefix.ptr->RLock();
+  prefix_node = *cprefix.ptr;
+  return false;
+}
+
+CPrefix &CPrefix::New(ConcurrentART &art, ConcurrentNode &node) {
+  node = ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew();
+  node.SetType((uint8_t)NType::PREFIX);
+  auto &prefix = CPrefix::Get(art, node);
+  prefix.data[Node::PREFIX_SIZE] = 0;
+  // NOTE: important
+  prefix.ptr = art.AllocateNode();
+  return prefix;
+}
+
+CPrefix &CPrefix::NewPrefixAppend(ConcurrentART &art, const uint8_t byte) {
+  auto prefix = std::ref(*this);
+
+  if (prefix.get().data[Node::PREFIX_SIZE] == Node::PREFIX_SIZE) {
+    assert(prefix.get().ptr);
+    prefix = CPrefix::NewPrefixNew(art, prefix.get().ptr);
+  }
+  prefix.get().data[prefix.get().data[Node::PREFIX_SIZE]] = byte;
+  prefix.get().data[Node::PREFIX_SIZE]++;
+  return prefix.get();
+}
+
+CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *node) {
+  node->Update(ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew());
+  node->SetType((uint8_t)NType::PREFIX);
+  auto &cprefix = CPrefix::Get(art, *node);
+  cprefix.data[Node::PREFIX_SIZE] = 0;
+  // NOTE: important init
+  cprefix.ptr = art.AllocateNode();
+  return cprefix;
+}
+
 }  // namespace part

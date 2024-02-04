@@ -114,6 +114,11 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     return insert(next_node.get(), key, depth, doc_id);
   }
 
+  ConcurrentNode* remaining_prefix_node;
+  auto prefix_byte = CPrefix::GetByte(*this, next_node, mismatch_position);
+
+  CPrefix::Split(*this, next_node, remaining_prefix_node, mismatch_position);
+
   return false;
 }
 
