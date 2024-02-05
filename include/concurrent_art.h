@@ -41,6 +41,15 @@ class ConcurrentART {
 
   ConcurrentNode *AllocateNode();
 
+  void Draw(const std::string &outf) {
+    std::ofstream out(outf);
+    out << "digraph G {" << std::endl;
+    idx_t id = 0;
+    root->ToGraph(*this, out, id);
+    out << "}" << std::endl;
+    out.close();
+  }
+
  private:
   bool lookup(ConcurrentNode &node, const ARTKey &key, idx_t depth, std::vector<idx_t> &result_ids);
   // if need retry

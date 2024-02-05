@@ -430,4 +430,25 @@ CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, const idx_t doc_
   return leaf.get();
 }
 
+void CLeaf::Free(ConcurrentART &art, ConcurrentNode *node) {
+  ConcurrentNode *current_node = node;
+  ConcurrentNode *next_node;
+
+  while (current_node->IsSet() && !current_node->IsSerialized()) {
+    assert(current_node->Locked());
+    next_node = CLeaf::Get(art, *current_node).ptr;
+    next_node->Lock();
+    // add deleted flag and reset all lock states
+    ConcurrentNode::GetAllocator(art, NType::LEAF).Free(*current_node);
+    // ResetAll and SetDeleted order matters
+    current_node->ResetAll();
+    current_node->SetDeleted();
+
+    current_node = next_node;
+  }
+
+  node->ResetAll();
+  node->SetDeleted();
+}
+
 }  // namespace part

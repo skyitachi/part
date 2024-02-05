@@ -156,4 +156,23 @@ void FixedSizeAllocator::Free(const Node ptr) {
   buffers_with_free_space.insert(buffer_id);
 }
 
+void FixedSizeAllocator::ConcFree(const ConcurrentNode *ptr) {
+  assert(ptr->Locked());
+  auto buffer_id = ptr->GetBufferId();
+  auto offset = ptr->GetOffset();
+
+  assert(buffer_id < buffers.size());
+  auto &buffer = buffers[buffer_id];
+
+  auto bitmask_ptr = reinterpret_cast<validity_t *>(buffer.ptr);
+  ValidityMask mask(bitmask_ptr);
+
+  assert(!mask.RowIsValid(offset));
+  mask.SetValid(offset);
+
+  buffer.allocation_count--;
+  total_allocations--;
+  buffers_with_free_space.insert(buffer_id);
+}
+
 }  // namespace part

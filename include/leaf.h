@@ -63,6 +63,8 @@ class CLeaf {
 
   static void New(ConcurrentNode &node, const idx_t doc_id);
 
+  static void Free(ConcurrentART &art, ConcurrentNode *node);
+
   static void Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id, bool &retry);
 
   static void MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node);

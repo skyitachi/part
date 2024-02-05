@@ -72,7 +72,7 @@ class CPrefix {
   //  ConcurrentNode ptr or maybe called next more clearly
   ConcurrentNode *ptr;
 
-  static void Free(ConcurrentART &art, ConcurrentNode &node);
+  static void Free(ConcurrentART &art, ConcurrentNode *node);
 
   static void New(ConcurrentART &art, reference<ConcurrentNode> &node, const ARTKey &key, const uint32_t depth,
                   uint32_t count);
@@ -103,6 +103,8 @@ class CPrefix {
 
   // NOTE: new prefix append data no need to sync with lock
   CPrefix &NewPrefixAppend(ConcurrentART &art, const uint8_t byte);
+
+  void NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, bool &retry);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H

@@ -48,6 +48,8 @@ class ConcurrentNode : public Node {
 
   static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
 
+  void ToGraph(ConcurrentART &art, std::ofstream &out, idx_t &id, std::string parent_id = "");
+
   void Lock();
   void Unlock();
   void RLock();
@@ -62,6 +64,10 @@ class ConcurrentNode : public Node {
     Reset();
     lock_ = 0;
   }
+
+  static void Free(ConcurrentART &art, ConcurrentNode *node);
+
+  std::optional<ConcurrentNode *> GetChild(ConcurrentART &art, const uint8_t byte) const;
 
  private:
   // NOTE: 如何传递锁状态是个问题

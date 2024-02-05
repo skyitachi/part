@@ -53,6 +53,7 @@ class FixedSizeAllocator {
   void Free(const Node ptr);
 
   ConcurrentNode ConcNew();
+  void ConcFree(const ConcurrentNode *ptr);
 
   template <class T>
   inline T *Get(const Node ptr) const {

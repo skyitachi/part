@@ -132,3 +132,65 @@ TEST(ConcurrentARTTest, ConcurrentNode) {
   cprefix2->ptr->Lock();
   cprefix2->ptr->Unlock();
 }
+
+TEST(ConcurrentARTTest, PrefixSpiltTest) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  std::vector<idx_t> results_ids;
+
+  ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
+
+  art.Put(k1, 1);
+
+  art.Get(k1, results_ids);
+  EXPECT_EQ(results_ids.size(), 1);
+  EXPECT_EQ(results_ids[0], 1);
+
+  results_ids.clear();
+  fmt::println("put k1 success");
+
+  ARTKey k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 11);
+  art.Put(k2, 2);
+
+  art.Get(k1, results_ids);
+  EXPECT_EQ(results_ids.size(), 1);
+  EXPECT_EQ(results_ids[0], 1);
+
+  results_ids.clear();
+  art.Get(k2, results_ids);
+  EXPECT_EQ(results_ids.size(), 1);
+  EXPECT_EQ(results_ids[0], 2);
+}
+
+TEST(ConcurrentARTTest, PrefixSplitAndLeafExpand) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  std::vector<idx_t> results_ids;
+
+  ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 10);
+  art.Put(k1, 0);
+
+  ARTKey k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 11);
+  art.Put(k2, 2);
+
+  std::vector<idx_t> result_ids;
+
+  std::vector<idx_t> doc_ids = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  for (int i = 0; i < doc_ids.size(); i++) {
+    result_ids.clear();
+    art.Put(k1, doc_ids[i]);
+    art.Get(k1, result_ids);
+    EXPECT_EQ(result_ids.size(), i + 2);
+    for (int k = 1; k < result_ids.size(); k++) {
+      EXPECT_EQ(result_ids[k], doc_ids[k - 1]);
+    }
+  }
+
+  art.Draw("cart.dot");
+}

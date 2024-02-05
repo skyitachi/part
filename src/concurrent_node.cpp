@@ -8,6 +8,9 @@
 #include <thread>
 
 #include "concurrent_art.h"
+#include "leaf.h"
+#include "node4.h"
+#include "prefix.h"
 
 namespace part {
 constexpr uint32_t RETRY_THRESHOLD = 100;
@@ -121,6 +124,147 @@ bool ConcurrentNode::Locked() const {
 
 FixedSizeAllocator& ConcurrentNode::GetAllocator(const ConcurrentART& art, NType type) {
   return (*art.allocators)[(uint8_t)type - 1];
+}
+
+void ConcurrentNode::Free(ConcurrentART& art, ConcurrentNode* node) {
+  assert(node->Locked());
+  if (!node->IsSet()) {
+    return;
+  }
+  if (!node->IsSerialized()) {
+    auto type = node->GetType();
+    switch (type) {
+      case NType::LEAF_INLINED: {
+        node->ResetAll();
+        node->SetDeleted();
+        return;
+      }
+      case NType::LEAF:
+        return CLeaf::Free(art, node);
+      case NType::PREFIX:
+        return CPrefix::Free(art, node);
+      default:
+        throw std::invalid_argument("unsupported node type");
+    }
+  }
+}
+std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, const uint8_t byte) const {
+  assert(RLocked() || Locked());
+  assert(IsSet() && !IsSerialized());
+
+  std::optional<ConcurrentNode*> child;
+  switch (GetType()) {
+    case NType::NODE_4:
+      child = CNode4::Get(art, this).GetChild(byte);
+      break;
+    default:
+      // TODO:
+      throw std::invalid_argument("GetChild not support other types");
+  }
+  if (child && child.value()->IsSerialized()) {
+    // TODO: Deserialize
+  }
+  return child;
+}
+void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, std::string parent_id) {
+  switch (GetType()) {
+    case NType::LEAF: {
+      id++;
+      RLock();
+      auto& leaf = CLeaf::Get(art, *this);
+      std::string leaf_prefix("LEAF_");
+      out << leaf_prefix << id;
+      out << "[shape=plain color=green ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)leaf.count << "\">leaf_" << id << "</TD></TR><TR>\n";
+      for (int i = 0; i < leaf.count; i++) {
+        out << "<TD>" << leaf.row_ids[i] << "</TD>\n";
+      }
+      out << "</TR></TABLE>>];\n";
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << leaf_prefix << id << ";\n";
+      }
+      RUnlock();
+      break;
+    }
+    case NType::LEAF_INLINED: {
+      id++;
+      std::string leaf_prefix("LEAF_INLINED_");
+      out << leaf_prefix << id;
+      out << "[shape=plain color=green ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+      out << "<TR><TD COLSPAN=\"" << 1 << "\">"
+          << "leaf_" << id << "</TD></TR><TR>\n";
+      for (int i = 0; i < 1; i++) {
+        out << "<TD>" << GetDocId() << "</TD>\n";
+      }
+      out << "</TR></TABLE>>];\n";
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << leaf_prefix << id << ";\n";
+      }
+      break;
+    }
+    case NType::PREFIX: {
+      id++;
+      std::string prefix_prefix("PREFIX_");
+      std::string current_id_str = fmt::format("{}{}", prefix_prefix, id);
+      RLock();
+      auto& prefix = CPrefix::Get(art, *this);
+      out << prefix_prefix << id;
+      out << "[shape=plain color=pink ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)prefix.data[PREFIX_SIZE] << "\"> prefix_" << id << "</TD></TR>\n";
+      out << "<TR>\n";
+      for (int i = 0; i < prefix.data[PREFIX_SIZE]; i++) {
+        out << "<TD>" << (uint32_t)prefix.data[i] << "</TD>\n";
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      RUnlock();
+      if (prefix.ptr->IsSet()) {
+        prefix.ptr->ToGraph(art, out, id, current_id_str);
+      }
+      break;
+    }
+    case NType::NODE_4: {
+      id++;
+      RLock();
+      std::string node_prefix("NODE4_");
+      std::string current_id_str = fmt::format("{}{}", node_prefix, id);
+      auto& node4 = CNode4::Get(art, this);
+      out << node_prefix << id;
+      out << "[shape=plain color=yellow ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node4.count << "\"> node4_" << id << "</TD></TR>\n";
+      out << "<TR>\n";
+      for (int i = 0; i < node4.count; i++) {
+        out << "<TD>" << (uint32_t)node4.key[i] << "</TD>\n";
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      RUnlock();
+      for (int i = 0; i < node4.count; i++) {
+        node4.children[i]->ToGraph(art, out, id, current_id_str);
+      }
+      break;
+    }
+    default:
+      throw std::invalid_argument("ToGraph does not support such node types");
+  }
 }
 
 }  // namespace part

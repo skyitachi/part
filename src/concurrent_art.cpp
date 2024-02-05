@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "leaf.h"
+#include "node4.h"
 #include "prefix.h"
 
 namespace part {
@@ -57,6 +58,24 @@ bool ConcurrentART::lookup(ConcurrentNode& node, const ARTKey& key, idx_t depth,
       cleaf.GetDocIds(*this, next_node.get(), result_ids, std::numeric_limits<int64_t>::max(), retry);
       return retry;
     }
+
+    assert(depth < key.len);
+    auto child = next_node.get().GetChild(*this, key[depth]);
+    if (!child) {
+      // cannot found node
+      next_node.get().Unlock();
+      return false;
+    }
+    child.value()->RLock();
+    if (child.value()->IsDeleted()) {
+      // NOTE: need retry
+      child.value()->RLock();
+      next_node.get().RUnlock();
+      return true;
+    }
+    next_node.get().RUnlock();
+    next_node = *child.value();
+    depth++;
   }
   return false;
 }
@@ -96,7 +115,29 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   }
 
   if (node_type != NType::PREFIX) {
-    // TODO: non prefix insert
+    assert(depth < key.len);
+    auto child = node.GetChild(*this, key[depth]);
+    if (child) {
+      node.RUnlock();
+      child.value()->RLock();
+      return insert(*child.value(), key, depth + 1, doc_id);
+    }
+
+    ConcurrentNode* new_node = AllocateNode();
+    ConcurrentNode* next_node = new_node;
+    if (depth + 1 < key.len) {
+      CPrefix::NewPrefixNew(*this, new_node);
+      new_node->RLock();
+      auto& new_prefix = CPrefix::Get(*this, *new_node);
+      new_node->RUnlock();
+      next_node = new_prefix.ptr;
+    }
+    assert(next_node);
+    next_node->Lock();
+    CLeaf::New(*next_node, doc_id);
+    next_node->Unlock();
+    node.Upgrade();
+    CNode4::InsertChild(*this, &node, key[depth], new_node);
     return false;
   }
 
@@ -114,11 +155,45 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     return insert(next_node.get(), key, depth, doc_id);
   }
 
-  ConcurrentNode* remaining_prefix_node;
+  ConcurrentNode* remaining_prefix_node = nullptr;
   auto prefix_byte = CPrefix::GetByte(*this, next_node, mismatch_position);
 
   CPrefix::Split(*this, next_node, remaining_prefix_node, mismatch_position);
+  assert(remaining_prefix_node != nullptr);
 
+  // node should lock firstly
+  // split already unlock
+  node.Lock();
+
+  auto new_node4 = AllocateNode();
+  // update prefix new ptr
+  auto& nprefix = CPrefix::Get(*this, node);
+  nprefix.ptr = new_node4;
+  // unlock asap
+  node.Unlock();
+
+  new_node4->Lock();
+
+  CNode4::New(*this, *new_node4);
+  CNode4::InsertChild(*this, new_node4, prefix_byte, remaining_prefix_node);
+
+  auto next_prefix_node = AllocateNode();
+  auto ref_next_prefix = std::ref(*next_prefix_node);
+  // NOTE: new node no need lock
+  next_prefix_node->Lock();
+
+  if (depth + 1 < key.len) {
+    // NOTE: need create PrefixNode
+    CPrefix::New(*this, ref_next_prefix, key, depth + 1, key.len - depth - 1);
+  }
+
+  assert(ref_next_prefix.get().Locked());
+
+  CLeaf::New(ref_next_prefix, doc_id);
+  ref_next_prefix.get().Unlock();
+
+  CNode4::InsertChild(*this, new_node4, key[depth], &ref_next_prefix.get());
+  new_node4->Unlock();
   return false;
 }
 
@@ -129,6 +204,7 @@ ConcurrentART::ConcurrentART(const FixedSizeAllocatorListPtr allocators_ptr)
     allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
     allocators->emplace_back(sizeof(CPrefix), Allocator::DefaultAllocator());
     allocators->emplace_back(sizeof(CLeaf), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CNode4), Allocator::DefaultAllocator());
   }
   root = std::make_unique<ConcurrentNode>();
 }

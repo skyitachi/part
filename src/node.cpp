@@ -378,7 +378,7 @@ void Node::ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_i
       out << leaf_prefix << id;
       out << "[shape=plain color=green ";
       out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
-      out << "<TR><TD COLSPAN=\"" << leaf.count << "\">P=" << id << "</TD></TR><TR>\n";
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)leaf.count << "\">leaf_" << id << "</TD></TR><TR>\n";
       for (int i = 0; i < leaf.count; i++) {
         out << "<TD>" << leaf.row_ids[i] << "</TD>\n";
       }
