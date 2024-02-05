@@ -138,6 +138,8 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     next_node->Unlock();
     node.Upgrade();
     CNode4::InsertChild(*this, &node, key[depth], new_node);
+    // NOTE: important release lock carefully
+    node.Unlock();
     return false;
   }
 

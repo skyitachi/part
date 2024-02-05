@@ -194,3 +194,27 @@ TEST(ConcurrentARTTest, PrefixSplitAndLeafExpand) {
 
   art.Draw("cart.dot");
 }
+
+TEST(ConcurrentARTTest, CNode4Insert) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  std::vector<idx_t> results_ids;
+
+  ARTKey k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1);
+  art.Put(k1, 1);
+
+  ARTKey k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 2);
+  art.Put(k2, 2);
+
+  ARTKey k3 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 3);
+
+  art.Put(k3, 3);
+
+  std::vector<idx_t> result_ids;
+  art.Get(k3, results_ids);
+  EXPECT_EQ(results_ids.size(), 1);
+  EXPECT_EQ(results_ids[0], 3);
+}
