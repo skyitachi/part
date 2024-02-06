@@ -68,8 +68,11 @@ class FixedSizeAllocator {
 
  private:
   inline data_ptr_t Get(const Node ptr) const {
-    assert(ptr.GetBufferId() < buffers.size());
-    assert(ptr.GetOffset() < allocations_per_buffer);
+    if (ptr.GetBufferId() >= buffers.size()) {
+      printf("corrupt");
+    }
+    P_ASSERT(ptr.GetBufferId() < buffers.size());
+    P_ASSERT(ptr.GetOffset() < allocations_per_buffer);
     return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size + allocation_offset;
   }
 };

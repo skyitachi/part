@@ -12,6 +12,8 @@
 #include "node16.h"
 #include "node4.h"
 #include "prefix.h"
+#include "node256.h"
+#include "node48.h"
 
 namespace part {
 constexpr uint32_t RETRY_THRESHOLD = 100;
@@ -146,6 +148,10 @@ void ConcurrentNode::Free(ConcurrentART& art, ConcurrentNode* node) {
         return CNode4::Free(art, node);
       case NType::NODE_16:
         return CNode16::Free(art, node);
+      case NType::NODE_48:
+        return CNode48::Free(art, node);
+      case NType::NODE_256:
+        return CNode256::Free(art, node);
       default:
         throw std::invalid_argument("[CNode.Free] unsupported node type");
     }
@@ -163,8 +169,13 @@ std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, cons
     case NType::NODE_16:
       child = CNode16::Get(art, this).GetChild(byte);
       break;
+    case NType::NODE_48:
+      child = CNode48::Get(art, this).GetChild(byte);
+      break;
+    case NType::NODE_256:
+      child = CNode256::Get(art, this).GetChild(byte);
+      break;
     default:
-      // TODO:
       throw std::invalid_argument("GetChild not support other types");
   }
   if (child && child.value()->IsSerialized()) {
@@ -172,6 +183,7 @@ std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, cons
   }
   return child;
 }
+
 void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, std::string parent_id) {
   switch (GetType()) {
     case NType::LEAF: {
@@ -303,12 +315,19 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
 }
 
 void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, const uint8_t byte, ConcurrentNode* child) {
+  assert(node->Locked());
   switch (node->GetType()) {
     case NType::NODE_4:
       CNode4::InsertChild(art, node, byte, child);
       break;
     case NType::NODE_16:
       CNode16::InsertChild(art, node, byte, child);
+      break;
+    case NType::NODE_48:
+      CNode48::InsertChild(art, node, byte, child);
+      break;
+    case NType::NODE_256:
+      CNode256::InsertChild(art, node, byte, child);
       break;
     default:
       throw std::invalid_argument(fmt::format("Invalid node type for InsertChild type: {}", (uint8_t)node->GetType()));

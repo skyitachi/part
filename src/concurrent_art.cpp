@@ -11,6 +11,8 @@
 #include "node16.h"
 #include "node4.h"
 #include "prefix.h"
+#include "node256.h"
+#include "node48.h"
 
 namespace part {
 
@@ -209,6 +211,9 @@ ConcurrentART::ConcurrentART(const FixedSizeAllocatorListPtr allocators_ptr)
     allocators->emplace_back(sizeof(CLeaf), Allocator::DefaultAllocator());
     allocators->emplace_back(sizeof(CNode4), Allocator::DefaultAllocator());
     allocators->emplace_back(sizeof(CNode16), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CNode48), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CNode256), Allocator::DefaultAllocator());
+
   }
   root = std::make_unique<ConcurrentNode>();
 }

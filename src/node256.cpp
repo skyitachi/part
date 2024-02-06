@@ -158,7 +158,7 @@ CNode256 &CNode256::GrowNode48(ConcurrentART &art, ConcurrentNode *node48) {
   auto &n48 = CNode48::Get(art, node48);
   auto node256 = art.AllocateNode();
   node256->Lock();
-  auto &n256 = CNode256::Get(art, node256);
+  auto &n256 = CNode256::New(art, *node256);
   node256->Unlock();
   n256.count = n48.count;
   for (idx_t i = 0; i < n48.count; i++) {

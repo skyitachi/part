@@ -232,3 +232,16 @@ TEST(ConcurrentARTTest, CNode16Insert) {
 
   art.Draw("cnode16.dot");
 }
+
+
+TEST(ConcurrentARTTest, BigARTInsert) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  for (idx_t i = 0; i < 100; i++) {
+    ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+    art.Put(k, i);
+  }
+}
