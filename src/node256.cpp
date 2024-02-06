@@ -125,4 +125,74 @@ std::optional<Node *> Node256::GetNextChild(uint8_t &byte) {
   }
   return std::nullopt;
 }
+
+CNode256 &CNode256::New(ConcurrentART &art, ConcurrentNode &node) {
+  assert(node.Locked());
+  node.Update(ConcurrentNode::GetAllocator(art, NType::NODE_256).ConcNew());
+  node.SetType((uint8_t)NType::NODE_256);
+
+  auto &n256 = CNode256::Get(art, &node);
+  n256.count = 0;
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    n256.children[i] = nullptr;
+  }
+  return n256;
+}
+
+void CNode256::Free(ConcurrentART &art, ConcurrentNode *node) {
+  assert(node->Locked());
+  assert(node->IsSet() && !node->IsSerialized());
+
+  auto &n256 = CNode256::Get(art, node);
+  for (idx_t i = 0; i < n256.count; i++) {
+    if (n256.children[i]) {
+      n256.children[i]->Lock();
+      ConcurrentNode::Free(art, n256.children[i]);
+      n256.children[i]->Unlock();
+    }
+  }
+}
+
+CNode256 &CNode256::GrowNode48(ConcurrentART &art, ConcurrentNode *node48) {
+  assert(node48->Locked());
+  auto &n48 = CNode48::Get(art, node48);
+  auto node256 = art.AllocateNode();
+  node256->Lock();
+  auto &n256 = CNode256::Get(art, node256);
+  node256->Unlock();
+  n256.count = n48.count;
+  for (idx_t i = 0; i < n48.count; i++) {
+    if (n48.child_index[i] != Node::EMPTY_MARKER) {
+      n256.children[i] = n48.children[n48.child_index[i]];
+    }
+  }
+  n48.count = 0;
+  ConcurrentNode::Free(art, node48);
+  node48->Update(node256);
+  node48->SetType((uint8_t)NType::NODE_256);
+  assert(node48->Locked());
+  auto &new256 = CNode256::Get(art, node48);
+  return new256;
+}
+
+void CNode256::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child) {
+  assert(node->Locked());
+  assert(node->IsSet() && !node->IsSerialized());
+  auto &n256 = CNode256::Get(art, node);
+
+  assert(!n256.children[byte]);
+
+  n256.count++;
+  assert(n256.count <= Node::NODE_256_CAPACITY);
+  n256.children[byte] = child;
+}
+
+std::optional<ConcurrentNode *> CNode256::GetChild(const uint8_t byte) {
+  if (children[byte]) {
+    return children[byte];
+  }
+
+  return std::nullopt;
+}
+
 }  // namespace part

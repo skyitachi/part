@@ -192,4 +192,93 @@ std::optional<Node *> Node48::GetNextChild(uint8_t &byte) {
   return std::nullopt;
 }
 
+CNode48 &CNode48::New(ConcurrentART &art, ConcurrentNode &node) {
+  assert(node.Locked());
+  node.Update(ConcurrentNode::GetAllocator(art, NType::NODE_48).ConcNew());
+  node.SetType((uint8_t)NType::NODE_48);
+
+  auto &n48 = CNode48::Get(art, &node);
+  n48.count = 0;
+  return n48;
+}
+
+void CNode48::Free(ConcurrentART &art, ConcurrentNode *node) {
+  assert(node->Locked());
+  assert(node->IsSet() && !node->IsSerialized());
+
+  auto &n48 = CNode48::Get(art, node);
+  for (idx_t i = 0; i < n48.count; i++) {
+    assert(n48.children[i]);
+    n48.children[i]->Lock();
+    ConcurrentNode::Free(art, n48.children[i]);
+    n48.children[i]->Unlock();
+  }
+}
+
+CNode48 &CNode48::GrowNode16(ConcurrentART &art, ConcurrentNode *node16) {
+  assert(node16->Locked());
+  auto &n16 = CNode16::Get(art, node16);
+  // NOTE: it will delete automatically, no need delete manually
+  auto node48 = art.AllocateNode();
+  // NOTE: unnecessary lock
+  node48->Lock();
+  auto &n48 = CNode48::New(art, *node48);
+  node48->Unlock();
+  n48.count = n16.count;
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    n48.child_index[i] = Node::EMPTY_MARKER;
+  }
+  for (idx_t i = 0; i < n16.count; i++) {
+    n48.child_index[n16.key[i]] = i;
+    n48.children[i] = n16.children[i];
+  }
+
+  // NOTE: should initialize as empty pointer
+  for (idx_t i = n16.count; i < Node::NODE_48_CAPACITY; i++) {
+    n48.children[i] = nullptr;
+  }
+
+  n16.count = 0;
+  ConcurrentNode::Free(art, node16);
+  // reset node4 points to n16
+  node16->Update(node48);
+  node16->SetType((uint8_t)NType::NODE_48);
+  assert(node16->Locked());
+  auto &new48 = CNode48::Get(art, node16);
+  return new48;
+}
+
+void CNode48::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child) {
+  assert(node->Locked());
+  assert(node->IsSet() && !node->IsSerialized());
+
+  auto &n48 = CNode48::Get(art, node);
+
+  assert(n48.child_index[byte] == Node::EMPTY_MARKER);
+
+  if (n48.count < Node::NODE_48_CAPACITY) {
+    idx_t child_pos = n48.count;
+    // NOTE: judge pointer whether nullptr
+    if (n48.children[child_pos]) {
+      child_pos = 0;
+      while (n48.children[child_pos]) {
+        child_pos++;
+      }
+    }
+    n48.children[child_pos] = child;
+    n48.child_index[byte] = child_pos;
+    n48.count++;
+  } else {
+    CNode256::GrowNode48(art, node);
+    CNode256::InsertChild(art, node, byte, child);
+  }
+}
+
+std::optional<ConcurrentNode *> CNode48::GetChild(const uint8_t byte) {
+  if (child_index[byte] != Node::EMPTY_MARKER) {
+    assert(children[child_index[byte]]->IsSet());
+    return children[child_index[byte]];
+  }
+  return std::nullopt;
+}
 }  // namespace part

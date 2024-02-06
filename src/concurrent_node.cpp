@@ -9,6 +9,7 @@
 
 #include "concurrent_art.h"
 #include "leaf.h"
+#include "node16.h"
 #include "node4.h"
 #include "prefix.h"
 
@@ -27,7 +28,6 @@ void ConcurrentNode::RLock() {
       }
     }
     retry++;
-    fmt::println("rlock retry {}", retry);
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
@@ -64,7 +64,6 @@ void ConcurrentNode::Lock() {
     }
 
     retry++;
-    fmt::println("lock retry {}", retry);
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
@@ -143,8 +142,12 @@ void ConcurrentNode::Free(ConcurrentART& art, ConcurrentNode* node) {
         return CLeaf::Free(art, node);
       case NType::PREFIX:
         return CPrefix::Free(art, node);
+      case NType::NODE_4:
+        return CNode4::Free(art, node);
+      case NType::NODE_16:
+        return CNode16::Free(art, node);
       default:
-        throw std::invalid_argument("unsupported node type");
+        throw std::invalid_argument("[CNode.Free] unsupported node type");
     }
   }
 }
@@ -156,6 +159,9 @@ std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, cons
   switch (GetType()) {
     case NType::NODE_4:
       child = CNode4::Get(art, this).GetChild(byte);
+      break;
+    case NType::NODE_16:
+      child = CNode16::Get(art, this).GetChild(byte);
       break;
     default:
       // TODO:
@@ -262,8 +268,50 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       }
       break;
     }
+    case NType::NODE_16: {
+      id++;
+      std::string node_prefix("NODE16_");
+      std::string current_id_str = fmt::format("{}{}", node_prefix, id);
+      RLock();
+      auto& node16 = CNode16::Get(art, this);
+      out << node_prefix << id;
+      out << "[shape=plain color=yellow ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node16.count << "\"> node16_" << id << "</TD></TR>\n";
+      out << "<TR>\n";
+      RUnlock();
+      for (int i = 0; i < node16.count; i++) {
+        out << "<TD>" << (uint32_t)node16.key[i] << "</TD>\n";
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      for (int i = 0; i < node16.count; i++) {
+        node16.children[i]->ToGraph(art, out, id, current_id_str);
+      }
+      break;
+    }
     default:
       throw std::invalid_argument("ToGraph does not support such node types");
+  }
+}
+
+void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, const uint8_t byte, ConcurrentNode* child) {
+  switch (node->GetType()) {
+    case NType::NODE_4:
+      CNode4::InsertChild(art, node, byte, child);
+      break;
+    case NType::NODE_16:
+      CNode16::InsertChild(art, node, byte, child);
+      break;
+    default:
+      throw std::invalid_argument(fmt::format("Invalid node type for InsertChild type: {}", (uint8_t)node->GetType()));
   }
 }
 

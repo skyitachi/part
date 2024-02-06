@@ -227,27 +227,33 @@ void CNode16::Free(ConcurrentART &art, ConcurrentNode *node) {
 CNode16 &CNode16::GrowNode4(ConcurrentART &art, ConcurrentNode *node4) {
   assert(node4->Locked());
   auto &n4 = CNode4::Get(art, node4);
+  // NOTE: it will delete automatically, no need delete manually
   auto node16 = art.AllocateNode();
+  // NOTE: unnecessary lock
+  node16->Lock();
   auto &n16 = CNode16::New(art, *node16);
+  node16->Unlock();
   n16.count = n4.count;
   for (idx_t i = 0; i < n4.count; i++) {
     n16.key[i] = n4.key[i];
     n16.children[i] = n4.children[i];
   }
 
+  for (idx_t i = n4.count; i < Node::NODE_16_CAPACITY; i++) {
+    n16.children[i] = nullptr;
+  }
+
   n4.count = 0;
   ConcurrentNode::Free(art, node4);
   // reset node4 points to n16
   node4->Update(node16);
-  delete node16;
+  node4->SetType((uint8_t)NType::NODE_16);
   assert(node4->Locked());
-  return n16;
+  auto &new16 = CNode16::Get(art, node4);
+  return new16;
 }
 
-void CNode16::InsertChild(ConcurrentART &art,
-                          ConcurrentNode *node,
-                          const uint8_t byte,
-                          ConcurrentNode *child) {
+void CNode16::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child) {
   assert(node->Locked());
   assert(node->IsSet() && !node->IsSerialized());
 
@@ -272,7 +278,20 @@ void CNode16::InsertChild(ConcurrentART &art,
     n16.count++;
   } else {
     // TODO: Grow to 48
+    CNode48::GrowNode16(art, node);
+    CNode48::InsertChild(art, node, byte, child);
   }
+}
+
+std::optional<ConcurrentNode *> CNode16::GetChild(const uint8_t byte) {
+  for (idx_t i = 0; i < count; i++) {
+    if (key[i] == byte) {
+      assert(children[i]->IsSet());
+      return children[i];
+    }
+  }
+
+  return std::nullopt;
 }
 
 }  // namespace part

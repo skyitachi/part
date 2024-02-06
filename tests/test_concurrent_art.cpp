@@ -218,3 +218,17 @@ TEST(ConcurrentARTTest, CNode4Insert) {
   EXPECT_EQ(results_ids.size(), 1);
   EXPECT_EQ(results_ids[0], 3);
 }
+
+TEST(ConcurrentARTTest, CNode16Insert) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  for (idx_t i = 0; i < 10; i++) {
+    ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+    art.Put(k, i);
+  }
+
+  art.Draw("cnode16.dot");
+}

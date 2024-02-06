@@ -4,6 +4,7 @@
 
 #ifndef PART_NODE256_H
 #define PART_NODE256_H
+#include "concurrent_node.h"
 #include "fixed_size_allocator.h"
 #include "node.h"
 
@@ -39,6 +40,29 @@ class Node256 {
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
+};
+
+class CNode256 {
+ public:
+  uint16_t count;
+
+  ConcurrentNode *children[Node::NODE_256_CAPACITY];
+
+  static CNode256 &New(ConcurrentART &art, ConcurrentNode &node);
+
+  static void Free(ConcurrentART &art, ConcurrentNode *node);
+
+  static inline CNode256 &Get(const ConcurrentART &art, const ConcurrentNode *ptr) {
+    assert(ptr->Locked() || ptr->RLocked());
+    assert(!ptr->IsSerialized());
+    return *ConcurrentNode::GetAllocator(art, NType::NODE_256).Get<CNode256>(*ptr);
+  }
+
+  static CNode256 &GrowNode48(ConcurrentART &art, ConcurrentNode *node48);
+
+  static void InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child);
+
+  std::optional<ConcurrentNode *> GetChild(const uint8_t byte);
 };
 }  // namespace part
 #endif  // PART_NODE256_H

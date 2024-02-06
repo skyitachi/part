@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "leaf.h"
+#include "node16.h"
 #include "node4.h"
 #include "prefix.h"
 
@@ -137,7 +138,7 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     CLeaf::New(*next_node, doc_id);
     next_node->Unlock();
     node.Upgrade();
-    CNode4::InsertChild(*this, &node, key[depth], new_node);
+    ConcurrentNode::InsertChild(*this, &node, key[depth], new_node);
     // NOTE: important release lock carefully
     node.Unlock();
     return false;
@@ -207,6 +208,7 @@ ConcurrentART::ConcurrentART(const FixedSizeAllocatorListPtr allocators_ptr)
     allocators->emplace_back(sizeof(CPrefix), Allocator::DefaultAllocator());
     allocators->emplace_back(sizeof(CLeaf), Allocator::DefaultAllocator());
     allocators->emplace_back(sizeof(CNode4), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CNode16), Allocator::DefaultAllocator());
   }
   root = std::make_unique<ConcurrentNode>();
 }

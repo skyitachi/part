@@ -211,6 +211,7 @@ void CNode4::Free(ConcurrentART &art, ConcurrentNode *node) {
 void CNode4::InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte, ConcurrentNode *child) {
   assert(node->Locked());
   assert(node->IsSet() && !node->IsSerialized());
+  assert(node->GetType() == NType::NODE_4);
 
   auto &n4 = CNode4::Get(art, node);
   for (idx_t i = 0; i < n4.count; i++) {
@@ -233,6 +234,8 @@ void CNode4::InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte,
   } else {
     // NOTE: update node pointer, node already points to CNode16
     CNode16::GrowNode4(art, node);
+    assert(node->GetType() == NType::NODE_16);
+    assert(node->IsSet());
     CNode16::InsertChild(art, node, byte, child);
   }
 }

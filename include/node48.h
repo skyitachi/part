@@ -5,6 +5,8 @@
 #ifndef PART_NODE48_H
 #define PART_NODE48_H
 
+#include "concurrent_art.h"
+#include "concurrent_node.h"
 #include "fixed_size_allocator.h"
 #include "node.h"
 
@@ -44,6 +46,31 @@ class Node48 {
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
+};
+
+class CNode48 {
+ public:
+  uint8_t count;
+
+  uint8_t child_index[Node::NODE_256_CAPACITY];
+
+  ConcurrentNode *children[Node::NODE_48_CAPACITY];
+
+  static CNode48 &New(ConcurrentART &art, ConcurrentNode &node);
+
+  static void Free(ConcurrentART &art, ConcurrentNode *node);
+
+  static inline CNode48 &Get(const ConcurrentART &art, const ConcurrentNode *ptr) {
+    assert(ptr->Locked() || ptr->RLocked());
+    assert(!ptr->IsSerialized());
+    return *ConcurrentNode::GetAllocator(art, NType::NODE_48).Get<CNode48>(*ptr);
+  }
+
+  static CNode48 &GrowNode16(ConcurrentART &art, ConcurrentNode *node16);
+
+  static void InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child);
+
+  std::optional<ConcurrentNode *> GetChild(const uint8_t byte);
 };
 }  // namespace part
 #endif  // PART_NODE48_H

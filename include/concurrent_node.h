@@ -74,6 +74,8 @@ class ConcurrentNode : public Node {
 
   std::optional<ConcurrentNode *> GetChild(ConcurrentART &art, const uint8_t byte) const;
 
+  static void InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child);
+
  private:
   // NOTE: 如何传递锁状态是个问题
   std::atomic<uint64_t> lock_ = {0};

@@ -61,7 +61,7 @@ class CNode16 {
 
   ConcurrentNode *children[Node::NODE_16_CAPACITY];
 
-  static inline CNode16 &Get(const ConcurrentART &art, ConcurrentNode *ptr) {
+  static inline CNode16 &Get(const ConcurrentART &art, const ConcurrentNode *ptr) {
     assert(ptr->RLocked() || ptr->Locked());
     assert(!ptr->IsSerialized());
     return *ConcurrentNode::GetAllocator(art, NType::NODE_16).Get<CNode16>(*ptr);
@@ -73,8 +73,9 @@ class CNode16 {
 
   static CNode16 &GrowNode4(ConcurrentART &art, ConcurrentNode *node4);
 
-  static void InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte,
-                          ConcurrentNode *child);
+  static void InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child);
+
+  std::optional<ConcurrentNode *> GetChild(const uint8_t byte);
 };
 
 }  // namespace part
