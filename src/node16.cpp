@@ -3,6 +3,7 @@
 //
 #include "node16.h"
 
+#include "concurrent_art.h"
 #include "node4.h"
 #include "node48.h"
 
@@ -197,6 +198,29 @@ std::optional<Node *> Node16::GetNextChild(uint8_t &byte) {
     }
   }
   return std::nullopt;
+}
+
+CNode16 &CNode16::New(ConcurrentART &art, ConcurrentNode &node) {
+  assert(node.Locked());
+  node.Update(ConcurrentNode::GetAllocator(art, NType::NODE_16).ConcNew());
+  node.SetType((uint8_t)NType::NODE_16);
+
+  auto &n16 = CNode16::Get(art, &node);
+  n16.count = 0;
+  return n16;
+}
+
+void CNode16::Free(ConcurrentART &art, ConcurrentNode *node) {
+  assert(node->Locked());
+  assert(node->IsSet() && !node->IsSerialized());
+
+  auto &n16 = CNode16::Get(art, node);
+  for (idx_t i = 0; i < n16.count; i++) {
+    assert(n16.children[i]);
+    n16.children[i]->Lock();
+    ConcurrentNode::Free(art, n16.children[i]);
+    n16.children[i]->Unlock();
+  }
 }
 
 }  // namespace part

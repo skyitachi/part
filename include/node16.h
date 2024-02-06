@@ -5,6 +5,7 @@
 #ifndef PART_NODE16_H
 #define PART_NODE16_H
 
+#include "concurrent_node.h"
 #include "fixed_size_allocator.h"
 #include "node.h"
 
@@ -47,6 +48,30 @@ class Node16 {
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
+};
+
+class CNode16 {
+ public:
+  CNode16(const CNode16 &) = delete;
+  CNode16 &operator=(const CNode16 &) = delete;
+
+  uint8_t count;
+
+  uint8_t key[Node::NODE_16_CAPACITY];
+
+  ConcurrentNode *children[Node::NODE_16_CAPACITY];
+
+  static inline CNode16 &Get(const ConcurrentART &art, ConcurrentNode *ptr) {
+    assert(ptr->RLocked() || ptr->Locked());
+    assert(!ptr->IsSerialized());
+    return *ConcurrentNode::GetAllocator(art, NType::NODE_16).Get<CNode16>(*ptr);
+  }
+
+  static CNode16 &New(ConcurrentART &art, ConcurrentNode &node);
+
+  static void Free(ConcurrentART &art, ConcurrentNode *node);
+
+  static CNode16 &GrowNode4(ConcurrentART &art, ConcurrentNode *&node16, ConcurrentNode *node4);
 };
 
 }  // namespace part
