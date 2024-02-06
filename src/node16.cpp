@@ -223,4 +223,56 @@ void CNode16::Free(ConcurrentART &art, ConcurrentNode *node) {
   }
 }
 
+// NOTE: node16 should be allocated
+CNode16 &CNode16::GrowNode4(ConcurrentART &art, ConcurrentNode *node4) {
+  assert(node4->Locked());
+  auto &n4 = CNode4::Get(art, node4);
+  auto node16 = art.AllocateNode();
+  auto &n16 = CNode16::New(art, *node16);
+  n16.count = n4.count;
+  for (idx_t i = 0; i < n4.count; i++) {
+    n16.key[i] = n4.key[i];
+    n16.children[i] = n4.children[i];
+  }
+
+  n4.count = 0;
+  ConcurrentNode::Free(art, node4);
+  // reset node4 points to n16
+  node4->Update(node16);
+  delete node16;
+  assert(node4->Locked());
+  return n16;
+}
+
+void CNode16::InsertChild(ConcurrentART &art,
+                          ConcurrentNode *node,
+                          const uint8_t byte,
+                          ConcurrentNode *child) {
+  assert(node->Locked());
+  assert(node->IsSet() && !node->IsSerialized());
+
+  auto &n16 = CNode16::Get(art, node);
+  for (idx_t i = 0; i < n16.count; i++) {
+    assert(n16.key[i] != byte);
+  }
+  if (n16.count < Node::NODE_16_CAPACITY) {
+    idx_t child_pos = 0;
+
+    while (child_pos < n16.count && n16.key[child_pos] < byte) {
+      child_pos++;
+    }
+
+    for (idx_t i = n16.count; i > child_pos; i--) {
+      n16.key[i] = n16.key[i - 1];
+      n16.children[i] = n16.children[i - 1];
+    }
+
+    n16.key[child_pos] = byte;
+    n16.children[child_pos] = child;
+    n16.count++;
+  } else {
+    // TODO: Grow to 48
+  }
+}
+
 }  // namespace part

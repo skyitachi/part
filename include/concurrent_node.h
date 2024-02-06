@@ -46,6 +46,11 @@ class ConcurrentNode : public Node {
     SetPtr(other.GetBufferId(), other.GetOffset());
   }
 
+  void Update(ConcurrentNode *other) {
+    Reset();
+    SetPtr(other->GetBufferId(), other->GetOffset());
+  }
+
   static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
 
   void ToGraph(ConcurrentART &art, std::ofstream &out, idx_t &id, std::string parent_id = "");

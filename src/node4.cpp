@@ -231,7 +231,9 @@ void CNode4::InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte,
     n4.children[child_pos] = child;
     n4.count++;
   } else {
-    // TODO: GrowNode4
+    // NOTE: update node pointer, node already points to CNode16
+    CNode16::GrowNode4(art, node);
+    CNode16::InsertChild(art, node, byte, child);
   }
 }
 
