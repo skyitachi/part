@@ -471,9 +471,11 @@ bool CPrefix::Split(ConcurrentART &art, reference<ConcurrentNode> &prefix_node, 
   prefix_node.get().Upgrade();
   cprefix.data[Node::PREFIX_SIZE] = position;
 
+  // TODO: this branch maybe wrong
   if (position == 0) {
     // NOTE: all locks released
     ConcurrentNode::Free(art, &prefix_node.get());
+    assert(!prefix_node.get().RLocked() && !prefix_node.get().Locked());
     return false;
   }
 

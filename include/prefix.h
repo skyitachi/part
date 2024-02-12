@@ -84,6 +84,9 @@ class CPrefix {
 
   static inline CPrefix &Get(const ConcurrentART &art, const ConcurrentNode &ptr) {
     P_ASSERT(!ptr.IsSerialized());
+    if (!ptr.Locked() && !ptr.RLocked()) {
+      fmt::println("debug point");
+    }
     P_ASSERT(ptr.Locked() || ptr.RLocked());
     return *ConcurrentNode::GetAllocator(art, NType::PREFIX).Get<CPrefix>(ptr);
   }

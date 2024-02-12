@@ -239,9 +239,28 @@ TEST(ConcurrentARTTest, BigARTInsert) {
 
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
+  idx_t limit = 258;
 
-  for (idx_t i = 0; i < 100; i++) {
+  for (idx_t i = 0; i < limit; i++) {
     ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+    if (i == 256) {
+      fmt::println("debug point");
+    }
     art.Put(k, i);
   }
+
+  for (idx_t i = 0; i < limit; i++) {
+    ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+    std::vector<idx_t> result_ids;
+    if (i == 256) {
+      fmt::println("debug point");
+    }
+    art.Get(k, result_ids);
+    if (result_ids.size() != 1) {
+      fmt::println("key failed {}", i);
+    }
+//    EXPECT_EQ(result_ids.size(), 1);
+//    EXPECT_EQ(result_ids[0], i);
+  }
+
 }

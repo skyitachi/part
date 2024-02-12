@@ -129,10 +129,10 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     ConcurrentNode* new_node = AllocateNode();
     ConcurrentNode* next_node = new_node;
     if (depth + 1 < key.len) {
+      new_node->Lock();
       CPrefix::NewPrefixNew(*this, new_node);
-      new_node->RLock();
       auto& new_prefix = CPrefix::Get(*this, *new_node);
-      new_node->RUnlock();
+      new_node->Unlock();
       next_node = new_prefix.ptr;
     }
     assert(next_node);
@@ -163,6 +163,7 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   ConcurrentNode* remaining_prefix_node = nullptr;
   auto prefix_byte = CPrefix::GetByte(*this, next_node, mismatch_position);
 
+  // NOTE: next_node may point same as remaining_prefix_node
   CPrefix::Split(*this, next_node, remaining_prefix_node, mismatch_position);
   assert(remaining_prefix_node != nullptr);
 
@@ -174,8 +175,6 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   // update prefix new ptr
   auto& nprefix = CPrefix::Get(*this, node);
   nprefix.ptr = new_node4;
-  // unlock asap
-  node.Unlock();
 
   new_node4->Lock();
 
@@ -193,12 +192,17 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   }
 
   assert(ref_next_prefix.get().Locked());
+//  assert(!next_prefix_node->Locked());
 
   CLeaf::New(ref_next_prefix, doc_id);
   ref_next_prefix.get().Unlock();
 
-  CNode4::InsertChild(*this, new_node4, key[depth], &ref_next_prefix.get());
+  CNode4::InsertChild(*this, new_node4, key[depth], next_prefix_node);
   new_node4->Unlock();
+
+  // important cannot release before new_node settle down
+  node.Unlock();
+
   return false;
 }
 
