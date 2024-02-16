@@ -24,6 +24,7 @@ class Prefix {
 
   static void Free(ART &art, Node &node);
 
+
   static inline Prefix &Get(const ART &art, const Node ptr) {
     assert(!ptr.IsSerialized());
     return *Node::GetAllocator(art, NType::PREFIX).Get<Prefix>(ptr);
@@ -73,6 +74,8 @@ class CPrefix {
   ConcurrentNode *ptr;
 
   static void Free(ConcurrentART &art, ConcurrentNode *node);
+
+  static void FreeSelf(ConcurrentART &art, ConcurrentNode *node);
 
   static void New(ConcurrentART &art, reference<ConcurrentNode> &node, const ARTKey &key, const uint32_t depth,
                   uint32_t count);

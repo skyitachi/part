@@ -17,9 +17,15 @@
 namespace part {
 
 bool ConcurrentART::Get(const part::ARTKey& key, std::vector<idx_t>& result_ids) {
+  idx_t cnt = 0;
   while (lookup(*root, key, 0, result_ids)) {
     result_ids.clear();
     std::this_thread::yield();
+    cnt++;
+    if (cnt > 10) {
+      // TODO: Debug
+      break;
+    }
   }
   return !result_ids.empty();
 }
@@ -70,9 +76,12 @@ bool ConcurrentART::lookup(ConcurrentNode& node, const ARTKey& key, idx_t depth,
       return false;
     }
     child.value()->RLock();
+    // child.value is not same as next_node children
+    // TODO: 单线程的情况下不应该出现这个分支
     if (child.value()->IsDeleted()) {
+      fmt::println("deleted pointer address: {}", static_cast<void *>(child.value()));
       // NOTE: need retry
-      child.value()->RLock();
+      child.value()->RUnlock();
       next_node.get().RUnlock();
       return true;
     }
@@ -164,27 +173,46 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   auto prefix_byte = CPrefix::GetByte(*this, next_node, mismatch_position);
 
   // NOTE: next_node may point same as remaining_prefix_node
-  CPrefix::Split(*this, next_node, remaining_prefix_node, mismatch_position);
+  retry = CPrefix::Split(*this, next_node, remaining_prefix_node, mismatch_position);
+  if (retry) {
+    return retry;
+  }
   assert(remaining_prefix_node != nullptr);
 
-  // node should lock firstly
-  // split already unlock
-  node.Lock();
+  ConcurrentNode *new_node4;
 
-  auto new_node4 = AllocateNode();
-  // update prefix new ptr
-  auto& nprefix = CPrefix::Get(*this, node);
-  nprefix.ptr = new_node4;
+  assert(next_node.get().Locked() || next_node.get().RLocked());
 
-  new_node4->Lock();
+  if (next_node.get().IsDeleted()) {
+    fmt::println("node is deleted: {}, {}, {}, {}", key.data[6], key.data[7],
+                 static_cast<void *>(&next_node.get()),
+                 static_cast<void *>(remaining_prefix_node));
+    assert(&next_node.get() == &node);
+    // next_node points to node
+    assert(next_node.get().Locked());
+    next_node.get().Reset();
+    CNode4::New(*this, next_node.get());
+    new_node4 = &next_node.get();
+    fmt::println("next_node get type: {}", uint8_t(new_node4->GetType()));
 
-  CNode4::New(*this, *new_node4);
+  } else {
+    // update prefix new ptr
+    assert(next_node.get().RLocked());
+    next_node.get().Upgrade();
+    CNode4::New(*this, next_node.get());
+    new_node4 = &next_node.get();
+  }
+
+  assert(!new_node4->IsDeleted() && new_node4->Locked());
+
+  assert(!remaining_prefix_node->IsDeleted());
   CNode4::InsertChild(*this, new_node4, prefix_byte, remaining_prefix_node);
 
   auto next_prefix_node = AllocateNode();
+  fmt::println("next_prefix_node pointer: {}", static_cast<void *>(next_prefix_node));
   auto ref_next_prefix = std::ref(*next_prefix_node);
   // NOTE: new node no need lock
-  next_prefix_node->Lock();
+  ref_next_prefix.get().Lock();
 
   if (depth + 1 < key.len) {
     // NOTE: need create PrefixNode
@@ -192,16 +220,12 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   }
 
   assert(ref_next_prefix.get().Locked());
-//  assert(!next_prefix_node->Locked());
 
   CLeaf::New(ref_next_prefix, doc_id);
   ref_next_prefix.get().Unlock();
 
   CNode4::InsertChild(*this, new_node4, key[depth], next_prefix_node);
   new_node4->Unlock();
-
-  // important cannot release before new_node settle down
-  node.Unlock();
 
   return false;
 }

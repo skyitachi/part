@@ -403,13 +403,18 @@ void CPrefix::Free(ConcurrentART &art, ConcurrentNode *node) {
     next_node = CPrefix::Get(art, *current_node).ptr;
     next_node->Lock();
     ConcurrentNode::GetAllocator(art, NType::PREFIX).Free(*current_node);
-    current_node->ResetAll();
+    current_node->Reset();
     current_node->SetDeleted();
+    current_node->Unlock();
 
     current_node = next_node;
   }
-  node->ResetAll();
-  node->SetDeleted();
+  // NOTE: maybe no need use ResetAll
+  assert(current_node->Locked());
+  ConcurrentNode::Free(art, current_node);
+  current_node->Reset();
+  current_node->SetDeleted();
+  current_node->Unlock();
 }
 
 // NOTE: child_node is new node, no need add lock to these node
@@ -471,16 +476,21 @@ bool CPrefix::Split(ConcurrentART &art, reference<ConcurrentNode> &prefix_node, 
   prefix_node.get().Upgrade();
   cprefix.data[Node::PREFIX_SIZE] = position;
 
-  // TODO: this branch maybe wrong
   if (position == 0) {
     // NOTE: all locks released
-    ConcurrentNode::Free(art, &prefix_node.get());
-    assert(!prefix_node.get().RLocked() && !prefix_node.get().Locked());
+    // NOTE: it's important, it will protect cprefix.ptr been freed
+    // cprefix.ptr->Reset();
+    // keeps lock
+    CPrefix::FreeSelf(art, &prefix_node.get());
     return false;
   }
 
+  if (child_node == cprefix.ptr) {
+    // allocate new pointer
+    cprefix.ptr = art.AllocateNode();
+  }
   prefix_node.get().Unlock();
-  // keep prefix_node hold read lock???
+
   cprefix.ptr->RLock();
   prefix_node = *cprefix.ptr;
   return false;
@@ -552,6 +562,13 @@ void CPrefix::NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, 
 
   other_prefix->RUnlock();
   assert(current_prefix.get().ptr->GetType() != NType::PREFIX);
+}
+
+void CPrefix::FreeSelf(ConcurrentART &art, ConcurrentNode *node) {
+  assert(node->Locked());
+  ConcurrentNode::GetAllocator(art, NType::PREFIX).Free(*node);
+  node->Reset();
+  node->SetDeleted();
 }
 
 }  // namespace part

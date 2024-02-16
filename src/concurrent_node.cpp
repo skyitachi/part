@@ -136,7 +136,7 @@ void ConcurrentNode::Free(ConcurrentART& art, ConcurrentNode* node) {
     auto type = node->GetType();
     switch (type) {
       case NType::LEAF_INLINED: {
-        node->ResetAll();
+        node->Reset();
         node->SetDeleted();
         return;
       }

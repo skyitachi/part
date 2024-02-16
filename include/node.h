@@ -107,7 +107,7 @@ class Node {
 
   inline void SetDeleted() {
     data &= Node::AND_RESET;
-    data != Node::SET_DELETED_FLAG;
+    data |= Node::SET_DELETED_FLAG;
   }
 
   //! Set the type (1st to 7th bit)

@@ -217,6 +217,7 @@ TEST(ConcurrentARTTest, CNode4Insert) {
   art.Get(k3, results_ids);
   EXPECT_EQ(results_ids.size(), 1);
   EXPECT_EQ(results_ids[0], 3);
+  art.Draw("prefix.dot");
 }
 
 TEST(ConcurrentARTTest, CNode16Insert) {
@@ -243,24 +244,15 @@ TEST(ConcurrentARTTest, BigARTInsert) {
 
   for (idx_t i = 0; i < limit; i++) {
     ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
-    if (i == 256) {
-      fmt::println("debug point");
-    }
     art.Put(k, i);
   }
 
   for (idx_t i = 0; i < limit; i++) {
     ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
     std::vector<idx_t> result_ids;
-    if (i == 256) {
-      fmt::println("debug point");
-    }
     art.Get(k, result_ids);
-    if (result_ids.size() != 1) {
-      fmt::println("key failed {}", i);
-    }
-//    EXPECT_EQ(result_ids.size(), 1);
-//    EXPECT_EQ(result_ids[0], i);
+    EXPECT_EQ(result_ids.size(), 1);
+    EXPECT_EQ(result_ids[0], i);
   }
 
 }

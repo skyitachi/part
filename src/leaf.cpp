@@ -441,14 +441,12 @@ void CLeaf::Free(ConcurrentART &art, ConcurrentNode *node) {
     // add deleted flag and reset all lock states
     ConcurrentNode::GetAllocator(art, NType::LEAF).Free(*current_node);
     // ResetAll and SetDeleted order matters
-    current_node->ResetAll();
+    current_node->Reset();
     current_node->SetDeleted();
+    current_node->Unlock();
 
     current_node = next_node;
   }
-
-  node->ResetAll();
-  node->SetDeleted();
 }
 
 }  // namespace part
