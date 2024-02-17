@@ -528,6 +528,25 @@ CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *node) {
   return cprefix;
 }
 
+CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *node,
+                               const ARTKey &key,
+                               const uint32_t depth,
+                               uint32_t count) {
+
+  node->Update(ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew());
+  node->SetType((uint8_t)NType::PREFIX);
+  auto &cprefix = CPrefix::Get(art, *node);
+  cprefix.data[Node::PREFIX_SIZE] = 0;
+  // NOTE: important init
+  cprefix.ptr = art.AllocateNode();
+  for (uint32_t i = 0; i < count; i++) {
+    // NOTE: important to Append prefix data
+    cprefix = cprefix.NewPrefixAppend(art, key.data[depth + i]);
+  }
+
+  return cprefix;
+}
+
 // NOTE: current prefix node is new node, so no need to add lock
 // Append work as path compression
 void CPrefix::NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, bool &retry) {

@@ -240,7 +240,7 @@ TEST(ConcurrentARTTest, BigARTInsert) {
 
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
-  idx_t limit = 258;
+  idx_t limit = 1000;
 
   for (idx_t i = 0; i < limit; i++) {
     ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);

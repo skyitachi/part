@@ -83,6 +83,9 @@ class CPrefix {
   // NOTE: no locks
   static CPrefix &NewPrefixNew(ConcurrentART &art, ConcurrentNode *node);
 
+  static CPrefix &NewPrefixNew(ConcurrentART &art, ConcurrentNode *node, const ARTKey &key, const uint32_t depth,
+                               uint32_t count);
+
   static CPrefix &New(ConcurrentART &art, ConcurrentNode &node);
 
   static inline CPrefix &Get(const ConcurrentART &art, const ConcurrentNode &ptr) {
