@@ -438,15 +438,18 @@ bool CPrefix::Split(ConcurrentART &art, reference<ConcurrentNode> &prefix_node, 
   if (position + 1 < cprefix.data[Node::PREFIX_SIZE]) {
     // NOTE: child_prefix is new node
     child_node = art.AllocateNode();
+    child_node->Lock();
     auto child_prefix = std::ref(CPrefix::NewPrefixNew(art, child_node));
     for (idx_t i = position + 1; i < cprefix.data[Node::PREFIX_SIZE]; i++) {
       // child prefix is new node
-      child_prefix = child_prefix.get().NewPrefixAppend(art, cprefix.data[i]);
+      child_prefix = child_prefix.get().NewPrefixAppend(art, cprefix.data[i], child_node);
     }
+    assert(child_node->Locked());
 
     cprefix.ptr->RLock();
     if (cprefix.ptr->IsDeleted()) {
       cprefix.ptr->RUnlock();
+      child_node->Unlock();
       return true;
     }
     assert(cprefix.ptr && cprefix.ptr->IsSet());
@@ -457,14 +460,16 @@ bool CPrefix::Split(ConcurrentART &art, reference<ConcurrentNode> &prefix_node, 
     //
     if (cprefix.ptr->GetType() == NType::PREFIX) {
       bool retry = false;
-      child_prefix.get().NewPrefixAppend(art, cprefix.ptr, retry);
+      child_prefix.get().NewPrefixAppend(art, cprefix.ptr, child_node, retry);
       if (retry) {
+        child_node->Unlock();
         cprefix.ptr->RLock();
         return true;
       }
     } else {
       child_prefix.get().ptr = cprefix.ptr;
       cprefix.ptr->RUnlock();
+      child_node->Unlock();
     }
   }
 
@@ -506,12 +511,16 @@ CPrefix &CPrefix::New(ConcurrentART &art, ConcurrentNode &node) {
   return prefix;
 }
 
-CPrefix &CPrefix::NewPrefixAppend(ConcurrentART &art, const uint8_t byte) {
+CPrefix &CPrefix::NewPrefixAppend(ConcurrentART &art, const uint8_t byte, ConcurrentNode *&node) {
+  assert(node->Locked());
   auto prefix = std::ref(*this);
 
   if (prefix.get().data[Node::PREFIX_SIZE] == Node::PREFIX_SIZE) {
     assert(prefix.get().ptr);
-    prefix = CPrefix::NewPrefixNew(art, prefix.get().ptr);
+    node->Unlock();
+    node = prefix.get().ptr;
+    node->Lock();
+    prefix = CPrefix::NewPrefixNew(art, node);
   }
   prefix.get().data[prefix.get().data[Node::PREFIX_SIZE]] = byte;
   prefix.get().data[Node::PREFIX_SIZE]++;
@@ -519,6 +528,7 @@ CPrefix &CPrefix::NewPrefixAppend(ConcurrentART &art, const uint8_t byte) {
 }
 
 CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *node) {
+  assert(node->Locked());
   node->Update(ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew());
   node->SetType((uint8_t)NType::PREFIX);
   auto &cprefix = CPrefix::Get(art, *node);
@@ -528,11 +538,8 @@ CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *node) {
   return cprefix;
 }
 
-CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *node,
-                               const ARTKey &key,
-                               const uint32_t depth,
+CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *&node, const ARTKey &key, const uint32_t depth,
                                uint32_t count) {
-
   node->Update(ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew());
   node->SetType((uint8_t)NType::PREFIX);
   auto &cprefix = CPrefix::Get(art, *node);
@@ -541,7 +548,7 @@ CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *node,
   cprefix.ptr = art.AllocateNode();
   for (uint32_t i = 0; i < count; i++) {
     // NOTE: important to Append prefix data
-    cprefix = cprefix.NewPrefixAppend(art, key.data[depth + i]);
+    cprefix = cprefix.NewPrefixAppend(art, key.data[depth + i], node);
   }
 
   return cprefix;
@@ -549,7 +556,7 @@ CPrefix &CPrefix::NewPrefixNew(ConcurrentART &art, ConcurrentNode *node,
 
 // NOTE: current prefix node is new node, so no need to add lock
 // Append work as path compression
-void CPrefix::NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, bool &retry) {
+void CPrefix::NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, ConcurrentNode *&node, bool &retry) {
   assert(other_prefix->RLocked());
   assert(other_prefix->IsSet() && !other_prefix->IsSerialized());
 
@@ -557,7 +564,7 @@ void CPrefix::NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, 
   while (other_prefix->GetType() == NType::PREFIX) {
     auto &other = CPrefix::Get(art, *other_prefix);
     for (idx_t i = 0; i < other.data[Node::PREFIX_SIZE]; i++) {
-      current_prefix = current_prefix.get().NewPrefixAppend(art, other.data[i]);
+      current_prefix = current_prefix.get().NewPrefixAppend(art, other.data[i], node);
     }
     other.ptr->RLock();
     if (other.ptr->IsDeleted()) {

@@ -9,17 +9,25 @@
 
 #include "leaf.h"
 #include "node16.h"
-#include "node4.h"
-#include "prefix.h"
 #include "node256.h"
+#include "node4.h"
 #include "node48.h"
+#include "prefix.h"
 
 namespace part {
 
 bool ConcurrentART::Get(const part::ARTKey& key, std::vector<idx_t>& result_ids) {
+  auto start = std::chrono::high_resolution_clock::now();
   while (lookup(*root, key, 0, result_ids)) {
     result_ids.clear();
     std::this_thread::yield();
+    auto end = std::chrono::high_resolution_clock::now();
+
+    // 计算耗时
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    if (duration > 100) {
+      fmt::println("debug point");
+    }
   }
   return !result_ids.empty();
 }
@@ -95,6 +103,7 @@ void ConcurrentART::Put(const ARTKey& key, idx_t doc_id) {
   } while (retry);
 }
 
+// NOTE: never hold locks after the insert
 bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth, const idx_t& doc_id) {
   assert(node.RLocked());
   if (node.IsDeleted()) {
@@ -115,39 +124,34 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
 
   if (node_type == NType::LEAF || node_type == NType::LEAF_INLINED) {
     // insert into leaf
+    fmt::println("insert to leaf {}", doc_id);
     return insertToLeaf(&node, doc_id);
   }
 
   if (node_type != NType::PREFIX) {
     assert(depth < key.len);
+    // lock in advance to prevent double check
+    node.Upgrade();
     auto child = node.GetChild(*this, key[depth]);
     if (child) {
-      node.RUnlock();
+      node.Unlock();
       child.value()->RLock();
       return insert(*child.value(), key, depth + 1, doc_id);
     }
-
     ConcurrentNode* new_node = AllocateNode();
     ConcurrentNode* next_node = new_node;
     if (depth + 1 < key.len) {
       new_node->Lock();
       CPrefix::NewPrefixNew(*this, new_node, key, depth + 1, key.len - depth - 1);
       auto& new_prefix = CPrefix::Get(*this, *new_node);
-      new_node->Unlock();
       next_node = new_prefix.ptr;
+      new_node->Unlock();
     }
     assert(next_node);
     next_node->Lock();
     CLeaf::New(*next_node, doc_id);
     next_node->Unlock();
-    node.Upgrade();
-//    fmt::println("doc_id {} parent locked, parent type: {}, {}, locked {}, rlocked {}",
-//                 doc_id,
-//                 (uint32_t)node.GetType(),
-//                 static_cast<void *>(&node),
-//                 node.Locked(),
-//                 node.RLocked());
-//    ::fflush(stdout);
+
     ConcurrentNode::InsertChild(*this, &node, key[depth], new_node);
     // NOTE: important release lock carefully
     node.Unlock();
@@ -162,11 +166,11 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     next_node.get().RUnlock();
     return true;
   }
-//  fmt::println("doc_id {}, next_node type: {}, next_node {}, rlocked {}",
-//               doc_id, uint32_t(next_node.get().GetType()),
-//               static_cast<void *>(&next_node.get()),
-//               next_node.get().RLocked());
-//  ::fflush(stdout);
+  //  fmt::println("doc_id {}, next_node type: {}, next_node {}, rlocked {}",
+  //               doc_id, uint32_t(next_node.get().GetType()),
+  //               static_cast<void *>(&next_node.get()),
+  //               next_node.get().RLocked());
+  //  ::fflush(stdout);
 
   assert(next_node.get().RLocked());
   if (next_node.get().GetType() != NType::PREFIX) {
@@ -183,7 +187,7 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   }
   assert(remaining_prefix_node != nullptr);
 
-  ConcurrentNode *new_node4;
+  ConcurrentNode* new_node4;
 
   assert(next_node.get().Locked() || next_node.get().RLocked());
 
@@ -239,7 +243,6 @@ ConcurrentART::ConcurrentART(const FixedSizeAllocatorListPtr allocators_ptr)
     allocators->emplace_back(sizeof(CNode16), Allocator::DefaultAllocator());
     allocators->emplace_back(sizeof(CNode48), Allocator::DefaultAllocator());
     allocators->emplace_back(sizeof(CNode256), Allocator::DefaultAllocator());
-
   }
   root = std::make_unique<ConcurrentNode>();
 }
@@ -290,7 +293,8 @@ bool ConcurrentART::insertToLeaf(ConcurrentNode* leaf, const idx_t doc_id) {
   // make sure leaf unlocked after insert
   leaf->Upgrade();
   CLeaf::Insert(*this, leaf, doc_id, retry);
-  leaf->Downgrade();
+  // TODO: check this branch
+  //  leaf->Downgrade();
   return retry;
 }
 

@@ -333,6 +333,7 @@ void CLeaf::New(ConcurrentNode &node, const idx_t doc_id) {
   //  node.ptr = std::make_unique<ConcurrentNode>();
 }
 
+// NOTE: acquire no locks after Insert
 void CLeaf::Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id, bool &retry) {
   assert((node->Locked()) && !node->IsDeleted());
   assert(node->IsSet() && !node->IsSerialized());

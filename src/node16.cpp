@@ -223,6 +223,11 @@ void CNode16::Free(ConcurrentART &art, ConcurrentNode *node) {
   }
 }
 
+void CNode16::ShallowFree(ConcurrentART &art, ConcurrentNode *node) {
+  assert(node->Locked());
+  ConcurrentNode::GetAllocator(art, NType::NODE_16).Free(*node);
+}
+
 // NOTE: node16 should be allocated
 CNode16 &CNode16::GrowNode4(ConcurrentART &art, ConcurrentNode *node4) {
   assert(node4->Locked());
@@ -244,7 +249,8 @@ CNode16 &CNode16::GrowNode4(ConcurrentART &art, ConcurrentNode *node4) {
   }
 
   n4.count = 0;
-  ConcurrentNode::Free(art, node4);
+  n4.ShallowFree(art, node4);
+  //  ConcurrentNode::Free(art, node4);
   // reset node4 points to n16
   node4->Update(node16);
   node4->SetType((uint8_t)NType::NODE_16);

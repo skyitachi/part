@@ -56,6 +56,7 @@ class CNode4 {
 
   static CNode4 &New(ConcurrentART &art, ConcurrentNode &node);
   static void Free(ConcurrentART &art, ConcurrentNode *node);
+  static void ShallowFree(ConcurrentART &art, ConcurrentNode *node);
   static void InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte, ConcurrentNode *child);
 
   static inline CNode4 &Get(const ConcurrentART &art, const ConcurrentNode *node) {

@@ -10,10 +10,10 @@
 #include "concurrent_art.h"
 #include "leaf.h"
 #include "node16.h"
-#include "node4.h"
-#include "prefix.h"
 #include "node256.h"
+#include "node4.h"
 #include "node48.h"
+#include "prefix.h"
 
 namespace part {
 constexpr uint32_t RETRY_THRESHOLD = 100;
@@ -21,6 +21,7 @@ constexpr uint64_t HAS_WRITER = ~0L;
 
 void ConcurrentNode::RLock() {
   int retry = 0;
+  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_.load();
     if (prev != HAS_WRITER) {
@@ -33,12 +34,20 @@ void ConcurrentNode::RLock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point");
+      }
     }
   }
 }
 
 void ConcurrentNode::RUnlock() {
   int retry = 0;
+  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_;
     if (prev != HAS_WRITER && prev > 0) {
@@ -51,12 +60,21 @@ void ConcurrentNode::RUnlock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point");
+      }
     }
   }
 }
 
 void ConcurrentNode::Lock() {
   int retry = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+
   while (true) {
     uint64_t prev = lock_;
     if (prev == 0) {
@@ -69,12 +87,21 @@ void ConcurrentNode::Lock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point");
+      }
     }
   }
 }
 
 void ConcurrentNode::Unlock() {
   int retry = 0;
+  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_;
     if (prev == HAS_WRITER) {
@@ -86,6 +113,14 @@ void ConcurrentNode::Unlock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point");
+      }
     }
   }
 }
@@ -98,6 +133,7 @@ void ConcurrentNode::Downgrade() {
 // TODO: may need test
 void ConcurrentNode::Upgrade() {
   int retry = 0;
+  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     // NOTE: only one reader can upgrade to writer
     uint64_t prev = 1;
@@ -108,6 +144,13 @@ void ConcurrentNode::Upgrade() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point");
+      }
     }
   }
 }
@@ -309,15 +352,78 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       }
       break;
     }
+    case NType::NODE_48: {
+      id++;
+      std::string node_prefix("NODE48_");
+      std::string current_id_str = fmt::format("{}{}", node_prefix, id);
+      RLock();
+      auto& node48 = CNode48::Get(art, this);
+      out << node_prefix << id;
+      out << "[shape=plain color=yellow ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node48.count << "\"> node48_" << id << "</TD></TR>\n";
+      out << "<TR>\n";
+      RUnlock();
+      for (int i = 0; i < Node::NODE_256_CAPACITY; i++) {
+        if (node48.child_index[i] != Node::EMPTY_MARKER) {
+          out << "<TD>" << i << "</TD>\n";
+        }
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      for (int i = 0; i < 256; i++) {
+        if (node48.child_index[i] != Node::EMPTY_MARKER) {
+          node48.children[node48.child_index[i]]->ToGraph(art, out, id, current_id_str);
+        }
+      }
+      break;
+    }
+    case NType::NODE_256: {
+      id++;
+      std::string node_prefix("NODE256_");
+      std::string current_id_str = fmt::format("{}{}", node_prefix, id);
+      RLock();
+      auto& node256 = CNode256::Get(art, this);
+      out << node_prefix << id;
+      out << "[shape=plain color=yellow ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node256.count << "\"> node256_" << id << "</TD></TR>\n";
+      out << "<TR>\n";
+      RUnlock();
+      for (int i = 0; i < Node::NODE_256_CAPACITY; i++) {
+        if (node256.children[i]) {
+          out << "<TD>" << i << "</TD>\n";
+        }
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      for (int i = 0; i < 256; i++) {
+        if (node256.children[i]) {
+          node256.children[i]->ToGraph(art, out, id, current_id_str);
+        }
+      }
+      break;
+    }
     default:
       throw std::invalid_argument("ToGraph does not support such node types");
   }
 }
 
 void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, const uint8_t byte, ConcurrentNode* child) {
-  if (!node->Locked()) {
-    fmt::println("debug point");
-  }
   assert(node->Locked());
   switch (node->GetType()) {
     case NType::NODE_4:

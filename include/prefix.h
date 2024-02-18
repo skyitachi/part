@@ -24,7 +24,6 @@ class Prefix {
 
   static void Free(ART &art, Node &node);
 
-
   static inline Prefix &Get(const ART &art, const Node ptr) {
     assert(!ptr.IsSerialized());
     return *Node::GetAllocator(art, NType::PREFIX).Get<Prefix>(ptr);
@@ -83,7 +82,7 @@ class CPrefix {
   // NOTE: no locks
   static CPrefix &NewPrefixNew(ConcurrentART &art, ConcurrentNode *node);
 
-  static CPrefix &NewPrefixNew(ConcurrentART &art, ConcurrentNode *node, const ARTKey &key, const uint32_t depth,
+  static CPrefix &NewPrefixNew(ConcurrentART &art, ConcurrentNode *&node, const ARTKey &key, const uint32_t depth,
                                uint32_t count);
 
   static CPrefix &New(ConcurrentART &art, ConcurrentNode &node);
@@ -111,9 +110,9 @@ class CPrefix {
                     idx_t position);
 
   // NOTE: new prefix append data no need to sync with lock
-  CPrefix &NewPrefixAppend(ConcurrentART &art, const uint8_t byte);
+  CPrefix &NewPrefixAppend(ConcurrentART &art, const uint8_t byte, ConcurrentNode *&node);
 
-  void NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, bool &retry);
+  void NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, ConcurrentNode *&node, bool &retry);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H

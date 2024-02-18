@@ -71,6 +71,8 @@ class CNode16 {
 
   static void Free(ConcurrentART &art, ConcurrentNode *node);
 
+  static void ShallowFree(ConcurrentART &art, ConcurrentNode *node);
+
   static CNode16 &GrowNode4(ConcurrentART &art, ConcurrentNode *node4);
 
   static void InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child);

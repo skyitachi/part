@@ -167,7 +167,8 @@ CNode256 &CNode256::GrowNode48(ConcurrentART &art, ConcurrentNode *node48) {
     }
   }
   n48.count = 0;
-  ConcurrentNode::Free(art, node48);
+  n48.ShallowFree(art, node48);
+
   node48->Update(node256);
   node48->SetType((uint8_t)NType::NODE_256);
   assert(node48->Locked());

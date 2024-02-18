@@ -208,6 +208,11 @@ void CNode4::Free(ConcurrentART &art, ConcurrentNode *node) {
   }
 }
 
+void CNode4::ShallowFree(ConcurrentART &art, ConcurrentNode *node) {
+  assert(node->Locked());
+  ConcurrentNode::GetAllocator(art, NType::NODE_4).Free(*node);
+}
+
 void CNode4::InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte, ConcurrentNode *child) {
   assert(node->Locked());
   assert(node->IsSet() && !node->IsSerialized());

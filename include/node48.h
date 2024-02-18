@@ -60,6 +60,8 @@ class CNode48 {
 
   static void Free(ConcurrentART &art, ConcurrentNode *node);
 
+  static void ShallowFree(ConcurrentART &art, ConcurrentNode *node);
+
   static inline CNode48 &Get(const ConcurrentART &art, const ConcurrentNode *ptr) {
     assert(ptr->Locked() || ptr->RLocked());
     assert(!ptr->IsSerialized());
