@@ -90,17 +90,17 @@ void ConcurrentNode::Unlock() {
   }
 }
 
-// TODO: need test
 void ConcurrentNode::Downgrade() {
   // one reader
   lock_.store(1);
 }
 
-// TODO: need test
+// TODO: may need test
 void ConcurrentNode::Upgrade() {
   int retry = 0;
   while (true) {
-    uint64_t prev = lock_;
+    // NOTE: only one reader can upgrade to writer
+    uint64_t prev = 1;
     if (lock_.compare_exchange_weak(prev, HAS_WRITER)) {
       return;
     }
@@ -315,6 +315,9 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
 }
 
 void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, const uint8_t byte, ConcurrentNode* child) {
+  if (!node->Locked()) {
+    fmt::println("debug point");
+  }
   assert(node->Locked());
   switch (node->GetType()) {
     case NType::NODE_4:

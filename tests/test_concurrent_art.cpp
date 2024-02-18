@@ -240,7 +240,7 @@ TEST(ConcurrentARTTest, BigARTInsert) {
 
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
-  idx_t limit = 1000;
+  idx_t limit = 10000;
 
   for (idx_t i = 0; i < limit; i++) {
     ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
@@ -254,5 +254,130 @@ TEST(ConcurrentARTTest, BigARTInsert) {
     EXPECT_EQ(result_ids.size(), 1);
     EXPECT_EQ(result_ids[0], i);
   }
+}
 
+TEST(ConcurrentARTTest, SmallMultiThreadTest) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  idx_t limit = 10;
+
+  std::thread writer([&] {
+    for (idx_t i = 0; i < limit; i++) {
+      ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+      art.Put(k, i);
+    }
+    fmt::println("finish put all data");
+
+  });
+
+  std::thread reader0([&] {
+    for (idx_t i = 0; i < limit; i++) {
+      ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+      std::vector<idx_t> result_ids;
+      while (!art.Get(k, result_ids)) {
+        result_ids.clear();
+        std::this_thread::yield();
+      }
+      EXPECT_EQ(result_ids.size(), 1);
+      EXPECT_EQ(result_ids[0], i);
+    }
+
+  });
+
+  std::thread reader1([&] {
+    for (idx_t i = 0; i < limit; i++) {
+      ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+      std::vector<idx_t> result_ids;
+      while (!art.Get(k, result_ids)) {
+        result_ids.clear();
+        std::this_thread::yield();
+      }
+      EXPECT_EQ(result_ids.size(), 1);
+      EXPECT_EQ(result_ids[0], i);
+    }
+
+  });
+
+  writer.join();
+  reader0.join();
+  reader1.join();
+}
+
+TEST(ConcurrentNodeTest, MultiThreadTest) {
+  ConcurrentNode node;
+  int counter = 0;
+  std::vector<std::thread> ths;
+  for(int i = 0; i < 10; i++) {
+    ths.emplace_back([&]{
+      for (int k = 0; k < 100000; k++) {
+        node.Lock();
+        counter++;
+        node.Unlock();
+      }
+    });
+  }
+
+  ths.emplace_back([&]{
+    for (int k = 0; k < 10000; k++) {
+      node.RLock();
+      node.RUnlock();
+    }
+  });
+
+  for (auto &th: ths) {
+    th.join();
+  }
+
+  EXPECT_EQ(counter, 10 * 100000);
+}
+
+TEST(ConcurrentARTTest, BigMultiThreadTest) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  idx_t limit = 100;
+
+  std::thread writer([&] {
+    for (idx_t i = 0; i < limit; i++) {
+      ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+      art.Put(k, i);
+    }
+    fmt::println("finish put all data");
+
+  });
+
+  std::thread reader0([&] {
+    for (idx_t i = 0; i < limit; i++) {
+      ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+      std::vector<idx_t> result_ids;
+      while (!art.Get(k, result_ids)) {
+        result_ids.clear();
+        std::this_thread::yield();
+      }
+      EXPECT_EQ(result_ids.size(), 1);
+      EXPECT_EQ(result_ids[0], i);
+    }
+
+  });
+
+  std::thread reader1([&] {
+    for (idx_t i = 0; i < limit; i++) {
+      ARTKey k = ARTKey::CreateARTKey<int64_t>(arena_allocator, i);
+      std::vector<idx_t> result_ids;
+      while (!art.Get(k, result_ids)) {
+        result_ids.clear();
+        std::this_thread::yield();
+      }
+      EXPECT_EQ(result_ids.size(), 1);
+      EXPECT_EQ(result_ids[0], i);
+    }
+
+  });
+
+  writer.join();
+  reader0.join();
+  reader1.join();
 }

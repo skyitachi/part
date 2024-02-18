@@ -66,7 +66,7 @@ bool ConcurrentART::lookup(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     auto child = next_node.get().GetChild(*this, key[depth]);
     if (!child) {
       // cannot found node
-      next_node.get().Unlock();
+      next_node.get().RUnlock();
       return false;
     }
     child.value()->RLock();
@@ -127,7 +127,6 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
       return insert(*child.value(), key, depth + 1, doc_id);
     }
 
-    fmt::println("new prefix key: {}, {}, depth: {}", (uint32_t)key.data[6], (uint32_t)key.data[7], depth);
     ConcurrentNode* new_node = AllocateNode();
     ConcurrentNode* next_node = new_node;
     if (depth + 1 < key.len) {
@@ -142,6 +141,13 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     CLeaf::New(*next_node, doc_id);
     next_node->Unlock();
     node.Upgrade();
+//    fmt::println("doc_id {} parent locked, parent type: {}, {}, locked {}, rlocked {}",
+//                 doc_id,
+//                 (uint32_t)node.GetType(),
+//                 static_cast<void *>(&node),
+//                 node.Locked(),
+//                 node.RLocked());
+//    ::fflush(stdout);
     ConcurrentNode::InsertChild(*this, &node, key[depth], new_node);
     // NOTE: important release lock carefully
     node.Unlock();
@@ -156,6 +162,11 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     next_node.get().RUnlock();
     return true;
   }
+//  fmt::println("doc_id {}, next_node type: {}, next_node {}, rlocked {}",
+//               doc_id, uint32_t(next_node.get().GetType()),
+//               static_cast<void *>(&next_node.get()),
+//               next_node.get().RLocked());
+//  ::fflush(stdout);
 
   assert(next_node.get().RLocked());
   if (next_node.get().GetType() != NType::PREFIX) {
