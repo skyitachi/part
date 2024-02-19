@@ -39,7 +39,7 @@ void ConcurrentNode::RLock() {
       // 计算耗时
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
       if (duration > 100) {
-        fmt::println("debug point");
+        fmt::println("debug point RLock");
       }
     }
   }
@@ -65,7 +65,7 @@ void ConcurrentNode::RUnlock() {
       // 计算耗时
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
       if (duration > 100) {
-        fmt::println("debug point");
+        fmt::println("debug point RUnlock");
       }
     }
   }
@@ -93,7 +93,7 @@ void ConcurrentNode::Lock() {
       // 计算耗时
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
       if (duration > 100) {
-        fmt::println("debug point");
+        fmt::println("debug point Lock");
       }
     }
   }
@@ -119,7 +119,7 @@ void ConcurrentNode::Unlock() {
       // 计算耗时
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
       if (duration > 100) {
-        fmt::println("debug point");
+        fmt::println("debug point Unlock");
       }
     }
   }
@@ -149,7 +149,7 @@ void ConcurrentNode::Upgrade() {
       // 计算耗时
       auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
       if (duration > 100) {
-        fmt::println("debug point");
+        fmt::println("debug point Upgrade");
       }
     }
   }
@@ -441,6 +441,10 @@ void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, const
     default:
       throw std::invalid_argument(fmt::format("Invalid node type for InsertChild type: {}", (uint8_t)node->GetType()));
   }
+}
+
+int64_t ConcurrentNode::Readers() {
+  return lock_.load();
 }
 
 }  // namespace part

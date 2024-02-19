@@ -61,6 +61,7 @@ class ConcurrentNode : public Node {
   void RUnlock();
   void Downgrade();
   void Upgrade();
+  int64_t Readers();
 
   bool RLocked() const;
   bool Locked() const;

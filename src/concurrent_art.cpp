@@ -17,17 +17,10 @@
 namespace part {
 
 bool ConcurrentART::Get(const part::ARTKey& key, std::vector<idx_t>& result_ids) {
-  auto start = std::chrono::high_resolution_clock::now();
+//  fmt::println("root readers: {}", root->Readers());
   while (lookup(*root, key, 0, result_ids)) {
     result_ids.clear();
     std::this_thread::yield();
-    auto end = std::chrono::high_resolution_clock::now();
-
-    // 计算耗时
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    if (duration > 100) {
-      fmt::println("debug point");
-    }
   }
   return !result_ids.empty();
 }
@@ -124,7 +117,6 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
 
   if (node_type == NType::LEAF || node_type == NType::LEAF_INLINED) {
     // insert into leaf
-    fmt::println("insert to leaf {}", doc_id);
     return insertToLeaf(&node, doc_id);
   }
 
@@ -166,11 +158,6 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     next_node.get().RUnlock();
     return true;
   }
-  //  fmt::println("doc_id {}, next_node type: {}, next_node {}, rlocked {}",
-  //               doc_id, uint32_t(next_node.get().GetType()),
-  //               static_cast<void *>(&next_node.get()),
-  //               next_node.get().RLocked());
-  //  ::fflush(stdout);
 
   assert(next_node.get().RLocked());
   if (next_node.get().GetType() != NType::PREFIX) {
@@ -293,8 +280,7 @@ bool ConcurrentART::insertToLeaf(ConcurrentNode* leaf, const idx_t doc_id) {
   // make sure leaf unlocked after insert
   leaf->Upgrade();
   CLeaf::Insert(*this, leaf, doc_id, retry);
-  // TODO: check this branch
-  //  leaf->Downgrade();
+  assert(!leaf->Locked());
   return retry;
 }
 
