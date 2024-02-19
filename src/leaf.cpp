@@ -289,6 +289,8 @@ bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_
 
   if (node.GetType() == NType::LEAF_INLINED) {
     result_ids.push_back(node.GetDocId());
+    // important
+    node.RUnlock();
     return true;
   }
   auto last_leaf_ref = std::ref(node);
@@ -325,7 +327,7 @@ CLeaf &CLeaf::Get(ConcurrentART &art, const ConcurrentNode &ptr) {
 }
 
 // NOTE: default is inline
-void CLeaf::New(ConcurrentNode &node, const idx_t doc_id) {
+void CLeaf::New(ConcurrentNode &node, idx_t doc_id) {
   assert(node.Locked());
   node.Reset();
   node.SetType((uint8_t)NType::LEAF_INLINED);

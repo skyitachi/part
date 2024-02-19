@@ -61,7 +61,8 @@ class CLeaf {
   static bool GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_t> &result_ids, idx_t max_count,
                         bool &retry);
 
-  static void New(ConcurrentNode &node, const idx_t doc_id);
+  static void New(ConcurrentNode &node, idx_t doc_id);
+
 
   static void Free(ConcurrentART &art, ConcurrentNode *node);
 

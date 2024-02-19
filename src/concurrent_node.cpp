@@ -47,6 +47,7 @@ void ConcurrentNode::RLock() {
 
 void ConcurrentNode::RUnlock() {
   int retry = 0;
+//  fmt::println("debug RUnlock {}", static_cast<void *>(this));
   auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_;
@@ -101,6 +102,7 @@ void ConcurrentNode::Lock() {
 
 void ConcurrentNode::Unlock() {
   int retry = 0;
+//  fmt::println("debug Unlock {}", static_cast<void *>(this));
   auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_;
@@ -200,7 +202,7 @@ void ConcurrentNode::Free(ConcurrentART& art, ConcurrentNode* node) {
     }
   }
 }
-std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, const uint8_t byte) const {
+std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, uint8_t byte) const {
   assert(RLocked() || Locked());
   assert(IsSet() && !IsSerialized());
 
@@ -423,7 +425,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
   }
 }
 
-void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, const uint8_t byte, ConcurrentNode* child) {
+void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, uint8_t byte, ConcurrentNode* child) {
   assert(node->Locked());
   switch (node->GetType()) {
     case NType::NODE_4:

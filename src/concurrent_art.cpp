@@ -18,56 +18,57 @@ namespace part {
 
 bool ConcurrentART::Get(const part::ARTKey& key, std::vector<idx_t>& result_ids) {
 //  fmt::println("root readers: {}", root->Readers());
-  while (lookup(*root, key, 0, result_ids)) {
+  while (lookup(root.get(), key, 0, result_ids)) {
     result_ids.clear();
     std::this_thread::yield();
   }
   return !result_ids.empty();
 }
 
-bool ConcurrentART::lookup(ConcurrentNode& node, const ARTKey& key, idx_t depth, std::vector<idx_t>& result_ids) {
-  auto next_node = std::ref(node);
-  next_node.get().RLock();
-  if (next_node.get().IsDeleted()) {
+bool ConcurrentART::lookup(ConcurrentNode *next_node, const ARTKey& key, idx_t depth, std::vector<idx_t>& result_ids) {
+  next_node->RLock();
+  if (next_node->IsDeleted()) {
     // NOTE: important to unlock correctly
-    next_node.get().RUnlock();
+    next_node->RUnlock();
     return true;
   }
   bool retry = false;
-  while (next_node.get().IsSet()) {
-    if (next_node.get().GetType() == NType::PREFIX) {
+  while (next_node->IsSet()) {
+    if (next_node->GetType() == NType::PREFIX) {
       CPrefix::Traverse(*this, next_node, key, depth, retry);
       if (retry) {
-        next_node.get().RUnlock();
+        next_node->RUnlock();
         return retry;
       }
-      assert(next_node.get().RLocked());
-      if (next_node.get().GetType() == NType::PREFIX) {
+      assert(next_node->RLocked());
+      if (next_node->GetType() == NType::PREFIX) {
         // NOTE: need unlock asap
-        next_node.get().RUnlock();
+        next_node->RUnlock();
         return false;
       }
     }
 
+    assert(next_node->RLocked());
+
     // inlined leaf can return directly
-    if (next_node.get().GetType() == NType::LEAF_INLINED) {
-      result_ids.emplace_back(next_node.get().GetDocId());
-      next_node.get().RUnlock();
+    if (next_node->GetType() == NType::LEAF_INLINED) {
+      result_ids.emplace_back(next_node->GetDocId());
+      next_node->RUnlock();
       return false;
     }
 
-    if (next_node.get().GetType() == NType::LEAF) {
-      auto& cleaf = CLeaf::Get(*this, next_node.get());
+    if (next_node->GetType() == NType::LEAF) {
+      auto& cleaf = CLeaf::Get(*this, *next_node);
       // NOTE: GetDocIds already released lock
-      cleaf.GetDocIds(*this, next_node.get(), result_ids, std::numeric_limits<int64_t>::max(), retry);
+      cleaf.GetDocIds(*this, *next_node, result_ids, std::numeric_limits<int64_t>::max(), retry);
       return retry;
     }
 
     assert(depth < key.len);
-    auto child = next_node.get().GetChild(*this, key[depth]);
+    auto child = next_node->GetChild(*this, key[depth]);
     if (!child) {
       // cannot found node
-      next_node.get().RUnlock();
+      next_node->RUnlock();
       return false;
     }
     child.value()->RLock();
@@ -75,11 +76,11 @@ bool ConcurrentART::lookup(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     if (child.value()->IsDeleted()) {
       // NOTE: need retry
       child.value()->RUnlock();
-      next_node.get().RUnlock();
+      next_node->RUnlock();
       return true;
     }
-    next_node.get().RUnlock();
-    next_node = *child.value();
+    next_node->RUnlock();
+    next_node = child.value();
     depth++;
   }
   return false;
@@ -106,6 +107,7 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   if (!node.IsSet()) {
     assert(depth <= key.len);
     auto ref = std::ref(node);
+    // TODO: Upgrade 设计
     ref.get().Upgrade();
     CPrefix::New(*this, ref, key, depth, key.len - depth);
     P_ASSERT(ref.get().Locked());
@@ -123,6 +125,7 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   if (node_type != NType::PREFIX) {
     assert(depth < key.len);
     // lock in advance to prevent double check
+    // TODO: Upgrade 设计
     node.Upgrade();
     auto child = node.GetChild(*this, key[depth]);
     if (child) {
@@ -150,22 +153,22 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     return false;
   }
 
-  auto next_node = std::ref(node);
+  auto next_node = &node;
   bool retry = false;
   auto mismatch_position = CPrefix::Traverse(*this, next_node, key, depth, retry);
   if (retry) {
     // need retry
-    next_node.get().RUnlock();
+    next_node->RUnlock();
     return true;
   }
 
-  assert(next_node.get().RLocked());
-  if (next_node.get().GetType() != NType::PREFIX) {
-    return insert(next_node.get(), key, depth, doc_id);
+  assert(next_node->RLocked());
+  if (next_node->GetType() != NType::PREFIX) {
+    return insert(*next_node, key, depth, doc_id);
   }
 
   ConcurrentNode* remaining_prefix_node = nullptr;
-  auto prefix_byte = CPrefix::GetByte(*this, next_node, mismatch_position);
+  auto prefix_byte = CPrefix::GetByte(*this, *next_node, mismatch_position);
 
   // NOTE: next_node may point same as remaining_prefix_node
   retry = CPrefix::Split(*this, next_node, remaining_prefix_node, mismatch_position);
@@ -176,21 +179,20 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
 
   ConcurrentNode* new_node4;
 
-  assert(next_node.get().Locked() || next_node.get().RLocked());
+  assert(next_node->Locked() || next_node->RLocked());
 
-  if (next_node.get().IsDeleted()) {
-    assert(&next_node.get() == &node);
+  if (next_node->IsDeleted()) {
     // next_node points to node
-    assert(next_node.get().Locked());
-    next_node.get().Reset();
-    CNode4::New(*this, next_node.get());
-    new_node4 = &next_node.get();
+    assert(next_node->Locked());
+    next_node->Reset();
+    CNode4::New(*this, *next_node);
+    new_node4 = next_node;
   } else {
     // update prefix new ptr
-    assert(next_node.get().RLocked());
-    next_node.get().Upgrade();
-    CNode4::New(*this, next_node.get());
-    new_node4 = &next_node.get();
+    assert(next_node->RLocked());
+    next_node->Upgrade();
+    CNode4::New(*this, *next_node);
+    new_node4 = next_node;
   }
 
   assert(!new_node4->IsDeleted() && new_node4->Locked());

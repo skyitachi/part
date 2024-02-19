@@ -73,9 +73,9 @@ class ConcurrentNode : public Node {
 
   static void Free(ConcurrentART &art, ConcurrentNode *node);
 
-  std::optional<ConcurrentNode *> GetChild(ConcurrentART &art, const uint8_t byte) const;
+  std::optional<ConcurrentNode *> GetChild(ConcurrentART &art, uint8_t byte) const;
 
-  static void InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child);
+  static void InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte, ConcurrentNode *child);
 
  private:
   // NOTE: 如何传递锁状态是个问题

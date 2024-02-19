@@ -51,7 +51,7 @@ class ConcurrentART {
   }
 
  private:
-  bool lookup(ConcurrentNode &node, const ARTKey &key, idx_t depth, std::vector<idx_t> &result_ids);
+  bool lookup(ConcurrentNode *node, const ARTKey &key, idx_t depth, std::vector<idx_t> &result_ids);
   // if need retry
   bool insert(ConcurrentNode &node, const ARTKey &key, idx_t depth, const idx_t &doc_id);
 

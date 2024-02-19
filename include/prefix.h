@@ -88,11 +88,8 @@ class CPrefix {
   static CPrefix &New(ConcurrentART &art, ConcurrentNode &node);
 
   static inline CPrefix &Get(const ConcurrentART &art, const ConcurrentNode &ptr) {
-    P_ASSERT(!ptr.IsSerialized());
-    if (!ptr.Locked() && !ptr.RLocked()) {
-      fmt::println("debug point");
-    }
     P_ASSERT(ptr.Locked() || ptr.RLocked());
+    P_ASSERT(!ptr.IsSerialized());
     return *ConcurrentNode::GetAllocator(art, NType::PREFIX).Get<CPrefix>(ptr);
   }
 
@@ -103,10 +100,10 @@ class CPrefix {
     return prefix.data[position];
   }
 
-  static idx_t Traverse(ConcurrentART &cart, reference<ConcurrentNode> &prefix_node, const ARTKey &key, idx_t &depth,
+  static idx_t Traverse(ConcurrentART &cart, ConcurrentNode *&next_node, const ARTKey &key, idx_t &depth,
                         bool &retry);
 
-  static bool Split(ConcurrentART &art, reference<ConcurrentNode> &prefix_node, ConcurrentNode *&child_node,
+  static bool Split(ConcurrentART &art, ConcurrentNode *&prefix_node, ConcurrentNode *&child_node,
                     idx_t position);
 
   // NOTE: new prefix append data no need to sync with lock
