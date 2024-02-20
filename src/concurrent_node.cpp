@@ -22,6 +22,7 @@ constexpr uint64_t HAS_WRITER = ~0L;
 void ConcurrentNode::RLock() {
   int retry = 0;
   auto start = std::chrono::high_resolution_clock::now();
+//  fmt::println("RLock: {}", static_cast<void *>(this));
   while (true) {
     uint64_t prev = lock_.load();
     if (prev != HAS_WRITER) {
@@ -47,6 +48,7 @@ void ConcurrentNode::RLock() {
 
 void ConcurrentNode::RUnlock() {
   int retry = 0;
+//  fmt::println("RUnLock: {}", static_cast<void *>(this));
 //  fmt::println("debug RUnlock {}", static_cast<void *>(this));
   auto start = std::chrono::high_resolution_clock::now();
   while (true) {

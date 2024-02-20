@@ -27,6 +27,10 @@ bool ConcurrentART::Get(const part::ARTKey& key, std::vector<idx_t>& result_ids)
 
 bool ConcurrentART::lookup(ConcurrentNode *next_node, const ARTKey& key, idx_t depth, std::vector<idx_t>& result_ids) {
   next_node->RLock();
+  if (!next_node->IsSet()) {
+    next_node->RUnlock();
+    return false;
+  }
   if (next_node->IsDeleted()) {
     // NOTE: important to unlock correctly
     next_node->RUnlock();

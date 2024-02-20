@@ -267,16 +267,6 @@ TEST(ConcurrentARTTest, SmallMultiThreadTest) {
     keys.push_back(ARTKey::CreateARTKey<int64_t>(arena_allocator, i));
   }
 
-
-  std::thread writer([&] {
-    for (idx_t i = 0; i < limit; i++) {
-      art.Put(keys[i], i);
-    }
-    art.Draw("small.dot");
-    fmt::println("finish put all data");
-  });
-
-
   std::vector<std::thread> ths;
   for(int i = 0; i < 10; i++) {
     ths.emplace_back([&]{
@@ -292,6 +282,14 @@ TEST(ConcurrentARTTest, SmallMultiThreadTest) {
     });
 
   }
+
+  std::thread writer([&] {
+    for (idx_t i = 0; i < limit; i++) {
+      art.Put(keys[i], i);
+    }
+    art.Draw("small.dot");
+    fmt::println("finish put all data");
+  });
 
   writer.join();
 
