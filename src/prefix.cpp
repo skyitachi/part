@@ -351,13 +351,6 @@ idx_t CPrefix::Traverse(ConcurrentART &cart,
     // important
     assert(cprefix.ptr);
     cprefix.ptr->RLock();
-//    fmt::println("debug prefix child: {}, IsSet: {}, IsSerialized: {}, prefix_node: {}, cprefix.ptr = {}, readers: {}",
-//                 (uint32_t)cprefix.ptr->GetType(), cprefix.ptr->IsSet(), cprefix.ptr->IsSerialized(),
-//                 static_cast<void *>(next_node),
-//                 static_cast<void *>(cprefix.ptr),
-//                 cprefix.ptr->Readers());
-//    ::fflush(stdout);
-
 
     // NOTE: if parent unlocked, means parent's child will updated, double check
     next_node->RUnlock();
@@ -467,6 +460,7 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
     child_node = art.AllocateNode();
     child_node->Lock();
     auto child_prefix = std::ref(CPrefix::NewPrefixNew(art, child_node));
+    assert(child_prefix.get().ptr);
     for (idx_t i = position + 1; i < cprefix.data[Node::PREFIX_SIZE]; i++) {
       // child prefix is new node
       child_prefix = child_prefix.get().NewPrefixAppend(art, cprefix.data[i], child_node);
@@ -490,13 +484,13 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
       child_prefix.get().NewPrefixAppend(art, cprefix.ptr, child_node, retry);
       if (retry) {
         child_node->Unlock();
-        cprefix.ptr->RLock();
+//        cprefix.ptr->RLock();
         return true;
       }
     } else {
       child_prefix.get().ptr = cprefix.ptr;
-      cprefix.ptr->RUnlock();
       child_node->Unlock();
+      cprefix.ptr->RUnlock();
     }
   }
 
@@ -613,8 +607,8 @@ void CPrefix::NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, 
     other_prefix = current_prefix.get().ptr;
   }
 
-  other_prefix->RUnlock();
   assert(current_prefix.get().ptr->GetType() != NType::PREFIX);
+  other_prefix->RUnlock();
 }
 
 void CPrefix::FreeSelf(ConcurrentART &art, ConcurrentNode *node) {
