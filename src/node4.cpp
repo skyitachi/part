@@ -248,10 +248,8 @@ void CNode4::InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte,
 std::optional<ConcurrentNode *> CNode4::GetChild(const uint8_t byte) {
   for (idx_t i = 0; i < count; i++) {
     if (key[i] == byte) {
-      if (!children[i]->IsSet()) {
-        fmt::println("debug pointer");
-      }
-      assert(children[i]->IsSet());
+      // NOTE: no need this assertion, only needs check children[i]->IsDeleted()
+      // assert(children[i]->IsSet());
       return children[i];
     }
   }

@@ -404,10 +404,12 @@ void CPrefix::New(ConcurrentART &art, reference<ConcurrentNode> &node, const ART
     cprefix.data[Node::PREFIX_SIZE] = (uint8_t)this_count;
     std::memcpy(cprefix.data, key.data + depth + copy_count, this_count);
 
+    // NOTE: need to lock parent node ?
     cprefix.ptr = art.AllocateNode();
 
-    node.get().Unlock();
     cprefix.ptr->Lock();
+    // NOTE: important, never expose child before parent's unlock
+    node.get().Unlock();
     // NOTE: is this necessary, important
     cprefix.ptr->Reset();
     assert(!cprefix.ptr->IsSet());

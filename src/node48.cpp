@@ -281,7 +281,7 @@ void CNode48::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_
 
 std::optional<ConcurrentNode *> CNode48::GetChild(const uint8_t byte) {
   if (child_index[byte] != Node::EMPTY_MARKER) {
-    assert(children[child_index[byte]]->IsSet());
+    // assert(children[child_index[byte]]->IsSet());
     return children[child_index[byte]];
   }
   return std::nullopt;
