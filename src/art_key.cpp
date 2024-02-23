@@ -44,9 +44,9 @@ bool ARTKey::operator==(const ARTKey &k) const {
 
 bool ARTKey::operator<(const ARTKey &k) const { return k >= *this; }
 
+// NOTE: 终于知道为什么要加0了
 template <>
 ARTKey ARTKey::CreateARTKey(ArenaAllocator &allocator, std::string_view value) {
-  // why need +1
   uint32_t len = value.size() + 1;
   auto data = allocator.Allocate(len);
   std::memcpy(data, value.data(), len - 1);

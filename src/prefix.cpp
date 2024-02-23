@@ -447,14 +447,15 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
   assert(prefix_node->IsSet() && !prefix_node->IsSerialized());
 
   auto &cprefix = CPrefix::Get(art, *prefix_node);
-  // TODO: this branch need check
   if (position + 1 == Node::PREFIX_SIZE) {
     cprefix.data[Node::PREFIX_SIZE]--;
+    child_node = cprefix.ptr;
+    cprefix.ptr = art.AllocateNode();
+    // Note: important, order matters
+    cprefix.ptr->Lock();
     prefix_node->Unlock();
     assert(cprefix.ptr);
-    cprefix.ptr->RLock();
     prefix_node = cprefix.ptr;
-    child_node = cprefix.ptr;
     return false;
   }
 
@@ -516,8 +517,6 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
   if (child_node == cprefix.ptr) {
     // allocate new pointer
     cprefix.ptr = art.AllocateNode();
-    fmt::println("[Split] new child ptr: {}", static_cast<void *>(cprefix.ptr));
-    ::fflush(stdout);
   }
   // NOTE: it's necessary to acquire write lock here
   cprefix.ptr->Lock();

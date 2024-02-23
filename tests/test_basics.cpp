@@ -465,3 +465,23 @@ TEST(ARTTest, PointerTest) {
   delete cnode2->ptr;
   free(cnode2);
 }
+
+TEST(ARTTest, LongPrefixTest) {
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  std::vector<ARTKey> keys;
+
+  keys.push_back(ARTKey::CreateARTKey<std::string_view>(arena_allocator, "123456789123456"));
+  keys.push_back(ARTKey::CreateARTKey<std::string_view>(arena_allocator, "123456789123457"));
+
+  art.Put(keys[0], 1);
+  art.Put(keys[1], 2);
+
+  std::vector<idx_t> result_ids;
+  art.Get(keys[0], result_ids);
+  fmt::println("results: {}", result_ids.size());
+  art.Draw("long_prefix.dot");
+
+}

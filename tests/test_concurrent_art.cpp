@@ -395,3 +395,43 @@ TEST(ConcurrentARTTest, BigMultiThreadTest) {
     th.join();
   }
 }
+
+TEST(ConcurrentARTTest, SplitTest) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  std::vector<ARTKey> keys;
+
+  keys.push_back(ARTKey::CreateARTKey<std::string_view>(arena_allocator, "123456789123456"));
+  keys.push_back(ARTKey::CreateARTKey<std::string_view>(arena_allocator, "123456789123457"));
+
+  art.Put(keys[0], 1);
+  art.Put(keys[1], 2);
+
+  std::vector<idx_t> result_ids;
+  art.Get(keys[0], result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+  art.Draw("long_prefix.dot");
+}
+
+TEST(ConcurrentARTTest, LongPrefixTest) {
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  std::vector<ARTKey> keys;
+
+  keys.push_back(ARTKey::CreateARTKey<std::string_view>(arena_allocator, "123456789123456789"));
+  keys.push_back(ARTKey::CreateARTKey<std::string_view>(arena_allocator, "12345678912345678910"));
+
+  art.Put(keys[0], 1);
+  art.Put(keys[1], 2);
+
+  std::vector<idx_t> result_ids;
+  art.Get(keys[0], result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+//  art.Draw("long_prefix.dot");
+}
