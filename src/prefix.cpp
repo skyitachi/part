@@ -340,7 +340,9 @@ idx_t CPrefix::Traverse(ConcurrentART &cart,
     assert(next_node->RLocked() && !next_node->IsDeleted());
 
     auto &cprefix = CPrefix::Get(cart, *next_node);
-    for (idx_t i = 0; i < cprefix.data[Node::PREFIX_SIZE]; i++) {
+    idx_t size = cprefix.data[Node::PREFIX_SIZE];
+
+    for (idx_t i = 0; i < size; i++) {
       if (cprefix.data[i] != key[depth]) {
         // NOTE: keep this node RLocked
         return i;
@@ -366,9 +368,9 @@ idx_t CPrefix::Traverse(ConcurrentART &cart,
 //    assert(cprefix.ptr->RLocked());
     if (!(next_node->IsSet()) || next_node->IsSerialized()) {
       // TODO: bug
-      fmt::println("debug point Prefix Traverse, IsSet: {}, IsSerialized: {}, prefix_node: {}",
+      fmt::println("debug point Prefix Traverse, IsSet: {}, IsSerialized: {}, prefix_node: {}, size: {}",
                    next_node->IsSet(), next_node->IsSerialized(),
-                   static_cast<void *>(next_node));
+                   static_cast<void *>(next_node), size);
       ::fflush(stdout);
     }
     P_ASSERT(next_node->IsSet() && !next_node->IsSerialized());
@@ -438,14 +440,15 @@ void CPrefix::Free(ConcurrentART &art, ConcurrentNode *node) {
 }
 
 // NOTE: child_node is new node, no need add lock to these node
+// NOTE: maybe write lock is more suitable
 bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, ConcurrentNode *&child_node,
                     idx_t position) {
-  assert(prefix_node->RLocked());
+  assert(prefix_node->Locked());
   assert(prefix_node->IsSet() && !prefix_node->IsSerialized());
 
   auto &cprefix = CPrefix::Get(art, *prefix_node);
+  // TODO: this branch need check
   if (position + 1 == Node::PREFIX_SIZE) {
-    prefix_node->Upgrade();
     cprefix.data[Node::PREFIX_SIZE]--;
     prefix_node->Unlock();
     assert(cprefix.ptr);
@@ -467,6 +470,7 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
     }
     assert(child_node->Locked());
 
+    // NOTE: cprefix already write locked, it's still need to acquire reader lock
     cprefix.ptr->RLock();
     if (cprefix.ptr->IsDeleted()) {
       cprefix.ptr->RUnlock();
@@ -494,12 +498,10 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
     }
   }
 
-  assert(prefix_node->RLocked());
   if (position + 1 == cprefix.data[Node::PREFIX_SIZE]) {
     child_node = cprefix.ptr;
   }
 
-  prefix_node->Upgrade();
   cprefix.data[Node::PREFIX_SIZE] = position;
 
   if (position == 0) {
@@ -514,10 +516,13 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
   if (child_node == cprefix.ptr) {
     // allocate new pointer
     cprefix.ptr = art.AllocateNode();
+    fmt::println("[Split] new child ptr: {}", static_cast<void *>(cprefix.ptr));
+    ::fflush(stdout);
   }
+  // NOTE: it's necessary to acquire write lock here
+  cprefix.ptr->Lock();
   prefix_node->Unlock();
 
-  cprefix.ptr->RLock();
   prefix_node = cprefix.ptr;
   return false;
 }

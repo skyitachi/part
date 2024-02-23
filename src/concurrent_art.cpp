@@ -174,7 +174,9 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   ConcurrentNode* remaining_prefix_node = nullptr;
   auto prefix_byte = CPrefix::GetByte(*this, *next_node, mismatch_position);
 
-  // NOTE: next_node may point same as remaining_prefix_node
+  // NOTE: next_node may next_node same as remaining_prefix_node
+  // NOTE: next_node may not be initialized
+  next_node->Upgrade();
   retry = CPrefix::Split(*this, next_node, remaining_prefix_node, mismatch_position);
   if (retry) {
     return retry;
@@ -193,15 +195,14 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     new_node4 = next_node;
   } else {
     // update prefix new ptr
-    assert(next_node->RLocked());
-    next_node->Upgrade();
+    assert(next_node->Locked());
     CNode4::New(*this, *next_node);
     new_node4 = next_node;
   }
 
   assert(!new_node4->IsDeleted() && new_node4->Locked());
-
   assert(!remaining_prefix_node->IsDeleted());
+
   CNode4::InsertChild(*this, new_node4, prefix_byte, remaining_prefix_node);
 
   auto next_prefix_node = AllocateNode();
