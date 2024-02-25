@@ -50,12 +50,20 @@ class ConcurrentART {
     out.close();
   }
 
+  void Serialize();
+
+  void Deserialize();
+
+  BlockPointer Serialize(Serializer &writer);
+
+  void Merge(ART &other);
+
  private:
   bool lookup(ConcurrentNode *node, const ARTKey &key, idx_t depth, std::vector<idx_t> &result_ids);
   // if need retry
   bool insert(ConcurrentNode &node, const ARTKey &key, idx_t depth, const idx_t &doc_id);
 
-  bool insertToLeaf(ConcurrentNode *leaf, const idx_t doc_id);
+  bool insertToLeaf(ConcurrentNode *leaf, idx_t doc_id);
 
   int metadata_fd_ = -1;
   int index_fd_ = -1;

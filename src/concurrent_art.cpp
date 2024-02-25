@@ -111,7 +111,6 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   if (!node.IsSet()) {
     assert(depth <= key.len);
     auto ref = std::ref(node);
-    // TODO: Upgrade 设计
     ref.get().Upgrade();
     CPrefix::New(*this, ref, key, depth, key.len - depth);
     P_ASSERT(ref.get().Locked());
@@ -129,7 +128,6 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
   if (node_type != NType::PREFIX) {
     assert(depth < key.len);
     // lock in advance to prevent double check
-    // TODO: Upgrade 设计
     node.Upgrade();
     auto child = node.GetChild(*this, key[depth]);
     if (child) {
@@ -281,7 +279,7 @@ ConcurrentART::~ConcurrentART() {
   }
 }
 
-bool ConcurrentART::insertToLeaf(ConcurrentNode* leaf, const idx_t doc_id) {
+bool ConcurrentART::insertToLeaf(ConcurrentNode* leaf, idx_t doc_id) {
   assert(leaf->RLocked());
   bool retry = false;
   // make sure leaf unlocked after insert
