@@ -63,7 +63,6 @@ class CLeaf {
 
   static void New(ConcurrentNode &node, idx_t doc_id);
 
-
   static void Free(ConcurrentART &art, ConcurrentNode *node);
 
   static void Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id, bool &retry);
@@ -71,6 +70,12 @@ class CLeaf {
   static void MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node);
 
   CLeaf &Append(ConcurrentART &art, ConcurrentNode *&node, const idx_t doc_id);
+
+  static idx_t TotalCount(ConcurrentART &art, ConcurrentNode *node);
+
+  static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer);
+
+  static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer);
 };
 }  // namespace part
 

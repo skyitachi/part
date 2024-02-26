@@ -91,6 +91,10 @@ class Node {
   //! Get the doc id
   inline idx_t GetDocId() const { return data & Node::AND_RESET; }
 
+  inline uint64_t GetData() const { return data; }
+
+  inline void SetData(uint64_t other) { data = other; }
+
   //! Get the offset (8th to 23rd bit)
   inline idx_t GetOffset() const {
     auto offset = data >> Node::SHIFT_OFFSET;

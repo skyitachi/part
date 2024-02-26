@@ -292,7 +292,7 @@ void CNode16::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_
 std::optional<ConcurrentNode *> CNode16::GetChild(const uint8_t byte) {
   for (idx_t i = 0; i < count; i++) {
     if (key[i] == byte) {
-//      assert(children[i]->IsSet());
+      //      assert(children[i]->IsSet());
       return children[i];
     }
   }

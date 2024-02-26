@@ -452,4 +452,84 @@ void CLeaf::Free(ConcurrentART &art, ConcurrentNode *node) {
   }
 }
 
+BlockPointer CLeaf::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer) {
+  if (node->GetType() == NType::LEAF_INLINED) {
+    auto block_pointer = writer.GetBlockPointer();
+    writer.Write(NType::LEAF_INLINED);
+    writer.Write(node->GetDocId());
+    //    fmt::println("[Leaf.INLINE] block_id: {}, offset: {}",
+    //    block_pointer.block_id, block_pointer.offset);
+    return block_pointer;
+  }
+
+  auto block_pointer = writer.GetBlockPointer();
+  writer.Write(NType::LEAF);
+  idx_t total_count = CLeaf::TotalCount(art, node);
+  writer.Write<idx_t>(total_count);
+
+  // iterate all leaves and write their row IDs
+  auto &ref_node = node;
+  while (ref_node->IsSet()) {
+    assert(!ref_node->IsSerialized());
+    auto &leaf = CLeaf::Get(art, *ref_node);
+
+    // write row IDs
+    for (idx_t i = 0; i < leaf.count; i++) {
+      writer.Write(leaf.row_ids[i]);
+    }
+    ref_node = leaf.ptr;
+  }
+  return block_pointer;
+}
+
+idx_t CLeaf::TotalCount(ConcurrentART &art, ConcurrentNode *node) {
+  assert(node->IsSet() && !node->IsSerialized());
+
+  if (node->GetType() == NType::LEAF_INLINED) {
+    return 1;
+  }
+
+  idx_t count = 0;
+  auto &node_ref = node;
+  while (node_ref->IsSet()) {
+    node_ref->RLock();
+    auto &leaf = CLeaf::Get(art, *node_ref);
+    node_ref->RUnlock();
+    count += leaf.count;
+    if (leaf.ptr->IsSerialized()) {
+      leaf.ptr->Deserialize(art);
+    }
+    node_ref = leaf.ptr;
+  }
+  return count;
+}
+
+void CLeaf::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
+  auto total_count = reader.Read<idx_t>();
+  auto &ref_node = node;
+
+  while (total_count > 0) {
+    if (!ref_node) {
+      ref_node = art.AllocateNode();
+    }
+    ref_node->Update(ConcurrentNode::GetAllocator(art, NType::LEAF).ConcNew());
+    ref_node->SetType((uint8_t)NType::LEAF);
+
+    ref_node->RLock();
+    auto &leaf = CLeaf::Get(art, *ref_node);
+    ref_node->RUnlock();
+    leaf.count = std::min((idx_t)Node::LEAF_SIZE, total_count);
+
+    for (idx_t i = 0; i < leaf.count; i++) {
+      leaf.row_ids[i] = reader.Read<idx_t>();
+    }
+
+    total_count -= leaf.count;
+    ref_node = leaf.ptr;
+    if (ref_node) {
+      ref_node->Reset();
+    }
+  }
+}
+
 }  // namespace part

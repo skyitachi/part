@@ -17,7 +17,7 @@
 namespace part {
 
 bool ConcurrentART::Get(const part::ARTKey& key, std::vector<idx_t>& result_ids) {
-//  fmt::println("root readers: {}", root->Readers());
+  //  fmt::println("root readers: {}", root->Readers());
   while (lookup(root.get(), key, 0, result_ids)) {
     result_ids.clear();
     std::this_thread::yield();
@@ -25,7 +25,7 @@ bool ConcurrentART::Get(const part::ARTKey& key, std::vector<idx_t>& result_ids)
   return !result_ids.empty();
 }
 
-bool ConcurrentART::lookup(ConcurrentNode *next_node, const ARTKey& key, idx_t depth, std::vector<idx_t>& result_ids) {
+bool ConcurrentART::lookup(ConcurrentNode* next_node, const ARTKey& key, idx_t depth, std::vector<idx_t>& result_ids) {
   next_node->RLock();
   if (!next_node->IsSet()) {
     next_node->RUnlock();
@@ -239,8 +239,8 @@ ConcurrentART::ConcurrentART(const FixedSizeAllocatorListPtr allocators_ptr)
   root = std::make_unique<ConcurrentNode>();
 }
 
-ConcurrentART::ConcurrentART(const std::string& index_path,
-                             const ConcurrentART::FixedSizeAllocatorListPtr allocators_ptr) {
+ConcurrentART::ConcurrentART(const std::string& index_path, const FixedSizeAllocatorListPtr allocators_ptr)
+    : ConcurrentART(allocators_ptr) {
   index_path_ = index_path;
 
   index_fd_ = ::open(index_path.c_str(), O_CREAT | O_RDWR, 0644);
@@ -253,8 +253,7 @@ ConcurrentART::ConcurrentART(const std::string& index_path,
     auto pointer = ReadMetadata();
     root = std::make_unique<ConcurrentNode>(pointer.block_id, pointer.offset);
     root->SetSerialized();
-    // TODO: Deserialize
-    //    root->Deserialize(*this);
+    root->Deserialize(*this);
   } catch (std::exception& e) {
     root = std::make_unique<ConcurrentNode>();
   }
@@ -294,4 +293,21 @@ ConcurrentNode* ConcurrentART::AllocateNode() {
   return node_allocators_.back();
 }
 
+void ConcurrentART::Serialize() {
+  if (root->IsSet()) {
+    SequentialSerializer data_writer(index_path_, META_OFFSET);
+    auto pointer = root->Serialize(*this, data_writer);
+    data_writer.Flush();
+    SequentialSerializer meta_writer(index_path_);
+    UpdateMetadata(pointer, meta_writer);
+    meta_writer.Flush();
+  }
+}
+
+void ConcurrentART::Deserialize() { root->Deserialize(*this); }
+
+void ConcurrentART::UpdateMetadata(BlockPointer pointer, Serializer& writer) {
+  writer.Write<block_id_t>(pointer.block_id);
+  writer.Write<uint32_t>(pointer.offset);
+}
 }  // namespace part

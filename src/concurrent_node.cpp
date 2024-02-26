@@ -21,8 +21,6 @@ constexpr uint64_t HAS_WRITER = ~0L;
 
 void ConcurrentNode::RLock() {
   int retry = 0;
-  auto start = std::chrono::high_resolution_clock::now();
-//  fmt::println("RLock: {}", static_cast<void *>(this));
   while (true) {
     uint64_t prev = lock_.load();
     if (prev != HAS_WRITER) {
@@ -35,22 +33,12 @@ void ConcurrentNode::RLock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
-      auto end = std::chrono::high_resolution_clock::now();
-
-      // 计算耗时
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-      if (duration > 100) {
-        fmt::println("debug point RLock");
-      }
     }
   }
 }
 
 void ConcurrentNode::RUnlock() {
   int retry = 0;
-//  fmt::println("RUnLock: {}", static_cast<void *>(this));
-//  fmt::println("debug RUnlock {}", static_cast<void *>(this));
-  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_;
     if (prev != HAS_WRITER && prev > 0) {
@@ -63,21 +51,12 @@ void ConcurrentNode::RUnlock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
-      auto end = std::chrono::high_resolution_clock::now();
-
-      // 计算耗时
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-      if (duration > 100) {
-        fmt::println("debug point RUnlock");
-      }
     }
   }
 }
 
 void ConcurrentNode::Lock() {
   int retry = 0;
-  auto start = std::chrono::high_resolution_clock::now();
-
   while (true) {
     uint64_t prev = lock_;
     if (prev == 0) {
@@ -90,22 +69,12 @@ void ConcurrentNode::Lock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
-
-      auto end = std::chrono::high_resolution_clock::now();
-
-      // 计算耗时
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-      if (duration > 100) {
-        fmt::println("debug point Lock");
-      }
     }
   }
 }
 
 void ConcurrentNode::Unlock() {
   int retry = 0;
-//  fmt::println("debug Unlock {}", static_cast<void *>(this));
-  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_;
     if (prev == HAS_WRITER) {
@@ -117,14 +86,6 @@ void ConcurrentNode::Unlock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
-
-      auto end = std::chrono::high_resolution_clock::now();
-
-      // 计算耗时
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-      if (duration > 100) {
-        fmt::println("debug point Unlock");
-      }
     }
   }
 }
@@ -134,10 +95,8 @@ void ConcurrentNode::Downgrade() {
   lock_.store(1);
 }
 
-// TODO: may need test
 void ConcurrentNode::Upgrade() {
   int retry = 0;
-  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     // NOTE: only one reader can upgrade to writer
     uint64_t prev = 1;
@@ -148,13 +107,6 @@ void ConcurrentNode::Upgrade() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
-      auto end = std::chrono::high_resolution_clock::now();
-
-      // 计算耗时
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-      if (duration > 100) {
-        fmt::println("debug point Upgrade");
-      }
     }
   }
 }
@@ -447,8 +399,63 @@ void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, uint8
   }
 }
 
-int64_t ConcurrentNode::Readers() {
-  return lock_.load();
+int64_t ConcurrentNode::Readers() { return lock_.load(); }
+
+BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serializer) {
+  if (!IsSet()) {
+    return BlockPointer();
+  }
+  if (IsSerialized()) {
+    Deserialize(art);
+  }
+  switch (GetType()) {
+    case NType::PREFIX:
+      return CPrefix::Serialize(art, this, serializer);
+    case NType::NODE_4:
+      return CNode4::Serialize(art, this, serializer);
+    case NType::LEAF:
+      return CLeaf::Serialize(art, this, serializer);
+    case NType::LEAF_INLINED:
+      return CLeaf::Serialize(art, this, serializer);
+    default:
+      throw std::invalid_argument("invalid type for serialize");
+  }
+}
+
+void ConcurrentNode::Deserialize(ConcurrentART& art) {
+  assert(IsSet() && IsSerialized());
+
+  BlockPointer pointer(GetBufferId(), GetOffset());
+  BlockDeserializer reader(art.GetIndexFileFd(), pointer);
+  // NOTE: important
+  Reset();
+  auto type = reader.Read<uint8_t>();
+
+  SetType(type);
+
+  auto decoded_type = GetType();
+
+  if (decoded_type == NType::PREFIX) {
+    return CPrefix::Deserialize(art, this, reader);
+  }
+
+  if (decoded_type == NType::LEAF_INLINED) {
+    return SetDocID(reader.Read<idx_t>());
+  }
+
+  if (decoded_type == NType::LEAF) {
+    return CLeaf::Deserialize(art, this, reader);
+  }
+
+  this->Update(ConcurrentNode::GetAllocator(art, decoded_type).ConcNew());
+  SetType(uint8_t(decoded_type));
+
+  switch (decoded_type) {
+    case NType::NODE_4:
+      return CNode4::Deserialize(art, this, reader);
+    default:
+      throw std::invalid_argument("other type deserializer not supported");
+  }
 }
 
 }  // namespace part

@@ -325,12 +325,7 @@ void Prefix::Reduce(ART &art, Node &prefix_node, const idx_t n) {
 }
 
 // NOTE: keep checks IsDeleted
-idx_t CPrefix::Traverse(ConcurrentART &cart,
-                        ConcurrentNode *&next_node,
-                        const ARTKey &key,
-                        idx_t &depth,
-                        bool &retry) {
-
+idx_t CPrefix::Traverse(ConcurrentART &cart, ConcurrentNode *&next_node, const ARTKey &key, idx_t &depth, bool &retry) {
   assert(next_node->RLocked() && !next_node->IsDeleted());
   assert(next_node->IsSet() && !next_node->IsSerialized());
   assert(next_node->GetType() == NType::PREFIX);
@@ -365,15 +360,11 @@ idx_t CPrefix::Traverse(ConcurrentART &cart,
       return INVALID_INDEX;
     }
 
-//    assert(cprefix.ptr->RLocked());
-    if (!(next_node->IsSet()) || next_node->IsSerialized()) {
-      // TODO: bug
-      fmt::println("debug point Prefix Traverse, IsSet: {}, IsSerialized: {}, prefix_node: {}, size: {}",
-                   next_node->IsSet(), next_node->IsSerialized(),
-                   static_cast<void *>(next_node), size);
-      ::fflush(stdout);
+    P_ASSERT(next_node->IsSet());
+
+    if (next_node->IsSerialized()) {
+      next_node->Deserialize(cart);
     }
-    P_ASSERT(next_node->IsSet() && !next_node->IsSerialized());
     // NOTE: node ptr is changed
   }
   return INVALID_INDEX;
@@ -441,8 +432,7 @@ void CPrefix::Free(ConcurrentART &art, ConcurrentNode *node) {
 
 // NOTE: child_node is new node, no need add lock to these node
 // NOTE: maybe write lock is more suitable
-bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, ConcurrentNode *&child_node,
-                    idx_t position) {
+bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, ConcurrentNode *&child_node, idx_t position) {
   assert(prefix_node->Locked());
   assert(prefix_node->IsSet() && !prefix_node->IsSerialized());
 
@@ -489,7 +479,7 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
       child_prefix.get().NewPrefixAppend(art, cprefix.ptr, child_node, retry);
       if (retry) {
         child_node->Unlock();
-//        cprefix.ptr->RLock();
+        //        cprefix.ptr->RLock();
         return true;
       }
     } else {
@@ -620,6 +610,83 @@ void CPrefix::FreeSelf(ConcurrentART &art, ConcurrentNode *node) {
   ConcurrentNode::GetAllocator(art, NType::PREFIX).Free(*node);
   node->Reset();
   node->SetDeleted();
+}
+
+BlockPointer CPrefix::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer) {
+  ConcurrentNode *first_non_prefix = node;
+  idx_t total_count = CPrefix::TotalCount(art, first_non_prefix);
+
+  auto child_block_pointer = first_non_prefix->Serialize(art, serializer);
+
+  auto block_pointer = serializer.GetBlockPointer();
+  serializer.Write(NType::PREFIX);
+  serializer.Write<idx_t>(total_count);
+
+  auto current_node = node;
+  while (current_node->GetType() == NType::PREFIX) {
+    // NOTE: just for assertion works
+    current_node->RLock();
+    auto &prefix = CPrefix::Get(art, *current_node);
+    current_node->RUnlock();
+    for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
+      serializer.Write(prefix.data[i]);
+    }
+    current_node = prefix.ptr;
+  }
+  serializer.Write(child_block_pointer.block_id);
+  serializer.Write(child_block_pointer.offset);
+
+  return block_pointer;
+}
+
+void CPrefix::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
+  auto total_count = reader.Read<idx_t>();
+  auto &current_node = node;
+
+  while (total_count) {
+    if (!current_node) {
+      current_node = art.AllocateNode();
+    }
+    current_node->Update(ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew());
+    current_node->SetType((uint8_t)NType::PREFIX);
+
+    current_node->RLock();
+    auto &prefix = CPrefix::Get(art, *current_node);
+    current_node->RUnlock();
+    prefix.data[Node::PREFIX_SIZE] = std::min((idx_t)Node::PREFIX_SIZE, total_count);
+    // NOTE: important
+    prefix.ptr = art.AllocateNode();
+
+    for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
+      prefix.data[i] = reader.Read<uint8_t>();
+    }
+
+    total_count -= prefix.data[Node::PREFIX_SIZE];
+
+    current_node = prefix.ptr;
+  }
+
+  *current_node = ConcurrentNode(art, reader);
+}
+
+// NOTE: need to acquire locks, just for assertions
+idx_t CPrefix::TotalCount(ConcurrentART &art, ConcurrentNode *&node) {
+  assert(node->IsSet() && !node->IsSerialized());
+
+  idx_t count = 0;
+  while (node->GetType() == NType::PREFIX) {
+    node->RLock();
+    auto &cprefix = CPrefix::Get(art, *node);
+    node->RUnlock();
+    count += cprefix.data[Node::PREFIX_SIZE];
+
+    if (cprefix.ptr->IsSerialized()) {
+      cprefix.ptr->Deserialize(art);
+    }
+    node = cprefix.ptr;
+  }
+
+  return count;
 }
 
 }  // namespace part

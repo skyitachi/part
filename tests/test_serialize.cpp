@@ -4,6 +4,7 @@
 #include <fmt/core.h>
 #include <gtest/gtest.h>
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <mutex>
@@ -15,6 +16,7 @@
 #include "arena_allocator.h"
 #include "art.h"
 #include "art_key.h"
+#include "concurrent_art.h"
 
 using json = nlohmann::json;
 using namespace part;
@@ -322,4 +324,82 @@ TEST(UIDIndexTest, Deserialize) {
   EXPECT_TRUE(success);
   EXPECT_EQ(1, results.size());
   EXPECT_EQ(1, results[0]);
+}
+
+TEST(ConcurrentARTTest, SerializeBasic) {
+  ConcurrentART cart("cart_uid.idx");
+
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  ARTKey key = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1);
+
+  std::vector<idx_t> result_ids;
+  if (cart.Get(key, result_ids)) {
+    ASSERT_EQ(result_ids.size(), 1);
+    ASSERT_EQ(result_ids[0], 100);
+    result_ids.clear();
+  } else {
+    cart.Put(key, 100);
+  }
+
+  ART art("cart_uid.idx");
+
+  bool success = art.Get(key, result_ids);
+  ASSERT_TRUE(success);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 100);
+}
+
+TEST(ConcurrentARTTest, Serialize) {
+  using namespace std::filesystem;
+  bool new_created = true;
+  path p = "cpart.idx";
+  if (exists(p)) {
+    new_created = false;
+  }
+  ConcurrentART cart(p.c_str());
+
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  std::vector<ARTKey> keys;
+  idx_t limit = 4;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int64_t>(arena_allocator, i));
+  }
+
+  if (new_created) {
+    for (idx_t i = 0; i < limit; i++) {
+      cart.Put(keys[i], i);
+    }
+    cart.Serialize();
+  }
+
+  for (idx_t i = 0; i < limit; i++) {
+    std::vector<idx_t> result_ids;
+    bool success = cart.Get(keys[i], result_ids);
+    ASSERT_TRUE(success);
+    ASSERT_EQ(result_ids.size(), 1);
+    ASSERT_EQ(result_ids[0], i);
+  }
+}
+
+TEST(ConcurrentARTTest, Debug) {
+  ART art("cpart.idx");
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  std::vector<ARTKey> keys;
+  idx_t limit = 4;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int64_t>(arena_allocator, i));
+  }
+
+  for (idx_t i = 0; i < limit; i++) {
+    std::vector<idx_t> result_ids;
+    bool success = art.Get(keys[i], result_ids);
+    ASSERT_TRUE(success);
+    ASSERT_EQ(result_ids.size(), 1);
+    ASSERT_EQ(result_ids[0], i);
+  }
 }

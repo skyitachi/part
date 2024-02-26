@@ -24,19 +24,26 @@ class ConcurrentNode : public Node {
 
   ConcurrentNode(Deserializer &reader) : Node(reader) {}
 
-  ConcurrentNode(ART &art, Deserializer &reader) : Node(art, reader) {}
+  ConcurrentNode(ConcurrentART &art, Deserializer &reader) : Node(reader) {
+    if (IsSerialized() && IsSet()) {
+      Deserialize(art);
+    }
+  }
 
   ConcurrentNode(){};
 
+  // NOTE: copy data
   ConcurrentNode(const ConcurrentNode &other) {
-    SetPtr(other.GetBufferId(), other.GetOffset());
+    SetData(other.GetData());
     lock_ = 0;
   }
 
+  // just used in Serialize and Deserialize
+  // TODO: copy data
   ConcurrentNode &operator=(const ConcurrentNode &other) {
-    SetPtr(other.GetBufferId(), other.GetOffset());
+    SetData(other.GetData());
     // NOTE: is this ok???
-    lock_ = other.lock_.load();
+    //    lock_ = other.lock_.load();
     return *this;
   }
 
@@ -76,6 +83,10 @@ class ConcurrentNode : public Node {
   std::optional<ConcurrentNode *> GetChild(ConcurrentART &art, uint8_t byte) const;
 
   static void InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte, ConcurrentNode *child);
+
+  BlockPointer Serialize(ConcurrentART &art, Serializer &serializer);
+
+  void Deserialize(ConcurrentART &art);
 
  private:
   // NOTE: 如何传递锁状态是个问题

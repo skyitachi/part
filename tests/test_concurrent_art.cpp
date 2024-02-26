@@ -268,8 +268,8 @@ TEST(ConcurrentARTTest, SmallMultiThreadTest) {
   }
 
   std::vector<std::thread> ths;
-  for(int i = 0; i < 10; i++) {
-    ths.emplace_back([&]{
+  for (int i = 0; i < 10; i++) {
+    ths.emplace_back([&] {
       for (idx_t i = 0; i < limit; i++) {
         std::vector<idx_t> result_ids;
         while (!art.Get(keys[i], result_ids)) {
@@ -280,7 +280,6 @@ TEST(ConcurrentARTTest, SmallMultiThreadTest) {
         ASSERT_EQ(result_ids[0], i);
       }
     });
-
   }
 
   std::thread writer([&] {
@@ -293,7 +292,7 @@ TEST(ConcurrentARTTest, SmallMultiThreadTest) {
 
   writer.join();
 
-  for(auto &th: ths) {
+  for (auto& th : ths) {
     th.join();
   }
 }
@@ -343,11 +342,11 @@ TEST(ConcurrentARTTest, BigMultiThreadTest) {
     for (idx_t i = 0; i < limit; i++) {
       art.Put(keys[i], i);
     }
-//    art.Draw("multi_thread_debug256.dot");
+    //    art.Draw("multi_thread_debug256.dot");
     fmt::println("finish put all data");
   });
 
-//  writer.join();
+  //  writer.join();
 
   std::thread reader0([&] {
     for (idx_t i = 0; i < limit; i++) {
@@ -373,7 +372,7 @@ TEST(ConcurrentARTTest, BigMultiThreadTest) {
   });
 
   std::vector<std::thread> readers;
-  for(int i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++) {
     readers.emplace_back([&] {
       for (idx_t i = 0; i < limit; i++) {
         std::vector<idx_t> result_ids;
@@ -387,11 +386,10 @@ TEST(ConcurrentARTTest, BigMultiThreadTest) {
     });
   }
 
-
   writer.join();
   reader0.join();
 
-  for (auto &th: readers) {
+  for (auto& th : readers) {
     th.join();
   }
 }
@@ -433,5 +431,5 @@ TEST(ConcurrentARTTest, LongPrefixTest) {
   art.Get(keys[0], result_ids);
   ASSERT_EQ(result_ids.size(), 1);
   ASSERT_EQ(result_ids[0], 1);
-//  art.Draw("long_prefix.dot");
+  //  art.Draw("long_prefix.dot");
 }

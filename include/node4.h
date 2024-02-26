@@ -65,6 +65,8 @@ class CNode4 {
     return *ConcurrentNode::GetAllocator(art, NType::NODE_4).Get<CNode4>(*node);
   }
   std::optional<ConcurrentNode *> GetChild(const uint8_t byte);
+  static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer);
+  static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader);
 };
 }  // namespace part
 

@@ -483,5 +483,4 @@ TEST(ARTTest, LongPrefixTest) {
   art.Get(keys[0], result_ids);
   fmt::println("results: {}", result_ids.size());
   art.Draw("long_prefix.dot");
-
 }

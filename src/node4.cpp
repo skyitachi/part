@@ -256,4 +256,53 @@ std::optional<ConcurrentNode *> CNode4::GetChild(const uint8_t byte) {
   return std::nullopt;
 }
 
+BlockPointer CNode4::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer) {
+  assert(node->IsSet() && !node->IsSerialized());
+  node->RLock();
+  auto &n4 = CNode4::Get(art, node);
+  node->RUnlock();
+  std::vector<BlockPointer> child_block_pointers;
+
+  for (idx_t i = 0; i < n4.count; i++) {
+    child_block_pointers.emplace_back(n4.children[i]->Serialize(art, writer));
+  }
+  for (idx_t i = n4.count; i < Node::NODE_4_CAPACITY; i++) {
+    child_block_pointers.emplace_back((block_id_t)INVALID_BLOCK, 0);
+  }
+  auto block_pointer = writer.GetBlockPointer();
+  writer.Write(NType::NODE_4);
+  writer.Write<uint8_t>(n4.count);
+
+  for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
+    writer.Write(n4.key[i]);
+  }
+
+  for (auto &child_block_pointer : child_block_pointers) {
+    writer.Write(child_block_pointer.block_id);
+    writer.Write(child_block_pointer.offset);
+  }
+
+  return block_pointer;
+}
+
+void CNode4::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
+  node->RLock();
+  auto &n4 = CNode4::Get(art, node);
+  node->RUnlock();
+
+  auto block_pointer = reader.GetBlockPointer();
+  auto count = reader.Read<uint8_t>();
+
+  n4.count = count;
+
+  for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
+    n4.key[i] = reader.Read<uint8_t>();
+  }
+
+  for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
+    n4.children[i] = art.AllocateNode();
+    *n4.children[i] = ConcurrentNode(art, reader);
+  }
+}
+
 }  // namespace part

@@ -100,16 +100,21 @@ class CPrefix {
     return prefix.data[position];
   }
 
-  static idx_t Traverse(ConcurrentART &cart, ConcurrentNode *&next_node, const ARTKey &key, idx_t &depth,
-                        bool &retry);
+  static idx_t Traverse(ConcurrentART &cart, ConcurrentNode *&next_node, const ARTKey &key, idx_t &depth, bool &retry);
 
-  static bool Split(ConcurrentART &art, ConcurrentNode *&prefix_node, ConcurrentNode *&child_node,
-                    idx_t position);
+  static bool Split(ConcurrentART &art, ConcurrentNode *&prefix_node, ConcurrentNode *&child_node, idx_t position);
 
   // NOTE: new prefix append data no need to sync with lock
   CPrefix &NewPrefixAppend(ConcurrentART &art, const uint8_t byte, ConcurrentNode *&node);
 
   void NewPrefixAppend(ConcurrentART &art, ConcurrentNode *other_prefix, ConcurrentNode *&node, bool &retry);
+
+  // NOTE: none thread safe serialization, just protected by global mutex
+  static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer);
+
+  static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer);
+
+  static idx_t TotalCount(ConcurrentART &art, ConcurrentNode *&node);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H

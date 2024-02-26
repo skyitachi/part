@@ -14,6 +14,7 @@
 #include "block.h"
 #include "concurrent_node.h"
 #include "fixed_size_allocator.h"
+#include "serializer.h"
 
 namespace part {
 
@@ -57,6 +58,10 @@ class ConcurrentART {
   BlockPointer Serialize(Serializer &writer);
 
   void Merge(ART &other);
+
+  inline int GetIndexFileFd() { return index_fd_; }
+
+  void UpdateMetadata(BlockPointer pointer, Serializer &writer);
 
  private:
   bool lookup(ConcurrentNode *node, const ARTKey &key, idx_t depth, std::vector<idx_t> &result_ids);
