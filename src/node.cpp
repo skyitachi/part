@@ -219,7 +219,6 @@ void Node::ReplaceChild(const ART &art, const uint8_t byte, const Node child) {
 }
 
 void Node::Merge(ART &art, Node &other) {
-  assert(IsSet());
   if (!IsSet()) {
     *this = other;
     other = Node();

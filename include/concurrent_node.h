@@ -33,17 +33,12 @@ class ConcurrentNode : public Node {
   ConcurrentNode(){};
 
   // NOTE: copy data
-  ConcurrentNode(const ConcurrentNode &other) {
-    SetData(other.GetData());
-    lock_ = 0;
-  }
+  ConcurrentNode(const ConcurrentNode &other) : lock_(0) { SetData(other.GetData()); }
 
   // just used in Serialize and Deserialize
-  // TODO: copy data
   ConcurrentNode &operator=(const ConcurrentNode &other) {
     SetData(other.GetData());
-    // NOTE: is this ok???
-    //    lock_ = other.lock_.load();
+    lock_ = 0;
     return *this;
   }
 
@@ -87,6 +82,10 @@ class ConcurrentNode : public Node {
   BlockPointer Serialize(ConcurrentART &art, Serializer &serializer);
 
   void Deserialize(ConcurrentART &art);
+
+  void Merge(ConcurrentART &cart, ART &art, Node &other);
+
+  void MergeUpdate(ConcurrentART &cart, ART &art, Node &other);
 
  private:
   // NOTE: 如何传递锁状态是个问题

@@ -532,4 +532,40 @@ void CLeaf::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &
   }
 }
 
+void CLeaf::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
+  assert(node->Locked());
+  assert(other.GetType() == NType::LEAF || other.GetType() == NType::LEAF_INLINED);
+
+  node->SetType((uint8_t)other.GetType());
+  if (other.GetType() == NType::LEAF_INLINED) {
+    node->SetDocID(other.GetDocId());
+    node->Unlock();
+    return;
+  }
+
+  auto current_node = node;
+  auto ref_node = std::ref(other);
+
+  while (ref_node.get().IsSet()) {
+    assert(current_node->Locked());
+    current_node->Update(ConcurrentNode::GetAllocator(cart, NType::LEAF).ConcNew());
+    current_node->SetType((uint8_t)NType::LEAF);
+    auto &cleaf = CLeaf::Get(cart, *current_node);
+    auto &leaf = Leaf::Get(art, ref_node.get());
+    cleaf.count = leaf.count;
+    for (idx_t i = 0; i < leaf.count; i++) {
+      cleaf.row_ids[i] = leaf.row_ids[i];
+    }
+    cleaf.ptr = cart.AllocateNode();
+    cleaf.ptr->ResetAll();
+    ref_node = leaf.ptr;
+
+    cleaf.ptr->Lock();
+    current_node->Unlock();
+    current_node = cleaf.ptr;
+  }
+  // NOTE: important
+  current_node->Unlock();
+}
+
 }  // namespace part

@@ -59,7 +59,7 @@ class ConcurrentART {
 
   void Merge(ART &other);
 
-  inline int GetIndexFileFd() { return index_fd_; }
+  inline int GetIndexFileFd() const { return index_fd_; }
 
   void UpdateMetadata(BlockPointer pointer, Serializer &writer);
 

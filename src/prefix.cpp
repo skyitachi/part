@@ -689,4 +689,36 @@ idx_t CPrefix::TotalCount(ConcurrentART &art, ConcurrentNode *&node) {
   return count;
 }
 
+void CPrefix::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
+  assert(node->Locked());
+  assert(other.GetType() == NType::PREFIX);
+  // NOTE: cannot copy data directly
+  //  node->SetData(other.GetData());
+  //  node->SetType((uint8_t)NType::PREFIX);
+
+  auto current_node = node;
+  auto ref_node = std::ref(other);
+  while (ref_node.get().GetType() == NType::PREFIX) {
+    assert(current_node->Locked());
+    current_node->Update(ConcurrentNode::GetAllocator(cart, NType::PREFIX).ConcNew());
+    current_node->SetType((uint8_t)NType::PREFIX);
+
+    auto &cprefix = CPrefix::Get(cart, *current_node);
+    auto &prefix = Prefix::Get(art, other);
+    cprefix.data[Node::PREFIX_SIZE] = prefix.data[Node::PREFIX_SIZE];
+    for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
+      cprefix.data[i] = prefix.data[i];
+    }
+    cprefix.ptr = cart.AllocateNode();
+    // NOTE: important
+    cprefix.ptr->ResetAll();
+    // NOTE: order matters
+    cprefix.ptr->Lock();
+    current_node->Unlock();
+    current_node = cprefix.ptr;
+    ref_node = prefix.ptr;
+  }
+  current_node->MergeUpdate(cart, art, ref_node.get());
+}
+
 }  // namespace part

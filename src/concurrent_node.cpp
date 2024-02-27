@@ -458,4 +458,29 @@ void ConcurrentNode::Deserialize(ConcurrentART& art) {
   }
 }
 
+void ConcurrentNode::Merge(ConcurrentART& cart, ART& art, Node& other) {
+  RLock();
+  if (!IsSet()) {
+    Upgrade();
+    MergeUpdate(cart, art, other);
+    assert(!Locked());
+    return;
+  }
+}
+
+// NOTE: only used in merge function
+void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
+  assert(Locked() && !IsSet());
+  switch (other.GetType()) {
+    case NType::PREFIX:
+      return CPrefix::MergeUpdate(cart, art, this, other);
+    case NType::LEAF:
+      return CLeaf::MergeUpdate(cart, art, this, other);
+    case NType::LEAF_INLINED:
+      return CLeaf::MergeUpdate(cart, art, this, other);
+    default:
+      throw std::invalid_argument("unsupported node type for merge");
+  }
+}
+
 }  // namespace part

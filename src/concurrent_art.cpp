@@ -310,4 +310,6 @@ void ConcurrentART::UpdateMetadata(BlockPointer pointer, Serializer& writer) {
   writer.Write<block_id_t>(pointer.block_id);
   writer.Write<uint32_t>(pointer.offset);
 }
+
+void ConcurrentART::Merge(ART& other) { root->Merge(*this, other, *other.root); }
 }  // namespace part

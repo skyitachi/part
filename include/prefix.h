@@ -115,6 +115,8 @@ class CPrefix {
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer);
 
   static idx_t TotalCount(ConcurrentART &art, ConcurrentNode *&node);
+
+  static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H
