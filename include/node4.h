@@ -64,10 +64,12 @@ class CNode4 {
     assert(!node->IsSerialized());
     return *ConcurrentNode::GetAllocator(art, NType::NODE_4).Get<CNode4>(*node);
   }
-  std::optional<ConcurrentNode *> GetChild(const uint8_t byte);
+  std::optional<ConcurrentNode *> GetChild(uint8_t byte);
   static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer);
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader);
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
+  static bool MergePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other, idx_t pos = 0);
+  static void TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
 };
 }  // namespace part
 

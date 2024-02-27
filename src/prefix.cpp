@@ -721,4 +721,30 @@ void CPrefix::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
   current_node->MergeUpdate(cart, art, ref_node.get());
 }
 
+// NOTE: no need to swap l_node and r_node
+bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
+                       idx_t &mismatch_position) {
+  assert(l_node->RLocked());
+  auto &l_cprefix = CPrefix::Get(cart, *l_node);
+  auto &r_prefix = Prefix::Get(art, r_node);
+
+  idx_t max_count = std::min(l_cprefix.data[Node::PREFIX_SIZE], r_prefix.data[Node::PREFIX_SIZE]);
+  for (idx_t i = 0; i < max_count; i++) {
+    if (l_cprefix.data[i] != r_prefix.data[i]) {
+      mismatch_position = i;
+      break;
+    }
+  }
+  if (mismatch_position == INVALID_INDEX) {
+    if (l_cprefix.data[Node::PREFIX_SIZE] == r_prefix.data[Node::PREFIX_SIZE]) {
+      l_cprefix.ptr->RLock();
+      l_node->RUnlock();
+      return l_cprefix.ptr->ResolvePrefixes(cart, art, r_prefix.ptr);
+    }
+
+    mismatch_position = max_count;
+  }
+  return true;
+}
+
 }  // namespace part

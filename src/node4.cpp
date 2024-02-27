@@ -325,4 +325,38 @@ void CNode4::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, No
   node->Unlock();
 }
 
+bool CNode4::MergePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other, idx_t pos) {
+  assert(node->RLocked());
+  assert(other.GetType() == NType::PREFIX);
+
+  auto &cn4 = CNode4::Get(cart, node);
+
+  auto ref_node = std::ref(other);
+  while (ref_node.get().GetType() == NType::PREFIX) {
+    auto &prefix = Prefix::Get(art, ref_node.get());
+    for (idx_t i = 0; i < cn4.count; i++) {
+      if (cn4.key[i] == prefix.data[pos]) {
+      }
+    }
+  }
+
+  return false;
+}
+
+void CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos) {
+  assert(node->RLocked());
+  auto &cn4 = CNode4::Get(cart, node);
+  for (idx_t i = 0; i < cn4.count; i++) {
+    if (cn4.key[i] == prefix.data[pos]) {
+      cn4.children[i]->RLock();
+      node->RUnlock();
+      node = cn4.children[i];
+      pos += 1;
+      ConcurrentNode::TraversePrefix(cart, art, node, prefix, pos);
+      return;
+    }
+  }
+  // TODO: if not found, insert prefix to current node
+}
+
 }  // namespace part

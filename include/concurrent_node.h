@@ -9,6 +9,7 @@
 #include <atomic>
 
 #include "node.h"
+#include "prefix.h"
 
 namespace part {
 class ConcurrentART;
@@ -86,6 +87,14 @@ class ConcurrentNode : public Node {
   void Merge(ConcurrentART &cart, ART &art, Node &other);
 
   void MergeUpdate(ConcurrentART &cart, ART &art, Node &other);
+
+  bool ResolvePrefixes(ConcurrentART &cart, ART &art, Node &other);
+
+  bool MergeInternal(ConcurrentART &cart, ART &art, Node &other);
+
+  bool MergePrefix(ConcurrentART &cart, ART &art, Node &other);
+
+  static void TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
 
  private:
   // NOTE: 如何传递锁状态是个问题

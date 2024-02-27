@@ -117,6 +117,10 @@ class CPrefix {
   static idx_t TotalCount(ConcurrentART &art, ConcurrentNode *&node);
 
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
+
+  // NOTE: only used in merge
+  static bool Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
+                       idx_t &mismatch_position);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H

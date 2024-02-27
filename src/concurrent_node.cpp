@@ -485,4 +485,119 @@ void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
   }
 }
 
+bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other) {
+  assert(RLocked());
+  if (GetType() != NType::PREFIX && other.GetType() != NType::PREFIX) {
+    return MergeInternal(cart, art, other);
+  }
+
+  auto l_node = this;
+  auto r_node = std::ref(other);
+
+  idx_t mismatch_position = INVALID_INDEX;
+
+  // case1: both are prefix nodes, l_node won't be updated
+  if (l_node->GetType() == NType::PREFIX && r_node.get().GetType() == NType::PREFIX) {
+    if (!CPrefix::Traverse(cart, art, l_node, r_node, mismatch_position)) {
+      return false;
+    }
+
+    if (mismatch_position == INVALID_INDEX) {
+      return true;
+    }
+  } else {
+    // NOTE: no need swap
+    mismatch_position = 0;
+  }
+
+  assert(mismatch_position != INVALID_INDEX);
+
+  if (l_node->GetType() != NType::PREFIX && r_node.get().GetType() == NType::PREFIX) {
+    // none prefix node merge prefix_node
+    return l_node->MergePrefix(cart, art, r_node);
+  }
+
+  return false;
+}
+
+bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
+  assert(RLocked());
+  assert(IsSet() && other.IsSet());
+  assert(GetType() != NType::PREFIX && other.GetType() != NType::PREFIX);
+
+  // NOTE: cannot swap
+
+  auto cnode = this;
+  auto& node = other;
+
+  auto is_leaf = cnode->GetType() == NType::LEAF || cnode->GetType() == NType::LEAF_INLINED;
+  auto right_leaf = node.GetType() == NType::LEAF || node.GetType() == NType::LEAF_INLINED;
+  if (is_leaf && right_leaf) {
+    Upgrade();
+    cnode->MergeUpdate(cart, art, other);
+    cnode->Unlock();
+    return true;
+  }
+
+  uint8_t byte = 0;
+  auto r_child = node.GetNextChild(art, byte);
+
+  while (r_child) {
+    assert(cnode->RLocked());
+    auto l_child = cnode->GetChild(cart, byte);
+    if (!l_child) {
+      auto new_child = cart.AllocateNode();
+      cnode->Upgrade();
+      InsertChild(cart, cnode, byte, new_child);
+      // NOTE: important order matters
+      new_child->Lock();
+      // must use downgrade
+      cnode->Downgrade();
+      new_child->MergeUpdate(cart, art, *r_child.value());
+      new_child->Unlock();
+    } else {
+      l_child.value()->RLock();
+      cnode->RUnlock();
+      if (!l_child.value()->ResolvePrefixes(cart, art, *r_child.value())) {
+        return false;
+      }
+    }
+    if (byte == std::numeric_limits<uint8_t>::max()) {
+      break;
+    }
+    byte++;
+    r_child = node.GetNextChild(art, byte);
+  }
+  assert(cnode->RLocked());
+  cnode->RUnlock();
+  return true;
+}
+
+// TODO: leaf node merge prefix node
+bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
+  assert(RLocked());
+  // NOTE: can not be leaf type
+  assert(GetType() != NType::PREFIX || GetType() != NType::LEAF_INLINED || GetType() != NType::LEAF);
+
+  switch (GetType()) {
+    case NType::NODE_4:
+    default:
+      throw std::logic_error("MergePrefix not support the node type");
+  }
+
+  return false;
+}
+
+void ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode*& node, Prefix& prefix, idx_t& pos) {
+  assert(node->RLocked());
+  assert(node->GetType() != NType::PREFIX);
+  assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
+  switch (node->GetType()) {
+    case NType::NODE_4:
+
+    default:
+      throw std::logic_error("TraversePrefix does not suppor this type");
+  }
+}
+
 }  // namespace part
