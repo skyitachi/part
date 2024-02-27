@@ -67,6 +67,7 @@ class CNode4 {
   std::optional<ConcurrentNode *> GetChild(const uint8_t byte);
   static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer);
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader);
+  static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
 };
 }  // namespace part
 

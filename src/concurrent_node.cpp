@@ -478,6 +478,8 @@ void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
       return CLeaf::MergeUpdate(cart, art, this, other);
     case NType::LEAF_INLINED:
       return CLeaf::MergeUpdate(cart, art, this, other);
+    case NType::NODE_4:
+      return CNode4::MergeUpdate(cart, art, this, other);
     default:
       throw std::invalid_argument("unsupported node type for merge");
   }

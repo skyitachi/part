@@ -305,4 +305,24 @@ void CNode4::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer 
   }
 }
 
+void CNode4::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
+  P_ASSERT(node->Locked());
+  P_ASSERT(other.GetType() == NType::NODE_4);
+
+  node->Update(ConcurrentNode::GetAllocator(cart, NType::NODE_4).ConcNew());
+  node->SetType((uint8_t)NType::NODE_4);
+
+  auto &n4 = Node4::Get(art, other);
+  auto &cn4 = CNode4::Get(cart, node);
+
+  for (idx_t i = 0; i < n4.count; i++) {
+    assert(node->Locked());
+    cn4.children[i] = cart.AllocateNode();
+    cn4.children[i]->Lock();
+    cn4.children[i]->MergeUpdate(cart, art, n4.children[i]);
+    cn4.children[i]->Unlock();
+  }
+  node->Unlock();
+}
+
 }  // namespace part
