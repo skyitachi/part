@@ -594,7 +594,7 @@ void ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNod
   assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
   switch (node->GetType()) {
     case NType::NODE_4:
-
+      return CNode4::TraversePrefix(cart, art, node, prefix, pos);
     default:
       throw std::logic_error("TraversePrefix does not suppor this type");
   }
