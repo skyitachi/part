@@ -5,6 +5,7 @@
 #include "prefix.h"
 
 #include "art_key.h"
+#include "concurrent_art.h"
 #include "node.h"
 
 namespace part {
@@ -745,6 +746,12 @@ bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, re
     mismatch_position = max_count;
   }
   return true;
+}
+
+// TODO: implement
+bool CPrefix::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &prefix, idx_t left_pos,
+                             idx_t &right_pos) {
+  return false;
 }
 
 }  // namespace part

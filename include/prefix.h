@@ -8,13 +8,14 @@
 #include <memory>
 
 #include "art.h"
-#include "concurrent_art.h"
 #include "concurrent_node.h"
 #include "fixed_size_allocator.h"
 #include "node.h"
 
 namespace part {
 class ARTKey;
+class ART;
+class ConcurrentART;
 
 class Prefix {
  public:
@@ -121,6 +122,9 @@ class CPrefix {
   // NOTE: only used in merge
   static bool Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
                        idx_t &mismatch_position);
+
+  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &prefix, idx_t left_pos,
+                             idx_t &right_pos);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H

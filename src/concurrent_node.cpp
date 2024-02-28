@@ -573,14 +573,18 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
   return true;
 }
 
-// TODO: leaf node merge prefix node
+// TODO: none leaf node merge prefix node
 bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
   assert(RLocked());
   // NOTE: can not be leaf type
   assert(GetType() != NType::PREFIX || GetType() != NType::LEAF_INLINED || GetType() != NType::LEAF);
 
-  switch (GetType()) {
+  auto l_node = this;
+  idx_t pos = 0;
+  auto& prefix = Prefix::Get(art, other);
+  switch (l_node->GetType()) {
     case NType::NODE_4:
+      return CNode4::TraversePrefix(cart, art, l_node, prefix, pos);
     default:
       throw std::logic_error("MergePrefix not support the node type");
   }
@@ -588,11 +592,13 @@ bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
   return false;
 }
 
-void ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode*& node, Prefix& prefix, idx_t& pos) {
+// NOTE: return value indicated whether other was merged inot cart
+bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode*& node, Prefix& prefix, idx_t& pos) {
   assert(node->RLocked());
-  assert(node->GetType() != NType::PREFIX);
   assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
   switch (node->GetType()) {
+    case NType::PREFIX:
+      return CPrefix::TraversePrefix(cart, art, node, prefix, 0, pos);
     case NType::NODE_4:
       return CNode4::TraversePrefix(cart, art, node, prefix, pos);
     default:

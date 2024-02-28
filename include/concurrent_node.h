@@ -9,10 +9,10 @@
 #include <atomic>
 
 #include "node.h"
-#include "prefix.h"
 
 namespace part {
 class ConcurrentART;
+class Prefix;
 
 // NOTE: 1. node cannot be serialized when accessed, different from Node (currently for simplicity)
 class ConcurrentNode : public Node {
@@ -94,7 +94,7 @@ class ConcurrentNode : public Node {
 
   bool MergePrefix(ConcurrentART &cart, ART &art, Node &other);
 
-  static void TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
+  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
 
  private:
   // NOTE: 如何传递锁状态是个问题

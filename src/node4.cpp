@@ -305,8 +305,10 @@ void CNode4::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer 
   }
 }
 
+// NOTE: only node is not set
 void CNode4::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
   P_ASSERT(node->Locked());
+  P_ASSERT(!node->IsSet());
   P_ASSERT(other.GetType() == NType::NODE_4);
 
   node->Update(ConcurrentNode::GetAllocator(cart, NType::NODE_4).ConcNew());
@@ -325,26 +327,10 @@ void CNode4::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, No
   node->Unlock();
 }
 
-bool CNode4::MergePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other, idx_t pos) {
+bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos) {
   assert(node->RLocked());
-  assert(other.GetType() == NType::PREFIX);
+  assert(pos < prefix.data[Node::PREFIX_SIZE]);
 
-  auto &cn4 = CNode4::Get(cart, node);
-
-  auto ref_node = std::ref(other);
-  while (ref_node.get().GetType() == NType::PREFIX) {
-    auto &prefix = Prefix::Get(art, ref_node.get());
-    for (idx_t i = 0; i < cn4.count; i++) {
-      if (cn4.key[i] == prefix.data[pos]) {
-      }
-    }
-  }
-
-  return false;
-}
-
-void CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos) {
-  assert(node->RLocked());
   auto &cn4 = CNode4::Get(cart, node);
   for (idx_t i = 0; i < cn4.count; i++) {
     if (cn4.key[i] == prefix.data[pos]) {
@@ -352,11 +338,24 @@ void CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node
       node->RUnlock();
       node = cn4.children[i];
       pos += 1;
-      ConcurrentNode::TraversePrefix(cart, art, node, prefix, pos);
-      return;
+      if (pos < prefix.data[Node::PREFIX_SIZE]) {
+        return ConcurrentNode::TraversePrefix(cart, art, node, prefix, pos);
+      } else {
+        node->RUnlock();
+        // merge prefix.ptr
+        node->Merge(cart, art, prefix.ptr);
+        return true;
+      }
     }
   }
   // TODO: if not found, insert prefix to current node
+  node->Upgrade();
+  cn4.InsertForMerge(cart, art, prefix, pos);
+  node->Unlock();
+  return true;
 }
+
+// TODO: implement
+void CNode4::InsertForMerge(ConcurrentART &cart, ART &art, Prefix &other, idx_t pos) {}
 
 }  // namespace part

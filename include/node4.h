@@ -68,8 +68,9 @@ class CNode4 {
   static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer);
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader);
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
-  static bool MergePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other, idx_t pos = 0);
-  static void TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
+  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
+
+  void InsertForMerge(ConcurrentART &cart, ART &art, Prefix &other, idx_t pos);
 };
 }  // namespace part
 
