@@ -311,5 +311,6 @@ void ConcurrentART::UpdateMetadata(BlockPointer pointer, Serializer& writer) {
   writer.Write<uint32_t>(pointer.offset);
 }
 
+// NOTE: no need to retry ???
 void ConcurrentART::Merge(ART& other) { root->Merge(*this, other, *other.root); }
 }  // namespace part

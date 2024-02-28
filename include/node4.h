@@ -70,7 +70,7 @@ class CNode4 {
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
 
-  void InsertForMerge(ConcurrentART &cart, ART &art, Prefix &other, idx_t pos);
+  void InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &other, idx_t pos);
 };
 }  // namespace part
 

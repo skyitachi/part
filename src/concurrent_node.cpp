@@ -466,6 +466,7 @@ void ConcurrentNode::Merge(ConcurrentART& cart, ART& art, Node& other) {
     assert(!Locked());
     return;
   }
+  ResolvePrefixes(cart, art, other);
 }
 
 // NOTE: only used in merge function
@@ -535,7 +536,6 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
   if (is_leaf && right_leaf) {
     Upgrade();
     cnode->MergeUpdate(cart, art, other);
-    cnode->Unlock();
     return true;
   }
 
@@ -554,7 +554,6 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
       // must use downgrade
       cnode->Downgrade();
       new_child->MergeUpdate(cart, art, *r_child.value());
-      new_child->Unlock();
     } else {
       l_child.value()->RLock();
       cnode->RUnlock();

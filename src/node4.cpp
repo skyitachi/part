@@ -316,13 +316,17 @@ void CNode4::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, No
 
   auto &n4 = Node4::Get(art, other);
   auto &cn4 = CNode4::Get(cart, node);
+  cn4.count = n4.count;
 
   for (idx_t i = 0; i < n4.count; i++) {
     assert(node->Locked());
+    cn4.key[i] = n4.key[i];
     cn4.children[i] = cart.AllocateNode();
+    // NOTE: important
+    cn4.children[i]->ResetAll();
     cn4.children[i]->Lock();
     cn4.children[i]->MergeUpdate(cart, art, n4.children[i]);
-    cn4.children[i]->Unlock();
+    assert(!cn4.children[i]->Locked());
   }
   node->Unlock();
 }
@@ -348,14 +352,39 @@ bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node
       }
     }
   }
-  // TODO: if not found, insert prefix to current node
   node->Upgrade();
-  cn4.InsertForMerge(cart, art, prefix, pos);
+  cn4.InsertForMerge(cart, art, node, prefix, pos);
   node->Unlock();
   return true;
 }
 
-// TODO: implement
-void CNode4::InsertForMerge(ConcurrentART &cart, ART &art, Prefix &other, idx_t pos) {}
+void CNode4::InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &other, idx_t pos) {;
+  auto &merge_prefix = other;
+  ConcurrentNode *child = cart.AllocateNode();
+  if (count + 1 < Node::NODE_4_CAPACITY) {
+    // enough space
+    key[count] = other.data[pos];
+    children[count] = child;
+    count++;
+  } else {
+    auto &c16 = CNode16::GrowNode4(cart, node);
+    c16.key[c16.count] = other.data[pos];
+    c16.children[count] = child;
+    count++;
+  }
+  if (pos + 1 < other.data[Node::PREFIX_SIZE]) {
+    // copy prefix
+    Node new_node;
+    auto &new_prefix = Prefix::New(art, new_node);
+    for (idx_t i = pos + 1; i < other.data[Node::PREFIX_SIZE]; i++) {
+      new_prefix.data[i - pos - 1] = other.data[i];
+    }
+    new_prefix.data[Node::PREFIX_SIZE] = other.data[Node::PREFIX_SIZE] - pos - 1;
+    merge_prefix = new_prefix;
+    CPrefix::MergeUpdate(cart, art, child, new_node);
+    return;
+  }
+  child->MergeUpdate(cart, art, other.ptr);
+}
 
 }  // namespace part
