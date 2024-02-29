@@ -63,6 +63,8 @@ class CNode256 {
   static void InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_t byte, ConcurrentNode *child);
 
   std::optional<ConcurrentNode *> GetChild(const uint8_t byte);
+
+  static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
 };
 }  // namespace part
 #endif  // PART_NODE256_H

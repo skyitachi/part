@@ -289,8 +289,10 @@ bool ConcurrentART::insertToLeaf(ConcurrentNode* leaf, idx_t doc_id) {
 }
 
 ConcurrentNode* ConcurrentART::AllocateNode() {
-  node_allocators_.push_back(new ConcurrentNode());
-  return node_allocators_.back();
+  auto new_node = new ConcurrentNode();
+  new_node->ResetAll();
+  node_allocators_.push_back(new_node);
+  return new_node;
 }
 
 void ConcurrentART::Serialize() {

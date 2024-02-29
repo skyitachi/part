@@ -196,4 +196,28 @@ std::optional<ConcurrentNode *> CNode256::GetChild(const uint8_t byte) {
   return std::nullopt;
 }
 
+void CNode256::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
+  assert(node->Locked());
+  assert(!node->IsSet());
+  assert(other.GetType() == NType::NODE_256);
+
+  node->Update(ConcurrentNode::GetAllocator(cart, NType::NODE_256).ConcNew());
+  node->SetType((uint8_t)NType::NODE_256);
+
+  auto &n256 = Node256::Get(art, other);
+  auto &cn256 = CNode256::Get(cart, node);
+  cn256.count = n256.count;
+
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    if (n256.children[i].IsSet()) {
+      auto new_child = cart.AllocateNode();
+      new_child->Lock();
+      new_child->MergeUpdate(cart, art, n256.children[i]);
+      assert(!new_child->Locked());
+      cn256.children[i] = new_child;
+    }
+  }
+  node->Unlock();
+}
+
 }  // namespace part

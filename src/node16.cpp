@@ -300,4 +300,28 @@ std::optional<ConcurrentNode *> CNode16::GetChild(const uint8_t byte) {
   return std::nullopt;
 }
 
+void CNode16::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
+  P_ASSERT(node->Locked());
+  P_ASSERT(!node->IsSet());
+  P_ASSERT(other.GetType() == NType::NODE_16);
+
+  node->Update(ConcurrentNode::GetAllocator(cart, NType::NODE_16).ConcNew());
+  node->SetType((uint8_t)NType::NODE_16);
+
+  auto &n16 = Node16::Get(art, other);
+  auto &cn16 = CNode16::Get(cart, node);
+  cn16.count = n16.count;
+
+  for (idx_t i = 0; i < n16.count; i++) {
+    assert(node->Locked());
+    cn16.key[i] = n16.key[i];
+    cn16.children[i] = cart.AllocateNode();
+
+    cn16.children[i]->Lock();
+    cn16.children[i]->MergeUpdate(cart, art, n16.children[i]);
+    assert(!cn16.children[i]->Locked());
+  }
+  node->Unlock();
+}
+
 }  // namespace part

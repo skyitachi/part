@@ -286,4 +286,29 @@ std::optional<ConcurrentNode *> CNode48::GetChild(const uint8_t byte) {
   }
   return std::nullopt;
 }
+
+void CNode48::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
+  assert(node->Locked());
+  assert(!node->IsSet());
+  assert(other.GetType() == NType::NODE_48);
+
+  node->Update(ConcurrentNode::GetAllocator(cart, NType::NODE_48).ConcNew());
+  node->SetType((uint8_t)NType::NODE_48);
+
+  auto &n48 = Node48::Get(art, other);
+  auto &cn48 = CNode48::Get(cart, node);
+
+  cn48.count = n48.count;
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    cn48.child_index[i] = n48.child_index[i];
+    if (cn48.child_index[i] != Node::EMPTY_MARKER) {
+      auto new_child = cart.AllocateNode();
+      new_child->Lock();
+      new_child->MergeUpdate(cart, art, n48.children[n48.child_index[i]]);
+      assert(!new_child->Locked());
+      cn48.children[cn48.child_index[i]] = new_child;
+    }
+  }
+  node->Unlock();
+}
 }  // namespace part

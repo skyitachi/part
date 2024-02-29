@@ -56,7 +56,7 @@ TEST(ConcurrentARTMergeTest, MemoryMergeWithTwoART) {
 
   std::vector<ARTKey> keys;
   idx_t limit = 4;
-  for(idx_t i = 0; i < limit; i++) {
+  for (idx_t i = 0; i < limit; i++) {
     keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
   }
 
@@ -68,12 +68,39 @@ TEST(ConcurrentARTMergeTest, MemoryMergeWithTwoART) {
 
   cart.Merge(art);
 
-//  cart.Draw("merged_cart.dot");
+  //  cart.Draw("merged_cart.dot");
 
   for (idx_t i = 0; i < limit; i++) {
     std::vector<idx_t> result_ids;
     cart.Get(keys[i], result_ids);
     ASSERT_EQ(result_ids.size(), 1);
     ASSERT_EQ(result_ids[0], i + 1);
+  }
+}
+
+TEST(ConcurrentARTMergeTest, MergeUpdateBigTest) {
+  ConcurrentART cart;
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  std::vector<ARTKey> keys;
+  idx_t limit = 100000;
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
+
+  for (idx_t i = 0; i < limit; i++) {
+    art.Put(keys[i], i);
+  }
+
+  cart.Merge(art);
+
+  for (idx_t i = 0; i < limit; i++) {
+    std::vector<idx_t> result_ids;
+    cart.Get(keys[i], result_ids);
+    ASSERT_EQ(result_ids.size(), 1);
+    ASSERT_EQ(result_ids[0], i);
   }
 }

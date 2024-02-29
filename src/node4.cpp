@@ -319,7 +319,6 @@ void CNode4::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, No
   cn4.count = n4.count;
 
   for (idx_t i = 0; i < n4.count; i++) {
-    assert(node->Locked());
     cn4.key[i] = n4.key[i];
     cn4.children[i] = cart.AllocateNode();
     // NOTE: important
@@ -358,7 +357,8 @@ bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node
   return true;
 }
 
-void CNode4::InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &other, idx_t pos) {;
+void CNode4::InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &other, idx_t pos) {
+  ;
   auto &merge_prefix = other;
   ConcurrentNode *child = cart.AllocateNode();
   if (count + 1 < Node::NODE_4_CAPACITY) {

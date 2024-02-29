@@ -711,8 +711,6 @@ void CPrefix::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
       cprefix.data[i] = prefix.data[i];
     }
     cprefix.ptr = cart.AllocateNode();
-    // NOTE: important
-    cprefix.ptr->ResetAll();
     // NOTE: order matters
     cprefix.ptr->Lock();
     current_node->Unlock();

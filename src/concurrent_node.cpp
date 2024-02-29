@@ -21,6 +21,7 @@ constexpr uint64_t HAS_WRITER = ~0L;
 
 void ConcurrentNode::RLock() {
   int retry = 0;
+  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_.load();
     if (prev != HAS_WRITER) {
@@ -33,12 +34,21 @@ void ConcurrentNode::RLock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point RLock");
+      }
     }
   }
 }
 
 void ConcurrentNode::RUnlock() {
   int retry = 0;
+  //  fmt::println("debug RUnlock {}", static_cast<void *>(this));
+  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_;
     if (prev != HAS_WRITER && prev > 0) {
@@ -51,12 +61,21 @@ void ConcurrentNode::RUnlock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point RUnlock");
+      }
     }
   }
 }
 
 void ConcurrentNode::Lock() {
   int retry = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+
   while (true) {
     uint64_t prev = lock_;
     if (prev == 0) {
@@ -69,12 +88,22 @@ void ConcurrentNode::Lock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point Lock");
+      }
     }
   }
 }
 
 void ConcurrentNode::Unlock() {
   int retry = 0;
+  //  fmt::println("debug Unlock {}", static_cast<void *>(this));
+  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     uint64_t prev = lock_;
     if (prev == HAS_WRITER) {
@@ -86,6 +115,14 @@ void ConcurrentNode::Unlock() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point Unlock");
+      }
     }
   }
 }
@@ -97,6 +134,7 @@ void ConcurrentNode::Downgrade() {
 
 void ConcurrentNode::Upgrade() {
   int retry = 0;
+  auto start = std::chrono::high_resolution_clock::now();
   while (true) {
     // NOTE: only one reader can upgrade to writer
     uint64_t prev = 1;
@@ -107,6 +145,13 @@ void ConcurrentNode::Upgrade() {
     if (retry > RETRY_THRESHOLD) {
       retry = 0;
       std::this_thread::yield();
+      auto end = std::chrono::high_resolution_clock::now();
+
+      // 计算耗时
+      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+      if (duration > 100) {
+        fmt::println("debug point Upgrade");
+      }
     }
   }
 }
@@ -481,6 +526,12 @@ void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
       return CLeaf::MergeUpdate(cart, art, this, other);
     case NType::NODE_4:
       return CNode4::MergeUpdate(cart, art, this, other);
+    case NType::NODE_16:
+      return CNode16::MergeUpdate(cart, art, this, other);
+    case NType::NODE_48:
+      return CNode48::MergeUpdate(cart, art, this, other);
+    case NType::NODE_256:
+      return CNode256::MergeUpdate(cart, art, this, other);
     default:
       throw std::invalid_argument("unsupported node type for merge");
   }

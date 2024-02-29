@@ -68,6 +68,7 @@ class FixedSizeAllocator {
 
  private:
   inline data_ptr_t Get(const Node ptr) const {
+    // TODO: debug usage
     if (ptr.GetBufferId() >= buffers.size()) {
       printf("corrupt");
     }
