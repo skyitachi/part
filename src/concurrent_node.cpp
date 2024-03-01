@@ -564,10 +564,20 @@ bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other)
 
   assert(mismatch_position != INVALID_INDEX);
 
+  // case 2: none prefix type node merge with prefix type node
   if (l_node->GetType() != NType::PREFIX && r_node.get().GetType() == NType::PREFIX) {
     // none prefix node merge prefix_node
     return l_node->MergePrefix(cart, art, r_node);
   }
+
+  // case 3: prefixes diff at a specific byte
+  if (l_node->GetType() == NType::PREFIX && r_node.get().GetType() != NType::PREFIX) {
+    // TODO:
+    return true;
+  }
+
+  // case 4: prefixes differ at a specific byte
+  MergePrefixesDiffer(cart, art, l_node, r_node, mismatch_position);
 
   return false;
 }
@@ -654,6 +664,35 @@ bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNod
     default:
       throw std::logic_error("TraversePrefix does not suppor this type");
   }
+}
+
+void ConcurrentNode::MergePrefixesDiffer(ConcurrentART &cart,
+                                         ART& art,
+                                         ConcurrentNode* l_node,
+                                         reference<Node>& r_node,
+                                         idx_t& mismatched_position) {
+  assert(l_node->RLocked());
+  auto r_byte = Prefix::GetByte(art, r_node, mismatched_position);
+  Prefix::Reduce(art, r_node, mismatched_position);
+
+  auto l_byte = CPrefix::GetByte(cart, *l_node, mismatched_position);
+  ConcurrentNode* l_child = nullptr;
+
+  l_node->Upgrade();
+  CPrefix::Split(cart, l_node, l_child, mismatched_position);
+  assert(l_node->Locked());
+
+  l_node->Update(GetAllocator(cart, NType::NODE_4).ConcNew());
+  CNode4::InsertChild(cart, l_node, l_byte, l_child);
+  assert(l_node->Locked());
+
+  auto new_child = cart.AllocateNode();
+  new_child->Lock();
+  new_child->MergeUpdate(cart, art, r_node);
+  assert(!new_child->Locked());
+
+  CNode4::InsertChild(cart, l_node, r_byte, new_child);
+  l_node->Unlock();
 }
 
 }  // namespace part

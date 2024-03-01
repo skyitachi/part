@@ -96,6 +96,9 @@ class ConcurrentNode : public Node {
 
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
 
+  static void MergePrefixesDiffer(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
+                                  idx_t &mismatched_position);
+
  private:
   // NOTE: 如何传递锁状态是个问题
   std::atomic<uint64_t> lock_ = {0};
