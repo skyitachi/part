@@ -387,4 +387,18 @@ void CNode4::InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node,
   child->MergeUpdate(cart, art, other.ptr);
 }
 
+void CNode4::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst) {
+  assert(src->GetType() == NType::NODE_4);
+  src->RLock();
+  auto &cn4 = CNode4::Get(cart, src);
+  dst = Node::GetAllocator(art, NType::NODE_4).New();
+  auto &n4 = Node4::Get(art, dst);
+  n4.count = cn4.count;
+  for (idx_t i = 0; i < cn4.count; i++) {
+    n4.key[i] = cn4.key[i];
+    ConvertToNode(cart, art, cn4.children[i], n4.children[i]);
+  }
+  src->RUnlock();
+}
+
 }  // namespace part

@@ -566,13 +566,14 @@ bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other)
 
   // case 2: none prefix type node merge with prefix type node
   if (l_node->GetType() != NType::PREFIX && r_node.get().GetType() == NType::PREFIX) {
+    // NOTE: leaf node merge prefix node case will never appear
     // none prefix node merge prefix_node
     return l_node->MergePrefix(cart, art, r_node);
   }
 
   // case 3: prefixes diff at a specific byte
   if (l_node->GetType() == NType::PREFIX && r_node.get().GetType() != NType::PREFIX) {
-    // TODO:
+    MergeNonePrefixByPrefix(cart, art, l_node, other);
     return true;
   }
 
@@ -645,6 +646,8 @@ bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
   switch (l_node->GetType()) {
     case NType::NODE_4:
       return CNode4::TraversePrefix(cart, art, l_node, prefix, pos);
+    case NType::NODE_16:
+
     default:
       throw std::logic_error("MergePrefix not support the node type");
   }
@@ -666,10 +669,7 @@ bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNod
   }
 }
 
-void ConcurrentNode::MergePrefixesDiffer(ConcurrentART &cart,
-                                         ART& art,
-                                         ConcurrentNode* l_node,
-                                         reference<Node>& r_node,
+void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, reference<Node>& r_node,
                                          idx_t& mismatched_position) {
   assert(l_node->RLocked());
   auto r_byte = Prefix::GetByte(art, r_node, mismatched_position);
@@ -693,6 +693,41 @@ void ConcurrentNode::MergePrefixesDiffer(ConcurrentART &cart,
 
   CNode4::InsertChild(cart, l_node, r_byte, new_child);
   l_node->Unlock();
+}
+
+void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, Node& other) {
+  assert(l_node->Locked());
+  assert(l_node->GetType() == NType::PREFIX && other.GetType() != NType::PREFIX);
+
+  ConcurrentNode* r_node = cart.AllocateNode();
+  r_node->MergeUpdate(cart, art, other);
+  // swap l_node and r_node
+  ConcurrentNode temp = *l_node;
+  l_node->Update(r_node);
+  r_node->Update(&temp);
+
+  assert(l_node->GetType() != NType::PREFIX && r_node->GetType() == NType::PREFIX);
+
+  Node new_r;
+  ConvertToNode(cart, art, r_node, new_r);
+
+  l_node->MergePrefix(cart, art, new_r);
+}
+
+// NOTE: no need to consider locks
+void ConcurrentNode::ConvertToNode(ConcurrentART& cart, ART& art, ConcurrentNode* src, Node& dst) {
+  switch (src->GetType()) {
+    case NType::LEAF_INLINED:
+    case NType::LEAF:
+      return CLeaf::ConvertToNode(cart, art, src, dst);
+    case NType::PREFIX:
+      return CPrefix::ConvertToNode(cart, art, src, dst);
+    case NType::NODE_4:
+      return CNode4::ConvertToNode(cart, art, src, dst);
+    // TODO: implement new node type
+    default:
+      throw std::logic_error("ConvertToNode does not support this node type");
+  }
 }
 
 }  // namespace part

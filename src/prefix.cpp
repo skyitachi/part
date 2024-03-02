@@ -518,7 +518,7 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
 }
 
 CPrefix &CPrefix::New(ConcurrentART &art, ConcurrentNode &node) {
-  node = ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew();
+  node.Update(ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew());
   node.SetType((uint8_t)NType::PREFIX);
   auto &prefix = CPrefix::Get(art, node);
   prefix.data[Node::PREFIX_SIZE] = 0;
@@ -750,6 +750,33 @@ bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, re
 bool CPrefix::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &prefix, idx_t left_pos,
                              idx_t &right_pos) {
   return false;
+}
+
+void CPrefix::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst) {
+  assert(src->GetType() == NType::PREFIX);
+  src->RLock();
+  ConcurrentNode *current_node = src;
+  auto ref_node = std::ref(dst);
+  while (current_node->GetType() == NType::PREFIX) {
+    auto &cprefix = CPrefix::Get(cart, *current_node);
+    ref_node.get() = Node::GetAllocator(art, NType::PREFIX).New();
+    auto &prefix = Prefix::Get(art, ref_node.get());
+    prefix.data[Node::PREFIX_SIZE] = cprefix.data[Node::PREFIX_SIZE];
+
+    for (idx_t i = 0; i < cprefix.data[Node::PREFIX_SIZE]; i++) {
+      prefix.data[i] = cprefix.data[i];
+    }
+    cprefix.ptr->RLock();
+    current_node->RUnlock();
+    current_node = cprefix.ptr;
+    ref_node = prefix.ptr;
+  }
+  if (current_node->IsSet()) {
+    current_node->RUnlock();
+    ConcurrentNode::ConvertToNode(cart, art, current_node, ref_node.get());
+    return;
+  }
+  current_node->RUnlock();
 }
 
 }  // namespace part

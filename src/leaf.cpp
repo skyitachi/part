@@ -568,4 +568,31 @@ void CLeaf::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Nod
   current_node->Unlock();
 }
 
+void CLeaf::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst) {
+  assert(src->GetType() == NType::LEAF || src->GetType() == NType::LEAF_INLINED);
+  src->RLock();
+  if (src->GetType() == NType::LEAF_INLINED) {
+    dst.SetType((uint8_t)src->GetType());
+    dst.SetDocID(src->GetDocId());
+    src->RUnlock();
+    return;
+  }
+  ConcurrentNode *current_node = src;
+  auto ref_node = std::ref(dst);
+  while (current_node->IsSet()) {
+    auto &cleaf = CLeaf::Get(cart, *current_node);
+    ref_node.get() = Node::GetAllocator(art, NType::LEAF).New();
+    auto &leaf = Leaf::Get(art, ref_node.get());
+    leaf.count = cleaf.count;
+    for (idx_t i = 0; i < cleaf.count; i++) {
+      leaf.row_ids[i] = cleaf.row_ids[i];
+    }
+    cleaf.ptr->RLock();
+    current_node->RUnlock();
+    current_node = cleaf.ptr;
+    ref_node = leaf.ptr;
+  }
+  current_node->RUnlock();
+}
+
 }  // namespace part

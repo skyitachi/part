@@ -80,6 +80,8 @@ class CNode16 {
   std::optional<ConcurrentNode *> GetChild(const uint8_t byte);
 
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
+
+  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
 };
 
 }  // namespace part

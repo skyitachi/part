@@ -71,6 +71,8 @@ class CNode4 {
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
 
   void InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &other, idx_t pos);
+
+  static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
 };
 }  // namespace part
 

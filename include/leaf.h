@@ -78,6 +78,8 @@ class CLeaf {
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer);
 
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
+
+  static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
 };
 }  // namespace part
 

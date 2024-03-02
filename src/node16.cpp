@@ -6,6 +6,7 @@
 #include "concurrent_art.h"
 #include "node4.h"
 #include "node48.h"
+#include "prefix.h"
 
 namespace part {
 
@@ -322,6 +323,31 @@ void CNode16::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
     assert(!cn16.children[i]->Locked());
   }
   node->Unlock();
+}
+
+bool CNode16::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos) {
+  assert(node->RLocked());
+  assert(pos < prefix.data[Node::PREFIX_SIZE]);
+
+  auto &cn16 = CNode16::Get(cart, node);
+  for (idx_t i = 0; i < cn16.count; i++) {
+    if (cn16.key[i] == prefix.data[pos]) {
+      cn16.children[i]->RLock();
+      node->RUnlock();
+      node = cn16.children[i];
+      pos += 1;
+      if (pos < prefix.data[Node::PREFIX_SIZE]) {
+        return ConcurrentNode::TraversePrefix(cart, art, node, prefix, pos);
+      } else {
+        node->RUnlock();
+        node->Merge(cart, art, prefix.ptr);
+        return true;
+      }
+    }
+  }
+  node->Upgrade();
+
+  return false;
 }
 
 }  // namespace part

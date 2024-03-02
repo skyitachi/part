@@ -125,6 +125,8 @@ class CPrefix {
 
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &prefix, idx_t left_pos,
                              idx_t &right_pos);
+
+  static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H

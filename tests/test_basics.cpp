@@ -484,3 +484,14 @@ TEST(ARTTest, LongPrefixTest) {
   fmt::println("results: {}", result_ids.size());
   art.Draw("long_prefix.dot");
 }
+
+TEST(ARTTest, SwapTest) {
+  int a = 10;
+  int b = 20;
+  int* pa = &a;
+  int* pb = &b;
+
+  fmt::println("pa = {}, pb = {}", static_cast<void*>(pa), static_cast<void*>(pb));
+  std::swap(pa, pb);
+  fmt::println("after std::swap, pa = {}, pb = {}", static_cast<void*>(pa), static_cast<void*>(pb));
+}

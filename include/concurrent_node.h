@@ -23,7 +23,7 @@ class ConcurrentNode : public Node {
     lock_ = 0;
   }
 
-  ConcurrentNode(Deserializer &reader) : Node(reader) {}
+  explicit ConcurrentNode(Deserializer &reader) : Node(reader) {}
 
   ConcurrentNode(ConcurrentART &art, Deserializer &reader) : Node(reader) {
     if (IsSerialized() && IsSet()) {
@@ -31,7 +31,7 @@ class ConcurrentNode : public Node {
     }
   }
 
-  ConcurrentNode(){};
+  ConcurrentNode() = default;
 
   // NOTE: copy data
   ConcurrentNode(const ConcurrentNode &other) : lock_(0) { SetData(other.GetData()); }
@@ -39,7 +39,6 @@ class ConcurrentNode : public Node {
   // just used in Serialize and Deserialize
   ConcurrentNode &operator=(const ConcurrentNode &other) {
     SetData(other.GetData());
-    lock_ = 0;
     return *this;
   }
 
@@ -47,11 +46,13 @@ class ConcurrentNode : public Node {
   void Update(const ConcurrentNode &&other) {
     Reset();
     SetPtr(other.GetBufferId(), other.GetOffset());
+    SetType((uint8_t)other.GetType());
   }
 
   void Update(ConcurrentNode *other) {
     Reset();
     SetPtr(other->GetBufferId(), other->GetOffset());
+    SetType((uint8_t)other->GetType());
   }
 
   static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
@@ -98,6 +99,11 @@ class ConcurrentNode : public Node {
 
   static void MergePrefixesDiffer(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
                                   idx_t &mismatched_position);
+
+  // Note: prefix node merge none prefix node
+  static void MergeNonePrefixByPrefix(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, Node &other);
+
+  static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
 
  private:
   // NOTE: 如何传递锁状态是个问题
