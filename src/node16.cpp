@@ -284,7 +284,6 @@ void CNode16::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_
     n16.children[child_pos] = child;
     n16.count++;
   } else {
-    // TODO: Grow to 48
     CNode48::GrowNode16(art, node);
     CNode48::InsertChild(art, node, byte, child);
   }
@@ -339,15 +338,32 @@ bool CNode16::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&nod
       if (pos < prefix.data[Node::PREFIX_SIZE]) {
         return ConcurrentNode::TraversePrefix(cart, art, node, prefix, pos);
       } else {
-        node->RUnlock();
         node->Merge(cart, art, prefix.ptr);
         return true;
       }
     }
   }
   node->Upgrade();
+  ConcurrentNode::InsertForMerge(cart, art, node, prefix, pos);
+  node->Unlock();
+  return true;
+}
 
-  return false;
+void CNode16::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst) {
+  assert(src->GetType() == NType::NODE_16);
+  src->RLock();
+
+  auto &cn16 = CNode16::Get(cart, src);
+  dst = Node::GetAllocator(art, NType::NODE_16).New();
+
+  auto &n16 = Node16::Get(art, dst);
+  n16.count = cn16.count;
+
+  for (idx_t i = 0; i < cn16.count; i++) {
+    n16.key[i] = cn16.key[i];
+    ConvertToNode(cart, art, cn16.children[i], n16.children[i]);
+  }
+  src->RUnlock();
 }
 
 }  // namespace part

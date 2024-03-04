@@ -105,6 +105,8 @@ class ConcurrentNode : public Node {
 
   static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
 
+  static void InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &other, idx_t pos);
+
  private:
   // NOTE: 如何传递锁状态是个问题
   std::atomic<uint64_t> lock_ = {0};

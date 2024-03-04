@@ -344,7 +344,6 @@ bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node
       if (pos < prefix.data[Node::PREFIX_SIZE]) {
         return ConcurrentNode::TraversePrefix(cart, art, node, prefix, pos);
       } else {
-        node->RUnlock();
         // merge prefix.ptr
         node->Merge(cart, art, prefix.ptr);
         return true;
@@ -352,39 +351,9 @@ bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node
     }
   }
   node->Upgrade();
-  cn4.InsertForMerge(cart, art, node, prefix, pos);
+  ConcurrentNode::InsertForMerge(cart, art, node, prefix, pos);
   node->Unlock();
   return true;
-}
-
-void CNode4::InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &other, idx_t pos) {
-  ;
-  auto &merge_prefix = other;
-  ConcurrentNode *child = cart.AllocateNode();
-  if (count + 1 < Node::NODE_4_CAPACITY) {
-    // enough space
-    key[count] = other.data[pos];
-    children[count] = child;
-    count++;
-  } else {
-    auto &c16 = CNode16::GrowNode4(cart, node);
-    c16.key[c16.count] = other.data[pos];
-    c16.children[count] = child;
-    count++;
-  }
-  if (pos + 1 < other.data[Node::PREFIX_SIZE]) {
-    // copy prefix
-    Node new_node;
-    auto &new_prefix = Prefix::New(art, new_node);
-    for (idx_t i = pos + 1; i < other.data[Node::PREFIX_SIZE]; i++) {
-      new_prefix.data[i - pos - 1] = other.data[i];
-    }
-    new_prefix.data[Node::PREFIX_SIZE] = other.data[Node::PREFIX_SIZE] - pos - 1;
-    merge_prefix = new_prefix;
-    CPrefix::MergeUpdate(cart, art, child, new_node);
-    return;
-  }
-  child->MergeUpdate(cart, art, other.ptr);
 }
 
 void CNode4::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst) {

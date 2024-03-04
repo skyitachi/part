@@ -5,6 +5,8 @@
 #include <node256.h>
 #include <node48.h>
 
+#include "prefix.h"
+
 namespace part {
 
 Node48 &Node48::New(ART &art, Node &node) {
@@ -311,4 +313,44 @@ void CNode48::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
   }
   node->Unlock();
 }
+
+bool CNode48::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos) {
+  assert(node->RLocked());
+  assert(pos < prefix.data[Node::PREFIX_SIZE]);
+
+  auto &cn48 = CNode48::Get(cart, node);
+  if (cn48.child_index[prefix.data[pos]] != Node::EMPTY_MARKER) {
+    node->RUnlock();
+    node = cn48.children[cn48.child_index[prefix.data[pos]]];
+    pos += 1;
+    if (pos < prefix.data[Node::PREFIX_SIZE]) {
+      return ConcurrentNode::TraversePrefix(cart, art, node, prefix, pos);
+    } else {
+      node->Merge(cart, art, prefix.ptr);
+      return true;
+    }
+  }
+  node->Upgrade();
+  ConcurrentNode::InsertForMerge(cart, art, node, prefix, pos);
+  node->Unlock();
+  return false;
+}
+
+void CNode48::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst) {
+  assert(src->GetType() == NType::NODE_48);
+  src->RLock();
+
+  auto &cn48 = CNode48::Get(cart, src);
+  dst = Node::GetAllocator(art, NType::NODE_48).New();
+  auto &n48 = Node48::Get(art, dst);
+  n48.count = cn48.count;
+  std::memcpy(n48.child_index, cn48.child_index, sizeof(cn48.child_index));
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    if (cn48.child_index[i] != Node::EMPTY_MARKER) {
+      ConvertToNode(cart, art, cn48.children[cn48.child_index[i]], n48.children[n48.child_index[i]]);
+    }
+  }
+  src->RUnlock();
+}
+
 }  // namespace part

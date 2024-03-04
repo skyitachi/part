@@ -537,6 +537,7 @@ void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
   }
 }
 
+// NOTE: return value meaning
 bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other) {
   assert(RLocked());
   if (GetType() != NType::PREFIX && other.GetType() != NType::PREFIX) {
@@ -580,7 +581,7 @@ bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other)
   // case 4: prefixes differ at a specific byte
   MergePrefixesDiffer(cart, art, l_node, r_node, mismatch_position);
 
-  return false;
+  return true;
 }
 
 bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
@@ -634,7 +635,7 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
   return true;
 }
 
-// TODO: none leaf node merge prefix node
+// NOTE: return value meaning
 bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
   assert(RLocked());
   // NOTE: can not be leaf type
@@ -647,15 +648,17 @@ bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
     case NType::NODE_4:
       return CNode4::TraversePrefix(cart, art, l_node, prefix, pos);
     case NType::NODE_16:
-
+      return CNode16::TraversePrefix(cart, art, l_node, prefix, pos);
+    case NType::NODE_48:
+      return CNode48::TraversePrefix(cart, art, l_node, prefix, pos);
+    case NType::NODE_256:
+      return CNode256::TraversePrefix(cart, art, l_node, prefix, pos);
     default:
       throw std::logic_error("MergePrefix not support the node type");
   }
-
-  return false;
 }
 
-// NOTE: return value indicated whether other was merged inot cart
+// NOTE: return value indicated whether other was merged into cart
 bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode*& node, Prefix& prefix, idx_t& pos) {
   assert(node->RLocked());
   assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
@@ -664,8 +667,14 @@ bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNod
       return CPrefix::TraversePrefix(cart, art, node, prefix, 0, pos);
     case NType::NODE_4:
       return CNode4::TraversePrefix(cart, art, node, prefix, pos);
+    case NType::NODE_16:
+      return CNode16::TraversePrefix(cart, art, node, prefix, pos);
+    case NType::NODE_48:
+      return CNode48::TraversePrefix(cart, art, node, prefix, pos);
+    case NType::NODE_256:
+      return CNode256::TraversePrefix(cart, art, node, prefix, pos);
     default:
-      throw std::logic_error("TraversePrefix does not suppor this type");
+      throw std::logic_error("TraversePrefix does not support this type");
   }
 }
 
@@ -724,10 +733,35 @@ void ConcurrentNode::ConvertToNode(ConcurrentART& cart, ART& art, ConcurrentNode
       return CPrefix::ConvertToNode(cart, art, src, dst);
     case NType::NODE_4:
       return CNode4::ConvertToNode(cart, art, src, dst);
-    // TODO: implement new node type
+    case NType::NODE_16:
+      return CNode16::ConvertToNode(cart, art, src, dst);
+    case NType::NODE_48:
+      return CNode48::ConvertToNode(cart, art, src, dst);
+    case NType::NODE_256:
+      return CNode256::ConvertToNode(cart, art, src, dst);
     default:
       throw std::logic_error("ConvertToNode does not support this node type");
   }
+}
+
+void ConcurrentNode::InsertForMerge(ConcurrentART& cart, ART& art, ConcurrentNode* node, Prefix& other, idx_t pos) {
+  assert(node->Locked());
+  assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED && node->GetType() != NType::PREFIX);
+
+  ConcurrentNode* child = cart.AllocateNode();
+  InsertChild(cart, node, other.data[pos], child);
+  if (pos + 1 < other.data[Node::PREFIX_SIZE]) {
+    // copy prefix
+    Node new_node;
+    auto& new_prefix = Prefix::New(art, new_node);
+    for (idx_t i = pos + 1; i < other.data[Node::PREFIX_SIZE]; i++) {
+      new_prefix.data[i - pos - 1] = other.data[i];
+    }
+    new_prefix.data[Node::PREFIX_SIZE] = other.data[Node::PREFIX_SIZE] - pos - 1;
+    CPrefix::MergeUpdate(cart, art, child, new_node);
+    return;
+  }
+  child->MergeUpdate(cart, art, other.ptr);
 }
 
 }  // namespace part
