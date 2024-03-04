@@ -222,7 +222,9 @@ void CNode256::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, 
   node->Unlock();
 }
 
-bool CNode256::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos) {
+bool CNode256::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &other,
+                              idx_t &pos) {
+  auto &prefix = Prefix::Get(art, other);
   assert(node->RLocked());
   assert(pos < prefix.data[Node::PREFIX_SIZE]);
 
@@ -232,7 +234,7 @@ bool CNode256::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&no
     node->RUnlock();
     pos += 1;
     if (pos < prefix.data[Node::PREFIX_SIZE]) {
-      return ConcurrentNode::TraversePrefix(cart, art, new_node, prefix, pos);
+      return ConcurrentNode::TraversePrefix(cart, art, new_node, other, pos);
     } else {
       new_node->Merge(cart, art, prefix.ptr);
       return true;

@@ -615,8 +615,9 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
       // NOTE: important order matters
       new_child->Lock();
       // must use downgrade
-      cnode->Downgrade();
       new_child->MergeUpdate(cart, art, *r_child.value());
+      // NOTE: downgrade after the new_child merged
+      cnode->Downgrade();
     } else {
       l_child.value()->RLock();
       cnode->RUnlock();
@@ -643,23 +644,24 @@ bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
 
   auto l_node = this;
   idx_t pos = 0;
-  auto& prefix = Prefix::Get(art, other);
+  auto ref_node = std::ref(other);
   switch (l_node->GetType()) {
     case NType::NODE_4:
-      return CNode4::TraversePrefix(cart, art, l_node, prefix, pos);
+      return CNode4::TraversePrefix(cart, art, l_node, ref_node, pos);
     case NType::NODE_16:
-      return CNode16::TraversePrefix(cart, art, l_node, prefix, pos);
+      return CNode16::TraversePrefix(cart, art, l_node, ref_node, pos);
     case NType::NODE_48:
-      return CNode48::TraversePrefix(cart, art, l_node, prefix, pos);
+      return CNode48::TraversePrefix(cart, art, l_node, ref_node, pos);
     case NType::NODE_256:
-      return CNode256::TraversePrefix(cart, art, l_node, prefix, pos);
+      return CNode256::TraversePrefix(cart, art, l_node, ref_node, pos);
     default:
       throw std::logic_error("MergePrefix not support the node type");
   }
 }
 
 // NOTE: return value indicated whether other was merged into cart
-bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode*& node, Prefix& prefix, idx_t& pos) {
+bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode*& node, reference<Node>& prefix,
+                                    idx_t& pos) {
   assert(node->RLocked());
   assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
   switch (node->GetType()) {
@@ -679,20 +681,25 @@ bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNod
 }
 
 void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, reference<Node>& r_node,
-                                         idx_t& mismatched_position) {
+                                         idx_t& left_pos, idx_t& right_pos) {
   assert(l_node->RLocked());
-  auto r_byte = Prefix::GetByte(art, r_node, mismatched_position);
-  Prefix::Reduce(art, r_node, mismatched_position);
+  auto r_byte = Prefix::GetByte(art, r_node, right_pos);
+  Prefix::Reduce(art, r_node, right_pos);
 
-  auto l_byte = CPrefix::GetByte(cart, *l_node, mismatched_position);
+  auto l_byte = CPrefix::GetByte(cart, *l_node, left_pos);
   ConcurrentNode* l_child = nullptr;
 
   l_node->Upgrade();
-  CPrefix::Split(cart, l_node, l_child, mismatched_position);
+  CPrefix::Split(cart, l_node, l_child, left_pos);
   assert(l_node->Locked());
 
-  l_node->Update(GetAllocator(cart, NType::NODE_4).ConcNew());
+  CNode4::New(cart, *l_node);
+  assert(l_node->GetType() == NType::NODE_4);
   CNode4::InsertChild(cart, l_node, l_byte, l_child);
+  if (l_node->GetType() != NType::NODE_4) {
+    fmt::println("l_node type changed");
+    ::fflush(stdout);
+  }
   assert(l_node->Locked());
 
   auto new_child = cart.AllocateNode();
@@ -704,6 +711,11 @@ void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, Concurre
   l_node->Unlock();
 }
 
+void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, reference<Node>& r_node,
+                                         idx_t& mismatched_position) {
+  MergePrefixesDiffer(cart, art, l_node, r_node, mismatched_position, mismatched_position);
+}
+
 void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, Node& other) {
   assert(l_node->Locked());
   assert(l_node->GetType() == NType::PREFIX && other.GetType() != NType::PREFIX);
@@ -713,7 +725,9 @@ void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, Conc
   // swap l_node and r_node
   ConcurrentNode temp = *l_node;
   l_node->Update(r_node);
+  l_node->SetType((uint8_t)r_node->GetType());
   r_node->Update(&temp);
+  r_node->SetType((uint8_t)temp.GetType());
 
   assert(l_node->GetType() != NType::PREFIX && r_node->GetType() == NType::PREFIX);
 

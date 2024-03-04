@@ -46,13 +46,11 @@ class ConcurrentNode : public Node {
   void Update(const ConcurrentNode &&other) {
     Reset();
     SetPtr(other.GetBufferId(), other.GetOffset());
-    SetType((uint8_t)other.GetType());
   }
 
   void Update(ConcurrentNode *other) {
     Reset();
     SetPtr(other->GetBufferId(), other->GetOffset());
-    SetType((uint8_t)other->GetType());
   }
 
   static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
@@ -95,11 +93,13 @@ class ConcurrentNode : public Node {
 
   bool MergePrefix(ConcurrentART &cart, ART &art, Node &other);
 
-  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
+  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &prefix, idx_t &pos);
 
   static void MergePrefixesDiffer(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
                                   idx_t &mismatched_position);
 
+  static void MergePrefixesDiffer(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
+                                  idx_t &left_pos, idx_t &right_pos);
   // Note: prefix node merge none prefix node
   static void MergeNonePrefixByPrefix(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, Node &other);
 

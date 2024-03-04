@@ -68,7 +68,7 @@ class CNode4 {
   static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer);
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader);
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
-  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos);
+  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &other, idx_t &pos);
 
   static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
 };

@@ -192,6 +192,9 @@ CNode4 &CNode4::New(ConcurrentART &art, ConcurrentNode &node) {
   node.SetType((uint8_t)NType::NODE_4);
   auto &n4 = CNode4::Get(art, &node);
   n4.count = 0;
+  for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
+    n4.children[i] = nullptr;
+  }
   return n4;
 }
 
@@ -330,7 +333,8 @@ void CNode4::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, No
   node->Unlock();
 }
 
-bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, Prefix &prefix, idx_t &pos) {
+bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &other, idx_t &pos) {
+  auto &prefix = Prefix::Get(art, other);
   assert(node->RLocked());
   assert(pos < prefix.data[Node::PREFIX_SIZE]);
 
@@ -342,7 +346,7 @@ bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node
       node = cn4.children[i];
       pos += 1;
       if (pos < prefix.data[Node::PREFIX_SIZE]) {
-        return ConcurrentNode::TraversePrefix(cart, art, node, prefix, pos);
+        return ConcurrentNode::TraversePrefix(cart, art, node, other, pos);
       } else {
         // merge prefix.ptr
         node->Merge(cart, art, prefix.ptr);

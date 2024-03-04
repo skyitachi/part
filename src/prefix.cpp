@@ -747,8 +747,29 @@ bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, re
 }
 
 // TODO: implement
-bool CPrefix::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &prefix, idx_t left_pos,
-                             idx_t &right_pos) {
+bool CPrefix::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &other,
+                             idx_t left_pos, idx_t &right_pos) {
+  fmt::println("debug");
+  assert(node->RLocked());
+
+  auto &cprefix = CPrefix::Get(cart, *node);
+  auto &prefix = Prefix::Get(art, other);
+
+  auto left_end = cprefix.data[Node::PREFIX_SIZE];
+  auto right_end = prefix.data[Node::PREFIX_SIZE];
+  idx_t mismatched = INVALID_INDEX;
+  for (idx_t i = 0; left_pos + i < left_end && right_pos + i < right_end; i++) {
+    if (cprefix.data[left_pos + i] != prefix.data[right_pos + i]) {
+      mismatched = i;
+      break;
+    }
+  }
+  if (mismatched != INVALID_INDEX) {
+    idx_t lp = left_pos + mismatched;
+    idx_t rp = right_pos + mismatched;
+    ConcurrentNode::MergePrefixesDiffer(cart, art, node, other, lp, rp);
+  }
+
   return false;
 }
 

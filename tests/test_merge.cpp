@@ -104,3 +104,65 @@ TEST(ConcurrentARTMergeTest, MergeUpdateBigTest) {
     ASSERT_EQ(result_ids[0], i);
   }
 }
+
+TEST(ConcurrentARTMergeTest, MemoryMergeWithTwoARTMedium) {
+  ConcurrentART cart;
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  std::vector<ARTKey> keys;
+  idx_t limit = 20;
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
+
+  for (idx_t i = 0; i < limit / 2; i++) {
+    cart.Put(keys[i], i);
+  }
+
+  for (idx_t i = limit / 2; i < limit; i++) {
+    art.Put(keys[i], i);
+  }
+
+  cart.Merge(art);
+
+  cart.Draw("merged_cart.dot");
+
+  for (idx_t i = 0; i < limit; i++) {
+    std::vector<idx_t> result_ids;
+    cart.Get(keys[i], result_ids);
+    ASSERT_EQ(result_ids.size(), 1);
+    ASSERT_EQ(result_ids[0], i);
+  }
+}
+
+// TODO: need to fix this case
+TEST(ConcurrentARTMergeTest, MergeDifferPrefix) {
+  ConcurrentART cart;
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "abc");
+  auto k2 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "acd");
+
+  cart.Put(k1, 1);
+  art.Put(k2, 2);
+
+  cart.Merge(art);
+
+  //  cart.Draw("merge_diff_prefix.dot");
+
+  std::vector<idx_t> result_ids;
+  cart.Get(k1, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+
+  result_ids.clear();
+  cart.Get(k2, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 2);
+}
