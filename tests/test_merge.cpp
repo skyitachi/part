@@ -263,3 +263,35 @@ TEST(ConcurrentARTTEST, MergeNonePrefixByPrefix) {
   ASSERT_EQ(result_ids.size(), 1);
   ASSERT_EQ(result_ids[0], 3);
 }
+
+TEST(ConcurrentARTTEST, LeafMergeInternal) {
+  ConcurrentART cart;
+  ART art;
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  idx_t limit = 10;
+  std::vector<ARTKey> keys;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<std::string_view>(arena_allocator, "abc"));
+  }
+  for (idx_t i = 0; i < limit / 2; i++) {
+    cart.Put(keys[i], i);
+  }
+
+  for (idx_t i = limit / 2; i < limit; i++) {
+    art.Put(keys[i], i);
+  }
+
+  cart.Merge(art);
+
+  cart.Draw("LeafMergeInternal.dot");
+
+  std::vector<idx_t> result_ids;
+  cart.Get(keys[0], result_ids);
+  ASSERT_EQ(result_ids.size(), limit);
+  for (idx_t i = 0; i < limit; i++) {
+    ASSERT_EQ(result_ids[i], i);
+  }
+}

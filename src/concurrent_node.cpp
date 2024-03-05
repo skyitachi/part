@@ -523,7 +523,7 @@ void ConcurrentNode::Merge(ConcurrentART& cart, ART& art, Node& other) {
 
 // NOTE: only used in merge function
 void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
-  assert(Locked() && !IsSet());
+  P_ASSERT(Locked() && !IsSet());
   switch (other.GetType()) {
     case NType::PREFIX:
       return CPrefix::MergeUpdate(cart, art, this, other);
@@ -605,7 +605,16 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
   auto right_leaf = node.GetType() == NType::LEAF || node.GetType() == NType::LEAF_INLINED;
   if (is_leaf && right_leaf) {
     Upgrade();
-    cnode->MergeUpdate(cart, art, other);
+    // TODO: bug here
+    fmt::println("before merge: cnode {}", static_cast<void*>(cnode));
+    auto& cleaf = CLeaf::Get(cart, *cnode);
+    fmt::println("before merge cleaf count: {}", cleaf.count);
+    CLeaf::Merge(cart, art, cnode, other);
+    assert(!cnode->Locked());
+    cnode->Lock();
+    cleaf = CLeaf::Get(cart, *cnode);
+    fmt::println("after merge cleaf count: {}", cleaf.count);
+    cnode->Unlock();
     return true;
   }
 

@@ -412,12 +412,11 @@ CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, const idx_t doc_
     leaf.get().ptr->ResetAll();
     leaf.get().ptr->Update(ConcurrentNode::GetAllocator(art, NType::LEAF).ConcNew());
     leaf.get().ptr->SetType((uint8_t)NType::LEAF);
-
+    leaf.get().ptr->Lock();
     node->Unlock();
     // ConcurrentNode is non-trivial, when use this get method will lose lock state
     // it's a design problem
     node = leaf.get().ptr;
-    node->Lock();
     leaf = CLeaf::Get(art, *node);
     // NOTE: important initialize
     leaf.get().ptr = art.AllocateNode();
@@ -536,6 +535,7 @@ void CLeaf::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Nod
   assert(node->Locked());
   assert(other.GetType() == NType::LEAF || other.GetType() == NType::LEAF_INLINED);
 
+  node->Reset();
   node->SetType((uint8_t)other.GetType());
   if (other.GetType() == NType::LEAF_INLINED) {
     node->SetDocID(other.GetDocId());
@@ -594,6 +594,41 @@ void CLeaf::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, No
     ref_node = leaf.ptr;
   }
   current_node->RUnlock();
+}
+
+void CLeaf::Merge(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &other) {
+  assert(src->Locked());
+
+  if (src->GetType() == NType::LEAF_INLINED) {
+    MoveInlinedToLeaf(cart, *src);
+  }
+  auto &cleaf = CLeaf::Get(cart, *src);
+  if (other.GetType() == NType::LEAF_INLINED) {
+    cleaf.Append(cart, src, other.GetDocId());
+    return;
+  }
+  auto ref_node = std::ref(other);
+
+  auto next_node = src;
+  // TODO: need to added to Append Logic
+  while (cleaf.ptr && cleaf.ptr->IsSet()) {
+    next_node->Unlock();
+    next_node = cleaf.ptr;
+    next_node->Lock();
+    cleaf = CLeaf::Get(cart, *next_node);
+  }
+
+  while (ref_node.get().IsSet()) {
+    auto &leaf = Leaf::Get(art, ref_node.get());
+    for (idx_t i = 0; i < leaf.count; i++) {
+      cleaf = cleaf.Append(cart, next_node, leaf.row_ids[i]);
+      assert(!next_node->Locked());
+      next_node->Lock();
+    }
+    ref_node = leaf.ptr;
+  }
+  next_node->Unlock();
+  fmt::println("after merge: next_node {}", static_cast<void *>(next_node));
 }
 
 }  // namespace part
