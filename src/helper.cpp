@@ -7,7 +7,6 @@
 #include <fmt/core.h>
 
 #include <memory>
-#include <stacktrace>
 
 namespace part {
 
