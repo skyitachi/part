@@ -572,8 +572,7 @@ void CLeaf::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, No
   assert(src->GetType() == NType::LEAF || src->GetType() == NType::LEAF_INLINED);
   src->RLock();
   if (src->GetType() == NType::LEAF_INLINED) {
-    dst.SetType((uint8_t)src->GetType());
-    dst.SetDocID(src->GetDocId());
+    Leaf::New(dst, src->GetDocId());
     src->RUnlock();
     return;
   }
@@ -582,6 +581,8 @@ void CLeaf::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, No
   while (current_node->IsSet()) {
     auto &cleaf = CLeaf::Get(cart, *current_node);
     ref_node.get() = Node::GetAllocator(art, NType::LEAF).New();
+    ref_node.get().SetType((uint8_t)NType::LEAF);
+
     auto &leaf = Leaf::Get(art, ref_node.get());
     leaf.count = cleaf.count;
     for (idx_t i = 0; i < cleaf.count; i++) {

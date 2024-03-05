@@ -138,7 +138,6 @@ TEST(ConcurrentARTMergeTest, MemoryMergeWithTwoARTMedium) {
   }
 }
 
-// TODO: need to fix this case
 TEST(ConcurrentARTMergeTest, MergeDifferPrefix) {
   ConcurrentART cart;
   ART art;
@@ -165,4 +164,102 @@ TEST(ConcurrentARTMergeTest, MergeDifferPrefix) {
   cart.Get(k2, result_ids);
   ASSERT_EQ(result_ids.size(), 1);
   ASSERT_EQ(result_ids[0], 2);
+}
+
+TEST(ConcurrentARTMergeTest, MergeDifferPrefix1) {
+  ConcurrentART cart;
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "bc");
+  auto k2 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "cde");
+
+  cart.Put(k1, 1);
+  art.Put(k2, 2);
+
+  cart.Merge(art);
+
+  cart.Draw("merge_diff_prefix1.dot");
+
+  std::vector<idx_t> result_ids;
+  cart.Get(k1, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+
+  result_ids.clear();
+  cart.Get(k2, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 2);
+}
+
+TEST(ConcurrentARTMergeTest, Node4MergePrefix) {
+  ConcurrentART cart;
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "bc");
+  auto k2 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "cde");
+  auto k3 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "ba");
+
+  cart.Put(k1, 1);
+  cart.Put(k2, 2);
+  art.Put(k3, 3);
+
+  cart.Merge(art);
+
+  cart.Draw("merge_diff_prefix1.dot");
+
+  std::vector<idx_t> result_ids;
+  cart.Get(k1, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+
+  result_ids.clear();
+  cart.Get(k2, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 2);
+
+  result_ids.clear();
+  cart.Get(k3, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 3);
+}
+
+TEST(ConcurrentARTTEST, MergeNonePrefixByPrefix) {
+  ConcurrentART cart;
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "bc");
+  auto k2 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "cde");
+  auto k3 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "ba");
+
+  cart.Put(k1, 1);
+  art.Put(k2, 2);
+  art.Put(k3, 3);
+
+  cart.Merge(art);
+
+  cart.Draw("MergeNonePrefixByPrefix.dot");
+
+  std::vector<idx_t> result_ids;
+  cart.Get(k1, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+
+  result_ids.clear();
+  cart.Get(k2, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 2);
+
+  result_ids.clear();
+  cart.Get(k3, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 3);
 }

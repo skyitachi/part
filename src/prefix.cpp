@@ -748,10 +748,8 @@ bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, re
   return true;
 }
 
-// TODO: implement
 bool CPrefix::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &other,
                              idx_t left_pos, idx_t &right_pos) {
-  fmt::println("debug");
   assert(node->RLocked());
 
   auto &cprefix = CPrefix::Get(cart, *node);
@@ -782,8 +780,8 @@ void CPrefix::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
   auto ref_node = std::ref(dst);
   while (current_node->GetType() == NType::PREFIX) {
     auto &cprefix = CPrefix::Get(cart, *current_node);
-    ref_node.get() = Node::GetAllocator(art, NType::PREFIX).New();
-    auto &prefix = Prefix::Get(art, ref_node.get());
+    auto &prefix = Prefix::New(art, ref_node.get());
+
     prefix.data[Node::PREFIX_SIZE] = cprefix.data[Node::PREFIX_SIZE];
 
     for (idx_t i = 0; i < cprefix.data[Node::PREFIX_SIZE]; i++) {

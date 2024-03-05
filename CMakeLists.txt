@@ -34,7 +34,7 @@ set(SRC_FILES
 
 add_library(part SHARED ${SRC_FILES})
 
-target_link_libraries(part fmt)
+target_link_libraries(part fmt backward)
 
 add_subdirectory(examples)
 

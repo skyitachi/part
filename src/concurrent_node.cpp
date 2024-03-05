@@ -19,6 +19,13 @@ namespace part {
 constexpr uint32_t RETRY_THRESHOLD = 100;
 constexpr uint64_t HAS_WRITER = ~0L;
 
+static std::string ToStr(uint8_t byte) {
+  if (isalpha(byte)) {
+    return std::string(1, byte);
+  }
+  return std::to_string((uint32_t)byte);
+}
+
 void ConcurrentNode::RLock() {
   int retry = 0;
   auto start = std::chrono::high_resolution_clock::now();
@@ -279,7 +286,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       out << "<TR><TD COLSPAN=\"" << (uint32_t)prefix.data[PREFIX_SIZE] << "\"> prefix_" << id << "</TD></TR>\n";
       out << "<TR>\n";
       for (int i = 0; i < prefix.data[PREFIX_SIZE]; i++) {
-        out << "<TD>" << (uint32_t)prefix.data[i] << "</TD>\n";
+        out << "<TD>" << ToStr(prefix.data[i]) << "</TD>\n";
       }
       out << "</TR>";
       out << "</TABLE>>];\n";
@@ -308,7 +315,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       out << "<TR><TD COLSPAN=\"" << (uint32_t)node4.count << "\"> node4_" << id << "</TD></TR>\n";
       out << "<TR>\n";
       for (int i = 0; i < node4.count; i++) {
-        out << "<TD>" << (uint32_t)node4.key[i] << "</TD>\n";
+        out << "<TD>" << ToStr(node4.key[i]) << "</TD>\n";
       }
       out << "</TR>";
       out << "</TABLE>>];\n";
@@ -338,7 +345,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       out << "<TR>\n";
       RUnlock();
       for (int i = 0; i < node16.count; i++) {
-        out << "<TD>" << (uint32_t)node16.key[i] << "</TD>\n";
+        out << "<TD>" << ToStr(node16.key[i]) << "</TD>\n";
       }
       out << "</TR>";
       out << "</TABLE>>];\n";
@@ -368,7 +375,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       RUnlock();
       for (int i = 0; i < Node::NODE_256_CAPACITY; i++) {
         if (node48.child_index[i] != Node::EMPTY_MARKER) {
-          out << "<TD>" << i << "</TD>\n";
+          out << "<TD>" << ToStr(i) << "</TD>\n";
         }
       }
       out << "</TR>";
@@ -401,7 +408,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       RUnlock();
       for (int i = 0; i < Node::NODE_256_CAPACITY; i++) {
         if (node256.children[i]) {
-          out << "<TD>" << i << "</TD>\n";
+          out << "<TD>" << ToStr(i) << "</TD>\n";
         }
       }
       out << "</TR>";
@@ -719,17 +726,23 @@ void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, Concurre
 }
 
 void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, Node& other) {
-  assert(l_node->Locked());
+  assert(l_node->RLocked());
   assert(l_node->GetType() == NType::PREFIX && other.GetType() != NType::PREFIX);
 
   ConcurrentNode* r_node = cart.AllocateNode();
+  r_node->Lock();
   r_node->MergeUpdate(cart, art, other);
+  assert(!r_node->Locked());
   // swap l_node and r_node
   ConcurrentNode temp = *l_node;
+  r_node->Lock();
+
   l_node->Update(r_node);
   l_node->SetType((uint8_t)r_node->GetType());
+
   r_node->Update(&temp);
   r_node->SetType((uint8_t)temp.GetType());
+  r_node->Unlock();
 
   assert(l_node->GetType() != NType::PREFIX && r_node->GetType() == NType::PREFIX);
 

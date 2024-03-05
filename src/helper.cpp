@@ -7,6 +7,8 @@
 #include <fmt/core.h>
 
 #include <memory>
+#include <stacktrace>
+
 namespace part {
 
 std::string GetStackTrace(int max_depth) {
@@ -29,7 +31,12 @@ void PartAssertInternal(bool condition, const char *condition_name, const char *
   if (condition) {
     return;
   }
-  throw std::logic_error(fmt::format("Assertion triggered in file \"{}\" on line {}: {}{}", file, linenr,
-                                     condition_name, GetStackTrace()));
+  try {
+    throw TracedException();
+  } catch (const TracedException &ex) {
+    fmt::println("Assertion triggered in file \"{}\" on line {}: {}", file, linenr, condition_name);
+    fmt::println("{}", ex.what());
+    throw ex;
+  }
 }
 }  // namespace part

@@ -116,7 +116,7 @@ class Node {
 
   //! Set the type (1st to 7th bit)
   inline void SetType(const uint8_t type) {
-    assert(!IsSerialized());
+    P_ASSERT(!IsSerialized());
     data += (uint64_t)type << Node::SHIFT_TYPE;
   }
   //! Set the block/buffer ID (24th to 63rd bit) and offset (8th to 23rd bit)
@@ -129,7 +129,7 @@ class Node {
 
   //! Set the row ID (8th to 63rd bit)
   inline void SetDocID(const idx_t doc_id) {
-    assert(!(data & Node::AND_RESET));
+    P_ASSERT(!(data & Node::AND_RESET));
     data += doc_id;
   }
 
