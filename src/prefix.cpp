@@ -487,6 +487,8 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
       child_prefix.get().ptr = cprefix.ptr;
       child_node->Unlock();
       cprefix.ptr->RUnlock();
+      // NOTE: update new node
+      cprefix.ptr = art.AllocateNode();
     }
   }
 

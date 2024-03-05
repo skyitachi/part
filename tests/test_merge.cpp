@@ -154,7 +154,7 @@ TEST(ConcurrentARTMergeTest, MergeDifferPrefix) {
 
   cart.Merge(art);
 
-  //  cart.Draw("merge_diff_prefix.dot");
+  cart.Draw("merge_diff_prefix.dot");
 
   std::vector<idx_t> result_ids;
   cart.Get(k1, result_ids);

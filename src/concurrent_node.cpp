@@ -690,9 +690,11 @@ void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, Concurre
   ConcurrentNode* l_child = nullptr;
 
   l_node->Upgrade();
-  CPrefix::Split(cart, l_node, l_child, left_pos);
-  assert(l_node->Locked());
+  // NOTE: split will update pointer, which is not needed in this case
+  bool retry = CPrefix::Split(cart, l_node, l_child, left_pos);
+  assert(!retry);
 
+  assert(l_node->Locked());
   CNode4::New(cart, *l_node);
   assert(l_node->GetType() == NType::NODE_4);
   CNode4::InsertChild(cart, l_node, l_byte, l_child);
