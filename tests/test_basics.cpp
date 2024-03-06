@@ -495,3 +495,50 @@ TEST(ARTTest, SwapTest) {
   std::swap(pa, pb);
   fmt::println("after std::swap, pa = {}, pb = {}", static_cast<void*>(pa), static_cast<void*>(pb));
 }
+
+TEST(ARTTEST, Reference) {
+  int a = 10;
+  int &b = a;
+  b = 100;
+  fmt::println("a: {}, b: {}", a, b);
+
+  ConcurrentART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ConcurrentNode *cnode1 = art.AllocateNode();
+  cnode1->Lock();
+  CLeaf::New(*cnode1, 1);
+  CLeaf::MoveInlinedToLeaf(art, *cnode1);
+  auto &cleaf = CLeaf::Get(art, *cnode1);
+  auto node = cnode1;
+  fmt::println("before append, count: {}, node: {}, cnode1: {}",
+               cleaf.count, static_cast<void *>(node), static_cast<void *>(cnode1));
+  cleaf = cleaf.Append(art, node, 2);
+  node->Lock();
+  cleaf = cleaf.Append(art, node, 3);
+  node->Lock();
+  cleaf = cleaf.Append(art, node, 4);
+  node->Lock();
+  cleaf = cleaf.Append(art, node, 5);
+
+  cnode1->Lock();
+  cleaf = CLeaf::Get(art, *cnode1);
+  fmt::println("after append, count: {}, node: {}, cnode1: {}",
+               cleaf.count, static_cast<void *>(node), static_cast<void *>(cnode1));
+
+  cnode1->Unlock();
+  node->Lock();
+  auto cleaf2 = CLeaf::Get(art, *node);
+  node->Unlock();
+
+
+  fmt::println("new leaf count: {}, node: {}, cnode1: {}",
+               cleaf2.count, static_cast<void *>(node), static_cast<void *>(cnode1));
+
+  fmt::println("node data: {}, cnode1 data: {}", node->GetData(), cnode1->GetData());
+  fmt::println("node buffer_id: {}, offset: {}", node->GetBufferId(), node->GetOffset());
+  fmt::println("cnode1 buffer_id: {}, offset: {}", cnode1->GetBufferId(), cnode1->GetOffset());
+
+}

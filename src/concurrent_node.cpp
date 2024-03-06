@@ -613,7 +613,7 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
     assert(!cnode->Locked());
     cnode->Lock();
     cleaf = CLeaf::Get(cart, *cnode);
-    fmt::println("after merge cleaf count: {}", cleaf.count);
+    fmt::println("after merge cleaf count: {}, cnode {}", cleaf.count, static_cast<void *>(cnode));
     cnode->Unlock();
     return true;
   }
