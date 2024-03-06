@@ -239,21 +239,29 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
   switch (GetType()) {
     case NType::LEAF: {
       id++;
-      RLock();
-      auto& leaf = CLeaf::Get(art, *this);
+      auto total_count = CLeaf::TotalCount(art, this);
       std::string leaf_prefix("LEAF_");
       out << leaf_prefix << id;
       out << "[shape=plain color=green ";
       out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
-      out << "<TR><TD COLSPAN=\"" << (uint32_t)leaf.count << "\">leaf_" << id << "</TD></TR><TR>\n";
-      for (int i = 0; i < leaf.count; i++) {
-        out << "<TD>" << leaf.row_ids[i] << "</TD>\n";
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)total_count << "\">leaf_" << id << "</TD></TR><TR>\n";
+
+      ConcurrentNode *next_node = this;
+      next_node->RLock();
+      while (next_node->IsSet()) {
+        auto& leaf = CLeaf::Get(art, *next_node);
+        for (int i = 0; i < leaf.count; i++) {
+          out << "<TD>" << leaf.row_ids[i] << "</TD>\n";
+        }
+        next_node->RUnlock();
+        next_node = leaf.ptr;
+        next_node->RLock();
       }
       out << "</TR></TABLE>>];\n";
       if (!parent_id.empty()) {
         out << parent_id << "->" << leaf_prefix << id << ";\n";
       }
-      RUnlock();
+      next_node->RUnlock();
       break;
     }
     case NType::LEAF_INLINED: {

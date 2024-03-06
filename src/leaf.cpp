@@ -601,6 +601,7 @@ void CLeaf::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, No
   current_node->RUnlock();
 }
 
+// TODO: 这里要重新实现一下， 引用不适合作为指针传递
 void CLeaf::Merge(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &other) {
   assert(src->Locked());
 
@@ -641,27 +642,33 @@ void CLeaf::Merge(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &othe
 void CLeaf::Append(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
   assert(node->Locked());
 
-  auto &cleaf = CLeaf::Get(cart, *node);
+//  auto &cleaf = CLeaf::Get(cart, *node);
 
   auto ref_node = std::ref(other);
 
   while (ref_node.get().IsSet()) {
     auto &leaf = Leaf::Get(art, ref_node.get());
     for (idx_t i = 0; i < leaf.count; i++) {
-      if (cleaf.count < Node::LEAF_SIZE) {
-        cleaf.row_ids[cleaf.count] = leaf.row_ids[i];
-        cleaf.count++;
-      } else {
+      while (node->IsSet()) {
+        auto &cleaf = CLeaf::Get(cart, *node);
+        if (cleaf.count < Node::LEAF_SIZE) {
+          break;
+        }
         cleaf.ptr->Lock();
         node->Unlock();
         node = cleaf.ptr;
-        node->Update(ConcurrentNode::GetAllocator(cart, NType::LEAF).ConcNew());
-        node->SetType((uint8_t)NType::LEAF);
-        cleaf = CLeaf::Get(cart, *node);
-        cleaf.row_ids[0] = leaf.row_ids[i];
-        cleaf.count = 1;
-        cleaf.ptr = cart.AllocateNode();
+        if (!node->IsSet()) {
+          node->Update(ConcurrentNode::GetAllocator(cart, NType::LEAF).ConcNew());
+          node->SetType((uint8_t)NType::LEAF);
+          auto &new_leaf = CLeaf::Get(cart, *node);
+          new_leaf.count = 0;
+          new_leaf.ptr = cart.AllocateNode();
+          break;
+        }
       }
+      auto &cleaf = CLeaf::Get(cart, *node);
+      cleaf.row_ids[cleaf.count] = leaf.row_ids[i];
+      cleaf.count++;
     }
     ref_node = leaf.ptr;
   }
