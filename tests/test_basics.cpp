@@ -511,22 +511,41 @@ TEST(ARTTEST, Reference) {
   cnode1->Lock();
   CLeaf::New(*cnode1, 1);
   CLeaf::MoveInlinedToLeaf(art, *cnode1);
+  // important must be auto &cleaf
   auto &cleaf = CLeaf::Get(art, *cnode1);
   auto node = cnode1;
-  fmt::println("before append, count: {}, node: {}, cnode1: {}",
-               cleaf.count, static_cast<void *>(node), static_cast<void *>(cnode1));
+  fmt::println("before append, count: {}, node: {}, cnode1: {}, cnode1 data: {}",
+               cleaf.count, static_cast<void *>(node), static_cast<void *>(cnode1), cnode1->GetData());
   cleaf = cleaf.Append(art, node, 2);
   node->Lock();
+  fmt::println("append 2: cleaf.count {}", cleaf.count);
   cleaf = cleaf.Append(art, node, 3);
+  fmt::println("append 3: cleaf.count {}", cleaf.count);
   node->Lock();
   cleaf = cleaf.Append(art, node, 4);
+  fmt::println("append 4: cleaf.count {}", cleaf.count);
   node->Lock();
-  cleaf = cleaf.Append(art, node, 5);
+  {
+    auto &new_leaf = CLeaf::Get(art, *cnode1);
+    fmt::println("append 4, count: {}, node: {}, cnode1: {}, cnode1 data: {}, cnode_pointer: {}",
+                 new_leaf.count, static_cast<void *>(node), static_cast<void *>(cnode1), cnode1->GetData(),
+                 static_cast<void *>(CLeaf::GetPointer(art, cnode1)));
+  }
+//  auto new_leaf = cleaf.Append(art, node, 5);
+//  fmt::println("append 5: cleaf.count {}, new_leaf: {}", cleaf.count, new_leaf.count);
+  cleaf.Append(art, node, 5);
+  node->RLock();
+  auto &new_leaf = CLeaf::Get(art, *node);
+  node->RUnlock();
+
+
+  fmt::println("append 5: cleaf.count {}", new_leaf.count);
 
   cnode1->Lock();
   cleaf = CLeaf::Get(art, *cnode1);
-  fmt::println("after append, count: {}, node: {}, cnode1: {}",
-               cleaf.count, static_cast<void *>(node), static_cast<void *>(cnode1));
+  fmt::println("after append, count: {}, node: {}, cnode1: {}, cnode_pointer: {}",
+               cleaf.count, static_cast<void *>(node), static_cast<void *>(cnode1),
+               static_cast<void *>(CLeaf::GetPointer(art, cnode1)));
 
   cnode1->Unlock();
   node->Lock();

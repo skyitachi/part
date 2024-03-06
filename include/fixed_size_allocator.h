@@ -53,25 +53,26 @@ class FixedSizeAllocator {
   void Free(const Node ptr);
 
   ConcurrentNode ConcNew();
+
   void ConcFree(const ConcurrentNode *ptr);
 
   template <class T>
   inline T *Get(const Node ptr) const {
-    return (T *)Get(ptr);
+    return (T *)get(ptr);
+  }
+
+  inline data_ptr_t GetPointer(const ConcurrentNode *ptr) {
+    return buffers[ptr->GetBufferId()].ptr + ptr->GetOffset() * allocation_size + allocation_offset;
   }
 
   void Reset();
 
   inline idx_t GetMemoryUsage() const { return buffers.size() * BUFFER_ALLOC_SIZE; }
 
-  uint32_t GetOffset(ValidityMask &mask, const idx_t allocation_count);
+  uint32_t GetOffset(ValidityMask &mask, idx_t allocation_count);
 
  private:
-  inline data_ptr_t Get(const Node ptr) const {
-    // TODO: debug usage
-    if (ptr.GetBufferId() >= buffers.size()) {
-      printf("corrupt");
-    }
+  inline data_ptr_t get(const Node ptr) const {
     P_ASSERT(ptr.GetBufferId() < buffers.size());
     P_ASSERT(ptr.GetOffset() < allocations_per_buffer);
     return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size + allocation_offset;

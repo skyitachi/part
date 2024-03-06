@@ -58,6 +58,7 @@ class CLeaf {
   ConcurrentNode *ptr;
 
   static CLeaf &Get(ConcurrentART &art, const ConcurrentNode &ptr);
+  static data_ptr_t GetPointer(ConcurrentART &art, ConcurrentNode *ptr);
   static bool GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_t> &result_ids, idx_t max_count,
                         bool &retry);
 
@@ -69,7 +70,9 @@ class CLeaf {
 
   static void MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node);
 
-  CLeaf &Append(ConcurrentART &art, ConcurrentNode *&node, const idx_t doc_id);
+  CLeaf &Append(ConcurrentART &art, ConcurrentNode *&node, idx_t doc_id);
+
+  static void Append(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
 
   static idx_t TotalCount(ConcurrentART &art, ConcurrentNode *node);
 

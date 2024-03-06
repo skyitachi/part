@@ -102,20 +102,18 @@ void Leaf::MoveInlinedToLeaf(ART &art, Node &node) {
   leaf.ptr.Reset();
 }
 
+// TODO: bug?
 Leaf &Leaf::Append(ART &art, const idx_t row_id) {
   auto leaf = std::ref(*this);
 
-  // TODO assert leaf.get() corresponding Node WLocked
   if (leaf.get().count == Node::LEAF_SIZE) {
     leaf.get().ptr = Node::GetAllocator(art, NType::LEAF).New();
     leaf.get().ptr.SetType((uint8_t)NType::LEAF);
 
-    // TODO release origin lock, acquire new lock
     leaf = Leaf::Get(art, leaf.get().ptr);
     leaf.get().count = 0;
     leaf.get().ptr.Reset();
   }
-  // assert leaf.get() corrsponding node is WLocked
   leaf.get().row_ids[leaf.get().count] = row_id;
   leaf.get().count++;
   return leaf.get();
@@ -323,7 +321,14 @@ bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_
 CLeaf &CLeaf::Get(ConcurrentART &art, const ConcurrentNode &ptr) {
   assert(ptr.RLocked() || ptr.Locked());
   assert(!ptr.IsSerialized());
-  return *ConcurrentNode::GetAllocator(art, NType::LEAF).Get<CLeaf>(ptr);
+  Node p;
+  p.SetData(ptr.GetData());
+  return *ConcurrentNode::GetAllocator(art, NType::LEAF).Get<CLeaf>(p);
+}
+
+data_ptr_t CLeaf::GetPointer(ConcurrentART &art, ConcurrentNode *ptr) {
+  auto &allocator = ConcurrentNode::GetAllocator(art, NType::LEAF);
+  return allocator.GetPointer(ptr);
 }
 
 // NOTE: default is inline
@@ -402,7 +407,7 @@ void CLeaf::MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node) {
   cleaf.ptr->ResetAll();
 }
 
-CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, const idx_t doc_id) {
+CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, idx_t doc_id) {
   // NOTE: node points to leaf
   auto leaf = std::ref(*this);
   assert(node->Locked());
@@ -609,26 +614,58 @@ void CLeaf::Merge(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &othe
   }
   auto ref_node = std::ref(other);
 
-  auto next_node = src;
+  CLeaf::Append(cart, art, src, other);
+  assert(!src->Locked());
   // TODO: need to added to Append Logic
-  while (cleaf.ptr && cleaf.ptr->IsSet()) {
-    next_node->Unlock();
-    next_node = cleaf.ptr;
-    next_node->Lock();
-    cleaf = CLeaf::Get(cart, *next_node);
-  }
+//  while (cleaf.ptr && cleaf.ptr->IsSet()) {
+//    next_node->Unlock();
+//    next_node = cleaf.ptr;
+//    next_node->Lock();
+//    cleaf = CLeaf::Get(cart, *next_node);
+//  }
+//
+//  while (ref_node.get().IsSet()) {
+//    auto &leaf = Leaf::Get(art, ref_node.get());
+//    for (idx_t i = 0; i < leaf.count; i++) {
+//      cleaf = cleaf.Append(cart, next_node, leaf.row_ids[i]);
+//      assert(!next_node->Locked());
+//      next_node->Lock();
+//    }
+//    ref_node = leaf.ptr;
+//  }
+//  next_node->Unlock();
+//  fmt::println("after merge: next_node {}", static_cast<void *>(next_node));
+}
+
+// TODO: 错的更厉害？？？
+void CLeaf::Append(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
+  assert(node->Locked());
+
+  auto &cleaf = CLeaf::Get(cart, *node);
+
+  auto ref_node = std::ref(other);
 
   while (ref_node.get().IsSet()) {
     auto &leaf = Leaf::Get(art, ref_node.get());
     for (idx_t i = 0; i < leaf.count; i++) {
-      cleaf = cleaf.Append(cart, next_node, leaf.row_ids[i]);
-      assert(!next_node->Locked());
-      next_node->Lock();
+      if (cleaf.count < Node::LEAF_SIZE) {
+        cleaf.row_ids[cleaf.count] = leaf.row_ids[i];
+        cleaf.count++;
+      } else {
+        cleaf.ptr->Lock();
+        node->Unlock();
+        node = cleaf.ptr;
+        node->Update(ConcurrentNode::GetAllocator(cart, NType::LEAF).ConcNew());
+        node->SetType((uint8_t)NType::LEAF);
+        cleaf = CLeaf::Get(cart, *node);
+        cleaf.row_ids[0] = leaf.row_ids[i];
+        cleaf.count = 1;
+        cleaf.ptr = cart.AllocateNode();
+      }
     }
     ref_node = leaf.ptr;
   }
-  next_node->Unlock();
-  fmt::println("after merge: next_node {}", static_cast<void *>(next_node));
+  node->Unlock();
 }
 
 }  // namespace part

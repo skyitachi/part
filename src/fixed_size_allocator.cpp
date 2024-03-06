@@ -42,7 +42,7 @@ FixedSizeAllocator::~FixedSizeAllocator() {
   }
 }
 
-uint32_t FixedSizeAllocator::GetOffset(ValidityMask &mask, const idx_t allocation_count) {
+uint32_t FixedSizeAllocator::GetOffset(ValidityMask &mask, idx_t allocation_count) {
   auto data = mask.GetData();
 
   // fills up a buffer sequentially before searching for free bits
