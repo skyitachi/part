@@ -246,7 +246,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
       out << "<TR><TD COLSPAN=\"" << (uint32_t)total_count << "\">leaf_" << id << "</TD></TR><TR>\n";
 
-      ConcurrentNode *next_node = this;
+      ConcurrentNode* next_node = this;
       next_node->RLock();
       while (next_node->IsSet()) {
         auto& leaf = CLeaf::Get(art, *next_node);
@@ -621,7 +621,7 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
     assert(!cnode->Locked());
     cnode->Lock();
     cleaf = CLeaf::Get(cart, *cnode);
-    fmt::println("after merge cleaf count: {}, cnode {}", cleaf.count, static_cast<void *>(cnode));
+    fmt::println("after merge cleaf count: {}, cnode {}", cleaf.count, static_cast<void*>(cnode));
     cnode->Unlock();
     return true;
   }

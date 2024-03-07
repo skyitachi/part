@@ -618,31 +618,31 @@ void CLeaf::Merge(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &othe
   CLeaf::Append(cart, art, src, other);
   assert(!src->Locked());
   // TODO: need to added to Append Logic
-//  while (cleaf.ptr && cleaf.ptr->IsSet()) {
-//    next_node->Unlock();
-//    next_node = cleaf.ptr;
-//    next_node->Lock();
-//    cleaf = CLeaf::Get(cart, *next_node);
-//  }
-//
-//  while (ref_node.get().IsSet()) {
-//    auto &leaf = Leaf::Get(art, ref_node.get());
-//    for (idx_t i = 0; i < leaf.count; i++) {
-//      cleaf = cleaf.Append(cart, next_node, leaf.row_ids[i]);
-//      assert(!next_node->Locked());
-//      next_node->Lock();
-//    }
-//    ref_node = leaf.ptr;
-//  }
-//  next_node->Unlock();
-//  fmt::println("after merge: next_node {}", static_cast<void *>(next_node));
+  //  while (cleaf.ptr && cleaf.ptr->IsSet()) {
+  //    next_node->Unlock();
+  //    next_node = cleaf.ptr;
+  //    next_node->Lock();
+  //    cleaf = CLeaf::Get(cart, *next_node);
+  //  }
+  //
+  //  while (ref_node.get().IsSet()) {
+  //    auto &leaf = Leaf::Get(art, ref_node.get());
+  //    for (idx_t i = 0; i < leaf.count; i++) {
+  //      cleaf = cleaf.Append(cart, next_node, leaf.row_ids[i]);
+  //      assert(!next_node->Locked());
+  //      next_node->Lock();
+  //    }
+  //    ref_node = leaf.ptr;
+  //  }
+  //  next_node->Unlock();
+  //  fmt::println("after merge: next_node {}", static_cast<void *>(next_node));
 }
 
 // TODO: 错的更厉害？？？
 void CLeaf::Append(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {
   assert(node->Locked());
 
-//  auto &cleaf = CLeaf::Get(cart, *node);
+  //  auto &cleaf = CLeaf::Get(cart, *node);
 
   auto ref_node = std::ref(other);
 

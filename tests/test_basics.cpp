@@ -498,7 +498,7 @@ TEST(ARTTest, SwapTest) {
 
 TEST(ARTTEST, Reference) {
   int a = 10;
-  int &b = a;
+  int& b = a;
   b = 100;
   fmt::println("a: {}, b: {}", a, b);
 
@@ -507,15 +507,15 @@ TEST(ARTTEST, Reference) {
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  ConcurrentNode *cnode1 = art.AllocateNode();
+  ConcurrentNode* cnode1 = art.AllocateNode();
   cnode1->Lock();
   CLeaf::New(*cnode1, 1);
   CLeaf::MoveInlinedToLeaf(art, *cnode1);
   // important must be auto &cleaf
-  auto &cleaf = CLeaf::Get(art, *cnode1);
+  auto& cleaf = CLeaf::Get(art, *cnode1);
   auto node = cnode1;
-  fmt::println("before append, count: {}, node: {}, cnode1: {}, cnode1 data: {}",
-               cleaf.count, static_cast<void *>(node), static_cast<void *>(cnode1), cnode1->GetData());
+  fmt::println("before append, count: {}, node: {}, cnode1: {}, cnode1 data: {}", cleaf.count, static_cast<void*>(node),
+               static_cast<void*>(cnode1), cnode1->GetData());
   cleaf = cleaf.Append(art, node, 2);
   node->Lock();
   fmt::println("append 2: cleaf.count {}", cleaf.count);
@@ -526,38 +526,35 @@ TEST(ARTTEST, Reference) {
   fmt::println("append 4: cleaf.count {}", cleaf.count);
   node->Lock();
   {
-    auto &new_leaf = CLeaf::Get(art, *cnode1);
-    fmt::println("append 4, count: {}, node: {}, cnode1: {}, cnode1 data: {}, cnode_pointer: {}",
-                 new_leaf.count, static_cast<void *>(node), static_cast<void *>(cnode1), cnode1->GetData(),
-                 static_cast<void *>(CLeaf::GetPointer(art, cnode1)));
+    auto& new_leaf = CLeaf::Get(art, *cnode1);
+    fmt::println("append 4, count: {}, node: {}, cnode1: {}, cnode1 data: {}, cnode_pointer: {}", new_leaf.count,
+                 static_cast<void*>(node), static_cast<void*>(cnode1), cnode1->GetData(),
+                 static_cast<void*>(CLeaf::GetPointer(art, cnode1)));
   }
-//  auto new_leaf = cleaf.Append(art, node, 5);
-//  fmt::println("append 5: cleaf.count {}, new_leaf: {}", cleaf.count, new_leaf.count);
+  //  auto new_leaf = cleaf.Append(art, node, 5);
+  //  fmt::println("append 5: cleaf.count {}, new_leaf: {}", cleaf.count, new_leaf.count);
   cleaf.Append(art, node, 5);
   node->RLock();
-  auto &new_leaf = CLeaf::Get(art, *node);
+  auto& new_leaf = CLeaf::Get(art, *node);
   node->RUnlock();
-
 
   fmt::println("append 5: cleaf.count {}", new_leaf.count);
 
   cnode1->Lock();
   cleaf = CLeaf::Get(art, *cnode1);
-  fmt::println("after append, count: {}, node: {}, cnode1: {}, cnode_pointer: {}",
-               cleaf.count, static_cast<void *>(node), static_cast<void *>(cnode1),
-               static_cast<void *>(CLeaf::GetPointer(art, cnode1)));
+  fmt::println("after append, count: {}, node: {}, cnode1: {}, cnode_pointer: {}", cleaf.count,
+               static_cast<void*>(node), static_cast<void*>(cnode1),
+               static_cast<void*>(CLeaf::GetPointer(art, cnode1)));
 
   cnode1->Unlock();
   node->Lock();
   auto cleaf2 = CLeaf::Get(art, *node);
   node->Unlock();
 
-
-  fmt::println("new leaf count: {}, node: {}, cnode1: {}",
-               cleaf2.count, static_cast<void *>(node), static_cast<void *>(cnode1));
+  fmt::println("new leaf count: {}, node: {}, cnode1: {}", cleaf2.count, static_cast<void*>(node),
+               static_cast<void*>(cnode1));
 
   fmt::println("node data: {}, cnode1 data: {}", node->GetData(), cnode1->GetData());
   fmt::println("node buffer_id: {}, offset: {}", node->GetBufferId(), node->GetOffset());
   fmt::println("cnode1 buffer_id: {}, offset: {}", cnode1->GetBufferId(), cnode1->GetOffset());
-
 }
