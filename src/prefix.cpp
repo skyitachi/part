@@ -723,7 +723,7 @@ void CPrefix::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
 }
 
 // NOTE: no need to swap l_node and r_node
-bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
+bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *&l_node, reference<Node> &r_node,
                        idx_t &mismatch_position) {
   assert(l_node->RLocked());
   auto &l_cprefix = CPrefix::Get(cart, *l_node);
@@ -743,7 +743,16 @@ bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, re
       return l_cprefix.ptr->ResolvePrefixes(cart, art, r_prefix.ptr);
     }
 
+    // NOTE: 不能代表实际的mismatch position
     mismatch_position = max_count;
+
+    if (r_prefix.data[Node::PREFIX_SIZE] == max_count) {
+      r_node = r_prefix.ptr;
+    } else if (l_cprefix.data[Node::PREFIX_SIZE] == max_count) {
+      l_cprefix.ptr->RLock();
+      l_node->RUnlock();
+      l_node = l_cprefix.ptr;
+    }
   }
   return true;
 }
@@ -769,6 +778,7 @@ bool CPrefix::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node
     idx_t rp = right_pos + mismatched;
     ConcurrentNode::MergePrefixesDiffer(cart, art, node, other, lp, rp);
   }
+  // TODO: what if mismatched == INVALID_INDEX
 
   return false;
 }

@@ -61,6 +61,7 @@ class FixedSizeAllocator {
     return (T *)get(ptr);
   }
 
+  // NOTE: for debug usage
   inline data_ptr_t GetPointer(const ConcurrentNode *ptr) {
     return buffers[ptr->GetBufferId()].ptr + ptr->GetOffset() * allocation_size + allocation_offset;
   }

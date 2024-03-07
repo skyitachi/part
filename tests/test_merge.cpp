@@ -295,3 +295,64 @@ TEST(ConcurrentARTTEST, LeafMergeInternal) {
     ASSERT_EQ(result_ids[i], i);
   }
 }
+
+TEST(ConcurrentARTTest, MergeMedium) {
+  ConcurrentART cart;
+  ART art;
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  idx_t limit = 1000;
+  std::vector<ARTKey> keys;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
+  for (idx_t i = 0; i < limit / 2; i++) {
+    cart.Put(keys[i], i);
+  }
+
+  for (idx_t i = limit / 2; i < limit; i++) {
+    art.Put(keys[i], i);
+  }
+
+  cart.Merge(art);
+
+  for (idx_t i = 0; i < limit; i++) {
+    std::vector<idx_t> result_ids;
+    cart.Get(keys[i], result_ids);
+    ASSERT_EQ(result_ids.size(), 1);
+    ASSERT_EQ(result_ids[0], i);
+  }
+}
+
+TEST(ConcurrentARTTest, MergeMediumNotEqualSize) {
+  ConcurrentART cart;
+  ART art;
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  idx_t limit = 1000;
+  idx_t left = 10;
+  std::vector<ARTKey> keys;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
+  for (idx_t i = 0; i < left; i++) {
+    cart.Put(keys[i], i);
+  }
+
+  for (idx_t i = left; i < limit; i++) {
+    art.Put(keys[i], i);
+  }
+
+  cart.Merge(art);
+
+  for (idx_t i = 0; i < limit; i++) {
+    std::vector<idx_t> result_ids;
+    cart.Get(keys[i], result_ids);
+    ASSERT_EQ(result_ids.size(), 1);
+    ASSERT_EQ(result_ids[0], i);
+  }
+}

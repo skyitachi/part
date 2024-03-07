@@ -27,6 +27,11 @@ class Leaf {
     return *Node::GetAllocator(art, NType::LEAF).Get<Leaf>(ptr);
   }
 
+  static inline Leaf *GetPtr(const ART &art, const Node ptr) {
+    assert(!ptr.IsSerialized());
+    return Node::GetAllocator(art, NType::LEAF).Get<Leaf>(ptr);
+  }
+
   static void Insert(ART &art, Node &node, const idx_t row_id);
 
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
@@ -58,6 +63,8 @@ class CLeaf {
   ConcurrentNode *ptr;
 
   static CLeaf &Get(ConcurrentART &art, const ConcurrentNode &ptr);
+  static CLeaf *GetPtr(ConcurrentART &art, const ConcurrentNode &ptr);
+
   static data_ptr_t GetPointer(ConcurrentART &art, ConcurrentNode *ptr);
   static bool GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_t> &result_ids, idx_t max_count,
                         bool &retry);

@@ -613,16 +613,8 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
   auto right_leaf = node.GetType() == NType::LEAF || node.GetType() == NType::LEAF_INLINED;
   if (is_leaf && right_leaf) {
     Upgrade();
-    // TODO: bug here
-    fmt::println("before merge: cnode {}", static_cast<void*>(cnode));
-    auto& cleaf = CLeaf::Get(cart, *cnode);
-    fmt::println("before merge cleaf count: {}", cleaf.count);
     CLeaf::Merge(cart, art, cnode, other);
     assert(!cnode->Locked());
-    cnode->Lock();
-    cleaf = CLeaf::Get(cart, *cnode);
-    fmt::println("after merge cleaf count: {}, cnode {}", cleaf.count, static_cast<void*>(cnode));
-    cnode->Unlock();
     return true;
   }
 
@@ -630,7 +622,7 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
   auto r_child = node.GetNextChild(art, byte);
 
   while (r_child) {
-    assert(cnode->RLocked());
+    P_ASSERT(cnode->RLocked());
     auto l_child = cnode->GetChild(cart, byte);
     if (!l_child) {
       auto new_child = cart.AllocateNode();
@@ -644,8 +636,8 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
       cnode->Downgrade();
     } else {
       l_child.value()->RLock();
-      cnode->RUnlock();
       if (!l_child.value()->ResolvePrefixes(cart, art, *r_child.value())) {
+        cnode->RUnlock();
         return false;
       }
     }
@@ -707,6 +699,12 @@ bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNod
 void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, reference<Node>& r_node,
                                          idx_t& left_pos, idx_t& right_pos) {
   assert(l_node->RLocked());
+  {
+    auto& prefix = Prefix::Get(art, r_node);
+    if (right_pos >= prefix.data[Node::PREFIX_SIZE]) {
+      fmt::println("debug pointer");
+    }
+  }
   auto r_byte = Prefix::GetByte(art, r_node, right_pos);
   Prefix::Reduce(art, r_node, right_pos);
 
@@ -722,10 +720,6 @@ void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, Concurre
   CNode4::New(cart, *l_node);
   assert(l_node->GetType() == NType::NODE_4);
   CNode4::InsertChild(cart, l_node, l_byte, l_child);
-  if (l_node->GetType() != NType::NODE_4) {
-    fmt::println("l_node type changed");
-    ::fflush(stdout);
-  }
   assert(l_node->Locked());
 
   auto new_child = cart.AllocateNode();

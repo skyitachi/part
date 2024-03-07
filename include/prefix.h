@@ -33,7 +33,7 @@ class Prefix {
   static inline uint8_t GetByte(const ART &art, const Node &prefix_node, const idx_t position) {
     auto prefix = Prefix::Get(art, prefix_node);
     assert(position < Node::PREFIX_SIZE);
-    assert(position < prefix.data[Node::PREFIX_SIZE]);
+    P_ASSERT(position < prefix.data[Node::PREFIX_SIZE]);
     return prefix.data[position];
   }
 
@@ -120,7 +120,7 @@ class CPrefix {
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
 
   // NOTE: only used in merge
-  static bool Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
+  static bool Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *&l_node, reference<Node> &r_node,
                        idx_t &mismatch_position);
 
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &prefix,
