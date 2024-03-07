@@ -217,13 +217,14 @@ void CNode256::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, 
       new_child->MergeUpdate(cart, art, n256.children[i]);
       assert(!new_child->Locked());
       cn256.children[i] = new_child;
+    } else {
+      cn256.children[i] = nullptr;
     }
   }
   node->Unlock();
 }
 
-bool CNode256::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &other,
-                              idx_t &pos) {
+bool CNode256::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &other, idx_t &pos) {
   auto &prefix = Prefix::Get(art, other);
   assert(node->RLocked());
   assert(pos < prefix.data[Node::PREFIX_SIZE]);
@@ -236,6 +237,7 @@ bool CNode256::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&no
     if (pos < prefix.data[Node::PREFIX_SIZE]) {
       return ConcurrentNode::TraversePrefix(cart, art, new_node, other, pos);
     } else {
+      new_node->RLock();
       new_node->Merge(cart, art, prefix.ptr);
       return true;
     }
@@ -251,8 +253,7 @@ void CNode256::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src,
   src->RLock();
 
   auto &cn256 = CNode256::Get(cart, src);
-  dst = Node::GetAllocator(art, NType::NODE_256).New();
-  auto &n256 = Node256::Get(art, dst);
+  auto &n256 = Node256::New(art, dst);
   n256.count = cn256.count;
 
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {

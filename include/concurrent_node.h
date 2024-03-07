@@ -93,7 +93,7 @@ class ConcurrentNode : public Node {
 
   bool MergePrefix(ConcurrentART &cart, ART &art, Node &other);
 
-  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &prefix, idx_t &pos);
+  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &prefix, idx_t &pos);
 
   static void MergePrefixesDiffer(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
                                   idx_t &mismatched_position);

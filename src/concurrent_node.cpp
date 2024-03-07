@@ -519,7 +519,7 @@ void ConcurrentNode::Deserialize(ConcurrentART& art) {
 }
 
 void ConcurrentNode::Merge(ConcurrentART& cart, ART& art, Node& other) {
-  RLock();
+  assert(RLocked());
   if (!IsSet()) {
     Upgrade();
     MergeUpdate(cart, art, other);
@@ -662,7 +662,7 @@ bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
 }
 
 // NOTE: return value indicated whether other was merged into cart
-bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode*& node, reference<Node>& prefix,
+bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode* node, reference<Node>& prefix,
                                     idx_t& pos) {
   assert(node->RLocked());
   assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
@@ -729,26 +729,29 @@ void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, Conc
   assert(l_node->RLocked());
   assert(l_node->GetType() == NType::PREFIX && other.GetType() != NType::PREFIX);
 
+  auto& cprefix = CPrefix::Get(cart, *l_node);
+
   ConcurrentNode* r_node = cart.AllocateNode();
   r_node->Lock();
   r_node->MergeUpdate(cart, art, other);
   assert(!r_node->Locked());
-  // swap l_node and r_node
-  ConcurrentNode temp = *l_node;
-  r_node->Lock();
-
-  l_node->Update(r_node);
-  l_node->SetType((uint8_t)r_node->GetType());
-
-  r_node->Update(&temp);
-  r_node->SetType((uint8_t)temp.GetType());
-  r_node->Unlock();
-
-  assert(l_node->GetType() != NType::PREFIX && r_node->GetType() == NType::PREFIX);
 
   // NOTE: too much memory consumed
   Node new_r;
-  ConvertToNode(cart, art, r_node, new_r, l_pos);
+  ConvertToNode(cart, art, l_node, new_r, l_pos);
+  assert(new_r.GetType() == NType::PREFIX);
+
+  cprefix.data[Node::PREFIX_SIZE] = l_pos;
+  r_node->RLock();
+  l_node->Upgrade();
+
+  // NOTE: cprefix.ptr maybe can be released
+  cprefix.ptr = r_node;
+
+  l_node->Unlock();
+  l_node = cprefix.ptr;
+
+  assert(l_node->GetType() != NType::PREFIX && new_r.GetType() == NType::PREFIX);
 
   l_node->MergePrefix(cart, art, new_r);
 }

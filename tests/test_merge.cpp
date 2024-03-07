@@ -332,7 +332,7 @@ TEST(ConcurrentARTTest, MergeMediumNotEqualSize) {
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  idx_t limit = 1000;
+  idx_t limit = 10000;
   idx_t left = 10;
   std::vector<ARTKey> keys;
 
@@ -348,6 +348,8 @@ TEST(ConcurrentARTTest, MergeMediumNotEqualSize) {
   }
 
   cart.Merge(art);
+
+  cart.Draw("MergeMediumNotEqualSize.dot");
 
   for (idx_t i = 0; i < limit; i++) {
     std::vector<idx_t> result_ids;

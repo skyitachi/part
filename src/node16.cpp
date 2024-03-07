@@ -324,7 +324,7 @@ void CNode16::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
   node->Unlock();
 }
 
-bool CNode16::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &other, idx_t &pos) {
+bool CNode16::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &other, idx_t &pos) {
   auto &prefix = Prefix::Get(art, other);
   assert(node->RLocked());
   assert(pos < prefix.data[Node::PREFIX_SIZE]);
@@ -355,9 +355,8 @@ void CNode16::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
   src->RLock();
 
   auto &cn16 = CNode16::Get(cart, src);
-  dst = Node::GetAllocator(art, NType::NODE_16).New();
+  auto &n16 = Node16::New(art, dst);
 
-  auto &n16 = Node16::Get(art, dst);
   n16.count = cn16.count;
 
   for (idx_t i = 0; i < cn16.count; i++) {

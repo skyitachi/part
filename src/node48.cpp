@@ -314,7 +314,7 @@ void CNode48::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
   node->Unlock();
 }
 
-bool CNode48::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &other, idx_t &pos) {
+bool CNode48::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &other, idx_t &pos) {
   auto &prefix = Prefix::Get(art, other);
   assert(node->RLocked());
   assert(pos < prefix.data[Node::PREFIX_SIZE]);
@@ -327,6 +327,7 @@ bool CNode48::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&nod
     if (pos < prefix.data[Node::PREFIX_SIZE]) {
       return ConcurrentNode::TraversePrefix(cart, art, node, other, pos);
     } else {
+      node->RLock();
       node->Merge(cart, art, prefix.ptr);
       return true;
     }
@@ -342,8 +343,8 @@ void CNode48::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
   src->RLock();
 
   auto &cn48 = CNode48::Get(cart, src);
-  dst = Node::GetAllocator(art, NType::NODE_48).New();
-  auto &n48 = Node48::Get(art, dst);
+  auto &n48 = Node48::New(art, dst);
+
   n48.count = cn48.count;
   std::memcpy(n48.child_index, cn48.child_index, sizeof(cn48.child_index));
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {

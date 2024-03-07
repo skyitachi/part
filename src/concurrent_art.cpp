@@ -314,5 +314,8 @@ void ConcurrentART::UpdateMetadata(BlockPointer pointer, Serializer& writer) {
 }
 
 // NOTE: no need to retry ???
-void ConcurrentART::Merge(ART& other) { root->Merge(*this, other, *other.root); }
+void ConcurrentART::Merge(ART& other) {
+  root->RLock();
+  root->Merge(*this, other, *other.root);
+}
 }  // namespace part

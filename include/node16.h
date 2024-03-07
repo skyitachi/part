@@ -81,7 +81,7 @@ class CNode16 {
 
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
 
-  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &other, idx_t &pos);
+  static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &other, idx_t &pos);
 
   static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
 };
