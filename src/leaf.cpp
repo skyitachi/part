@@ -66,27 +66,20 @@ bool Leaf::GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids, idx_t
 void Leaf::Insert(ART &art, Node &node, const idx_t row_id) {
   assert(node.IsSet() && !node.IsSerialized());
 
-  // TODO: assert node RLocked
   if (node.GetType() == NType::LEAF_INLINED) {
-    // TODO: upgrade to WLock
     Leaf::MoveInlinedToLeaf(art, node);
     Leaf::Insert(art, node, row_id);
-    // TODO: downgrade to RLOCK
     return;
   }
 
   // assert
   std::reference_wrapper<Leaf> leaf = Leaf::Get(art, node);
-  // leaf.get().ptr RLOCK
   while (leaf.get().ptr.IsSet()) {
     if (leaf.get().ptr.IsSerialized()) {
-      /// TODO: leaf.get().ptr upgrade TO WLock
       leaf.get().ptr.Deserialize(art);
     }
-    // TODO: downgrade to rlock
     leaf = Leaf::Get(art, leaf.get().ptr);
   }
-  // TODO: assert RLocked , upgrade to WLock
   leaf.get().Append(art, row_id);
 }
 
