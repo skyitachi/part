@@ -349,6 +349,10 @@ bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node
         return ConcurrentNode::TraversePrefix(cart, art, node, other, pos);
       } else {
         // merge prefix.ptr
+        if (!prefix.ptr.IsSet()) {
+          fmt::println("node ptr is not set, debug");
+          ::fflush(stdout);
+        }
         node->Merge(cart, art, prefix.ptr);
         return true;
       }
@@ -369,7 +373,7 @@ void CNode4::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, N
   n4.count = cn4.count;
   for (idx_t i = 0; i < cn4.count; i++) {
     n4.key[i] = cn4.key[i];
-    ConvertToNode(cart, art, cn4.children[i], n4.children[i]);
+    ConcurrentNode::ConvertToNode(cart, art, cn4.children[i], n4.children[i]);
   }
   src->RUnlock();
 }

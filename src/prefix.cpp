@@ -299,7 +299,7 @@ Prefix &Prefix::New(ART &art, Node &node, uint8_t byte, Node next) {
   return prefix;
 }
 
-void Prefix::Reduce(ART &art, Node &prefix_node, const idx_t n) {
+void Prefix::Reduce(ART &art, Node &prefix_node, idx_t n) {
   assert(prefix_node.IsSet() && n < Node::PREFIX_SIZE);
 
   auto &prefix = Prefix::Get(art, prefix_node);
@@ -722,7 +722,7 @@ void CPrefix::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
   current_node->MergeUpdate(cart, art, ref_node.get());
 }
 
-// NOTE: no need to swap l_node and r_node
+// NOTE: return values means whether need merge further
 bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *&l_node, reference<Node> &r_node,
                        idx_t &mismatch_position) {
   assert(l_node->RLocked());
@@ -740,18 +740,63 @@ bool CPrefix::Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *&l_node, r
     if (l_cprefix.data[Node::PREFIX_SIZE] == r_prefix.data[Node::PREFIX_SIZE]) {
       l_cprefix.ptr->RLock();
       l_node->RUnlock();
-      return l_cprefix.ptr->ResolvePrefixes(cart, art, r_prefix.ptr);
+      l_cprefix.ptr->ResolvePrefixes(cart, art, r_prefix.ptr);
+      return false;
     }
 
     // NOTE: 不能代表实际的mismatch position
     mismatch_position = max_count;
 
-    if (r_prefix.data[Node::PREFIX_SIZE] == max_count) {
-      r_node = r_prefix.ptr;
-    } else if (l_cprefix.data[Node::PREFIX_SIZE] == max_count) {
-      l_cprefix.ptr->RLock();
+    if (l_cprefix.data[Node::PREFIX_SIZE] == max_count) {
+      l_cprefix.ptr->Lock();
       l_node->RUnlock();
       l_node = l_cprefix.ptr;
+
+      ConcurrentNode::TraversePrefix(cart, art, l_node, r_node, mismatch_position);
+      return false;
+    }
+
+    if (r_prefix.data[Node::PREFIX_SIZE] == max_count) {
+      r_node = r_prefix.ptr;
+      // 找出mismatch
+      idx_t left_pos = mismatch_position;
+      idx_t right_pos = 0;
+      while (r_node.get().GetType() == NType::PREFIX) {
+        auto &new_prefix = Prefix::Get(art, r_node);
+        for (idx_t i = 0;
+             left_pos < l_cprefix.data[Node::PREFIX_SIZE] && right_pos < new_prefix.data[Node::PREFIX_SIZE]; i++) {
+          if (l_cprefix.data[left_pos] != new_prefix.data[right_pos]) {
+            ConcurrentNode::MergePrefixesDiffer(cart, art, l_node, r_node, left_pos, right_pos);
+            return false;
+          }
+          left_pos += 1;
+          right_pos += 1;
+        }
+        if (left_pos == l_cprefix.data[Node::PREFIX_SIZE] && right_pos == new_prefix.data[Node::PREFIX_SIZE]) {
+          l_cprefix.ptr->ResolvePrefixes(cart, art, new_prefix.ptr);
+          return false;
+        }
+        // need to update l_node ptr
+        if (left_pos == l_cprefix.data[Node::PREFIX_SIZE]) {
+          l_cprefix.ptr->RLock();
+          l_node->RUnlock();
+          l_node = l_cprefix.ptr;
+          if (l_node->GetType() != NType::PREFIX) {
+            Node next_node = r_node.get();
+            Prefix::Reduce(art, next_node, right_pos);
+            l_node->MergePrefix(cart, art, next_node);
+            return false;
+          } else {
+            left_pos = 0;
+          }
+        } else {
+          r_node = new_prefix.ptr;
+          right_pos = 0;
+        }
+      }
+      assert(l_node->GetType() == NType::PREFIX);
+      ConcurrentNode::MergeNonePrefixByPrefix(cart, art, l_node, r_node.get(), left_pos);
+      return false;
     }
   }
   return true;
@@ -783,7 +828,7 @@ bool CPrefix::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node
   return false;
 }
 
-void CPrefix::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst) {
+void CPrefix::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst, idx_t pos) {
   assert(src->GetType() == NType::PREFIX);
   src->RLock();
   ConcurrentNode *current_node = src;
@@ -792,22 +837,76 @@ void CPrefix::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
     auto &cprefix = CPrefix::Get(cart, *current_node);
     auto &prefix = Prefix::New(art, ref_node.get());
 
-    prefix.data[Node::PREFIX_SIZE] = cprefix.data[Node::PREFIX_SIZE];
+    assert(pos < cprefix.data[Node::PREFIX_SIZE]);
 
-    for (idx_t i = 0; i < cprefix.data[Node::PREFIX_SIZE]; i++) {
-      prefix.data[i] = cprefix.data[i];
+    prefix.data[Node::PREFIX_SIZE] = cprefix.data[Node::PREFIX_SIZE] - pos;
+
+    for (idx_t i = pos; i < cprefix.data[Node::PREFIX_SIZE]; i++) {
+      prefix.data[i - pos] = cprefix.data[i];
     }
     cprefix.ptr->RLock();
     current_node->RUnlock();
     current_node = cprefix.ptr;
     ref_node = prefix.ptr;
+    pos = 0;
   }
+  if (!current_node->IsSet()) {
+    fmt::println("debug pointer");
+  }
+  P_ASSERT(current_node->IsSet());
   if (current_node->IsSet()) {
     current_node->RUnlock();
     ConcurrentNode::ConvertToNode(cart, art, current_node, ref_node.get());
     return;
   }
   current_node->RUnlock();
+}
+
+void CPrefix::MergeTwoPrefix(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node) {
+  assert(l_node->RLocked());
+  auto &l_cprefix = CPrefix::Get(cart, *l_node);
+
+  idx_t left_pos = 0;
+  idx_t right_pos = 0;
+
+  while (r_node.get().GetType() == NType::PREFIX) {
+    auto &new_prefix = Prefix::Get(art, r_node);
+    for (idx_t i = 0; left_pos < l_cprefix.data[Node::PREFIX_SIZE] && right_pos < new_prefix.data[Node::PREFIX_SIZE];
+         i++) {
+      if (l_cprefix.data[left_pos] != new_prefix.data[right_pos]) {
+        ConcurrentNode::MergePrefixesDiffer(cart, art, l_node, r_node, left_pos, right_pos);
+        return;
+      }
+      left_pos += 1;
+      right_pos += 1;
+    }
+    if (left_pos == l_cprefix.data[Node::PREFIX_SIZE] && right_pos == new_prefix.data[Node::PREFIX_SIZE]) {
+      l_cprefix.ptr->RLock();
+      l_node->RUnlock();
+
+      l_cprefix.ptr->ResolvePrefixes(cart, art, new_prefix.ptr);
+      return;
+    }
+    // need to update l_node ptr
+    if (left_pos == l_cprefix.data[Node::PREFIX_SIZE]) {
+      l_cprefix.ptr->RLock();
+      l_node->RUnlock();
+      l_node = l_cprefix.ptr;
+      if (l_node->GetType() != NType::PREFIX) {
+        Node next_node = r_node.get();
+        Prefix::Reduce(art, next_node, right_pos);
+        l_node->MergePrefix(cart, art, next_node);
+        return;
+      } else {
+        left_pos = 0;
+      }
+    } else {
+      r_node = new_prefix.ptr;
+      right_pos = 0;
+    }
+  }
+  assert(l_node->GetType() == NType::PREFIX);
+  ConcurrentNode::MergeNonePrefixByPrefix(cart, art, l_node, r_node.get(), left_pos);
 }
 
 }  // namespace part

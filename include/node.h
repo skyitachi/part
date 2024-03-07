@@ -81,7 +81,7 @@ class Node {
   inline NType GetType() const {
     assert(!IsSerialized());
     auto type = data >> Node::SHIFT_TYPE;
-    assert(type >= (uint8_t)NType::PREFIX);
+    P_ASSERT(type >= (uint8_t)NType::PREFIX);
     P_ASSERT(type <= (uint8_t)NType::LEAF_INLINED);
     return NType(type);
   }

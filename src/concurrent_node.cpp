@@ -554,7 +554,7 @@ void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
 
 // NOTE: return value meaning
 bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other) {
-  assert(RLocked());
+  P_ASSERT(RLocked());
   if (GetType() != NType::PREFIX && other.GetType() != NType::PREFIX) {
     return MergeInternal(cart, art, other);
   }
@@ -562,23 +562,11 @@ bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other)
   auto l_node = this;
   auto r_node = std::ref(other);
 
-  idx_t mismatch_position = INVALID_INDEX;
-
   // case1: both are prefix nodes, l_node won't be updated
   if (l_node->GetType() == NType::PREFIX && r_node.get().GetType() == NType::PREFIX) {
-    if (!CPrefix::Traverse(cart, art, l_node, r_node, mismatch_position)) {
-      return false;
-    }
-
-    if (mismatch_position == INVALID_INDEX) {
-      return true;
-    }
-  } else {
-    // NOTE: no need swap
-    mismatch_position = 0;
+    CPrefix::MergeTwoPrefix(cart, art, l_node, r_node);
+    return true;
   }
-
-  assert(mismatch_position != INVALID_INDEX);
 
   // case 2: none prefix type node merge with prefix type node
   if (l_node->GetType() != NType::PREFIX && r_node.get().GetType() == NType::PREFIX) {
@@ -592,9 +580,6 @@ bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other)
     MergeNonePrefixByPrefix(cart, art, l_node, other);
     return true;
   }
-
-  // case 4: prefixes differ at a specific byte
-  MergePrefixesDiffer(cart, art, l_node, r_node, mismatch_position);
 
   return true;
 }
@@ -657,6 +642,7 @@ bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
   assert(RLocked());
   // NOTE: can not be leaf type
   assert(GetType() != NType::PREFIX || GetType() != NType::LEAF_INLINED || GetType() != NType::LEAF);
+  assert(other.GetType() == NType::PREFIX);
 
   auto l_node = this;
   idx_t pos = 0;
@@ -736,7 +722,10 @@ void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, Concurre
   MergePrefixesDiffer(cart, art, l_node, r_node, mismatched_position, mismatched_position);
 }
 
-void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, Node& other) {
+// NOTE: this method is too tricky
+// TODO: this is ticky
+void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, Node& other,
+                                             idx_t l_pos) {
   assert(l_node->RLocked());
   assert(l_node->GetType() == NType::PREFIX && other.GetType() != NType::PREFIX);
 
@@ -757,20 +746,21 @@ void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, Conc
 
   assert(l_node->GetType() != NType::PREFIX && r_node->GetType() == NType::PREFIX);
 
+  // NOTE: too much memory consumed
   Node new_r;
-  ConvertToNode(cart, art, r_node, new_r);
+  ConvertToNode(cart, art, r_node, new_r, l_pos);
 
   l_node->MergePrefix(cart, art, new_r);
 }
 
 // NOTE: no need to consider locks
-void ConcurrentNode::ConvertToNode(ConcurrentART& cart, ART& art, ConcurrentNode* src, Node& dst) {
+void ConcurrentNode::ConvertToNode(ConcurrentART& cart, ART& art, ConcurrentNode* src, Node& dst, idx_t pos) {
   switch (src->GetType()) {
     case NType::LEAF_INLINED:
     case NType::LEAF:
       return CLeaf::ConvertToNode(cart, art, src, dst);
     case NType::PREFIX:
-      return CPrefix::ConvertToNode(cart, art, src, dst);
+      return CPrefix::ConvertToNode(cart, art, src, dst, pos);
     case NType::NODE_4:
       return CNode4::ConvertToNode(cart, art, src, dst);
     case NType::NODE_16:

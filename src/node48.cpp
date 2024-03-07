@@ -348,7 +348,7 @@ void CNode48::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
   std::memcpy(n48.child_index, cn48.child_index, sizeof(cn48.child_index));
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
     if (cn48.child_index[i] != Node::EMPTY_MARKER) {
-      ConvertToNode(cart, art, cn48.children[cn48.child_index[i]], n48.children[n48.child_index[i]]);
+      ConcurrentNode::ConvertToNode(cart, art, cn48.children[cn48.child_index[i]], n48.children[n48.child_index[i]]);
     }
   }
   src->RUnlock();

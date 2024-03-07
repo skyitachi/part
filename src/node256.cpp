@@ -257,7 +257,7 @@ void CNode256::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src,
 
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
     if (cn256.children[i]) {
-      ConvertToNode(cart, art, cn256.children[i], n256.children[i]);
+      ConcurrentNode::ConvertToNode(cart, art, cn256.children[i], n256.children[i]);
     }
   }
 

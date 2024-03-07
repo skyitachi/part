@@ -43,7 +43,7 @@ class Prefix {
 
   static void Split(ART &art, std::reference_wrapper<Node> &prefix_node, Node &child_node, idx_t position);
 
-  static void Reduce(ART &art, Node &prefix_node, const idx_t n);
+  static void Reduce(ART &art, Node &prefix_node, idx_t n);
 
   static void Concatenate(ART &art, Node &prefix_node, const uint8_t byte, Node &child_prefix_node);
 
@@ -123,10 +123,12 @@ class CPrefix {
   static bool Traverse(ConcurrentART &cart, ART &art, ConcurrentNode *&l_node, reference<Node> &r_node,
                        idx_t &mismatch_position);
 
+  static void MergeTwoPrefix(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node);
+
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &prefix,
                              idx_t left_pos, idx_t &right_pos);
 
-  static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
+  static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst, idx_t pos = 0);
 };
 }  // namespace part
 #endif  // PART_PREFIX_H

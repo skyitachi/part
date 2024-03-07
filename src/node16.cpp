@@ -351,7 +351,7 @@ bool CNode16::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&nod
 }
 
 void CNode16::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst) {
-  assert(src->GetType() == NType::NODE_16);
+  P_ASSERT(src->GetType() == NType::NODE_16);
   src->RLock();
 
   auto &cn16 = CNode16::Get(cart, src);
@@ -362,7 +362,7 @@ void CNode16::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
 
   for (idx_t i = 0; i < cn16.count; i++) {
     n16.key[i] = cn16.key[i];
-    ConvertToNode(cart, art, cn16.children[i], n16.children[i]);
+    ConcurrentNode::ConvertToNode(cart, art, cn16.children[i], n16.children[i]);
   }
   src->RUnlock();
 }

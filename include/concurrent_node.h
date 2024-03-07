@@ -101,9 +101,10 @@ class ConcurrentNode : public Node {
   static void MergePrefixesDiffer(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
                                   idx_t &left_pos, idx_t &right_pos);
   // Note: prefix node merge none prefix node
-  static void MergeNonePrefixByPrefix(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, Node &other);
+  static void MergeNonePrefixByPrefix(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, Node &other,
+                                      idx_t l_pos = 0);
 
-  static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
+  static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst, idx_t pos = 0);
 
   static void InsertForMerge(ConcurrentART &cart, ART &art, ConcurrentNode *node, Prefix &other, idx_t pos);
 
