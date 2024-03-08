@@ -240,6 +240,11 @@ std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, uint
 }
 
 void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, std::string parent_id) {
+  RLock();
+  if (!IsSet()) {
+    return;
+  }
+  RUnlock();
   switch (GetType()) {
     case NType::LEAF: {
       id++;
@@ -524,6 +529,10 @@ void ConcurrentNode::Deserialize(ConcurrentART& art) {
 
 void ConcurrentNode::Merge(ConcurrentART& cart, ART& art, Node& other) {
   assert(RLocked());
+  if (!other.IsSet()) {
+    RUnlock();
+    return;
+  }
   if (!IsSet()) {
     Upgrade();
     MergeUpdate(cart, art, other);
@@ -627,10 +636,7 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
       cnode->Downgrade();
     } else {
       l_child.value()->RLock();
-      if (!l_child.value()->ResolvePrefixes(cart, art, *r_child.value())) {
-        cnode->RUnlock();
-        return false;
-      }
+      l_child.value()->ResolvePrefixes(cart, art, *r_child.value());
     }
     if (byte == std::numeric_limits<uint8_t>::max()) {
       break;

@@ -894,7 +894,7 @@ void CPrefix::MergeTwoPrefix(ConcurrentART &cart, ART &art, ConcurrentNode *l_no
       l_node = l_cprefix.ptr;
       if (l_node->GetType() != NType::PREFIX) {
         Node next_node = r_node.get();
-        Prefix::Reduce(art, next_node, right_pos);
+        Prefix::Reduce(art, next_node, right_pos - 1);
         l_node->MergePrefix(cart, art, next_node);
         return;
       } else {

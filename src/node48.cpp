@@ -204,6 +204,9 @@ CNode48 &CNode48::New(ConcurrentART &art, ConcurrentNode &node) {
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
     n48.child_index[i] = Node::EMPTY_MARKER;
   }
+  for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
+    n48.children[i] = nullptr;
+  }
   return n48;
 }
 
@@ -266,6 +269,7 @@ void CNode48::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_
   if (n48.count < Node::NODE_48_CAPACITY) {
     idx_t child_pos = n48.count;
     // NOTE: judge pointer whether nullptr
+    // TODO: 这里判断的有问题
     if (n48.children[child_pos]) {
       child_pos = 0;
       while (n48.children[child_pos]) {
@@ -294,8 +298,7 @@ void CNode48::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
   assert(!node->IsSet());
   assert(other.GetType() == NType::NODE_48);
 
-  node->Update(ConcurrentNode::GetAllocator(cart, NType::NODE_48).ConcNew());
-  node->SetType((uint8_t)NType::NODE_48);
+  CNode48::New(cart, *node);
 
   auto &n48 = Node48::Get(art, other);
   auto &cn48 = CNode48::Get(cart, node);

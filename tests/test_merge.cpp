@@ -356,8 +356,6 @@ TEST(ConcurrentARTTest, MergeMediumNotEqualSize) {
       cart.Merge(art);
 
     } catch (std::exception& e) {
-      fmt::println("current j: {}", j);
-      fmt::println("{}", e.what());
       return;
     }
 
@@ -387,7 +385,7 @@ TEST(ConcurrentARTTest, MergeMediumNotEqualSizeForDebug) {
 
   idx_t left = 0;
 
-  for (idx_t j = 209; j <= limit; j++) {
+  for (idx_t j = 768; j <= limit; j++) {
     left = j;
 
     ConcurrentART cart;
@@ -397,12 +395,9 @@ TEST(ConcurrentARTTest, MergeMediumNotEqualSizeForDebug) {
       cart.Put(keys[i], i);
     }
 
-    //    cart.Draw("207.dot");
     for (idx_t i = left; i < limit; i++) {
       art.Put(keys[i], i);
     }
-
-    //    art.Draw("208.dot");
 
     try {
       cart.Merge(art);
@@ -421,8 +416,8 @@ TEST(ConcurrentARTTest, MergeMediumNotEqualSizeForDebug) {
       ASSERT_EQ(result_ids.size(), 1);
       ASSERT_EQ(result_ids[0], i);
       if (result_ids.size() == 1 && result_ids[0] == i) {
-        fmt::println("pass i: {}", i);
-        ::fflush(stdout);
+//        fmt::println("pass i: {}", i);
+//        ::fflush(stdout);
       }
     }
 

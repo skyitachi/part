@@ -369,6 +369,9 @@ bool Node::MergePrefixContainsOtherPrefix(ART &art, reference<Node> &l_node, ref
 }
 
 void Node::ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_id) {
+  if (!IsSet()) {
+    return;
+  }
   switch (GetType()) {
     case NType::LEAF: {
       id++;
