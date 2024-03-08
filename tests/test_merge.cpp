@@ -327,34 +327,157 @@ TEST(ConcurrentARTTest, MergeMedium) {
 }
 
 TEST(ConcurrentARTTest, MergeMediumNotEqualSize) {
-  ConcurrentART cart;
-  ART art;
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
   idx_t limit = 10000;
-  idx_t left = 10;
   std::vector<ARTKey> keys;
-
   for (idx_t i = 0; i < limit; i++) {
     keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
   }
-  for (idx_t i = 0; i < left; i++) {
-    cart.Put(keys[i], i);
+
+  idx_t left = 0;
+
+  for (idx_t j = 0; j <= limit; j++) {
+    left = j;
+
+    ConcurrentART cart;
+    ART art;
+
+    for (idx_t i = 0; i < left; i++) {
+      cart.Put(keys[i], i);
+    }
+
+    for (idx_t i = left; i < limit; i++) {
+      art.Put(keys[i], i);
+    }
+
+    try {
+      cart.Merge(art);
+
+    } catch (std::exception& e) {
+      fmt::println("current j: {}", j);
+      fmt::println("{}", e.what());
+      return;
+    }
+
+    //    cart.Draw("MergeMediumNotEqualSize.dot");
+
+    for (idx_t i = 0; i < limit; i++) {
+      std::vector<idx_t> result_ids;
+      cart.Get(keys[i], result_ids);
+      ASSERT_EQ(result_ids.size(), 1);
+      ASSERT_EQ(result_ids[0], i);
+    }
+
+    fmt::println("pass j {}", j);
+    ::fflush(stdout);
   }
+}
 
-  for (idx_t i = left; i < limit; i++) {
-    art.Put(keys[i], i);
-  }
+TEST(ConcurrentARTTest, MergeMediumNotEqualSizeForDebug) {
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
 
-  cart.Merge(art);
-
-  cart.Draw("MergeMediumNotEqualSize.dot");
-
+  idx_t limit = 1000;
+  std::vector<ARTKey> keys;
   for (idx_t i = 0; i < limit; i++) {
-    std::vector<idx_t> result_ids;
-    cart.Get(keys[i], result_ids);
-    ASSERT_EQ(result_ids.size(), 1);
-    ASSERT_EQ(result_ids[0], i);
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
+
+  idx_t left = 0;
+
+  for (idx_t j = 209; j <= limit; j++) {
+    left = j;
+
+    ConcurrentART cart;
+    ART art;
+
+    for (idx_t i = 0; i < left; i++) {
+      cart.Put(keys[i], i);
+    }
+
+    //    cart.Draw("207.dot");
+    for (idx_t i = left; i < limit; i++) {
+      art.Put(keys[i], i);
+    }
+
+    //    art.Draw("208.dot");
+
+    try {
+      cart.Merge(art);
+
+    } catch (std::exception& e) {
+      fmt::println("current j: {}", j);
+      fmt::println("{}", e.what());
+      return;
+    }
+
+    //    cart.Draw("MergeMediumNotEqualSize.dot");
+
+    for (idx_t i = 0; i < limit; i++) {
+      std::vector<idx_t> result_ids;
+      cart.Get(keys[i], result_ids);
+      ASSERT_EQ(result_ids.size(), 1);
+      ASSERT_EQ(result_ids[0], i);
+      if (result_ids.size() == 1 && result_ids[0] == i) {
+        fmt::println("pass i: {}", i);
+        ::fflush(stdout);
+      }
+    }
+
+    fmt::println("pass j {}", j);
+    ::fflush(stdout);
+  }
+}
+
+TEST(ConcurrentARTTest, Debug) {
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  idx_t limit = 1000;
+  std::vector<ARTKey> keys;
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
+
+  idx_t left = 0;
+
+  for (idx_t j = 208; j <= limit; j++) {
+    left = j;
+
+    ConcurrentART cart;
+    ART art;
+
+    for (idx_t i = 0; i < left; i++) {
+      cart.Put(keys[i], i);
+    }
+
+    for (idx_t i = left; i < limit; i++) {
+      art.Put(keys[i], i);
+    }
+
+    cart.Draw("208.dot");
+
+    try {
+      cart.Merge(art);
+
+    } catch (std::exception& e) {
+      fmt::println("current j: {}", j);
+      fmt::println("{}", e.what());
+      return;
+    }
+
+    cart.Draw("MergeMediumNotEqualSize.dot");
+
+    for (idx_t i = 0; i < limit; i++) {
+      std::vector<idx_t> result_ids;
+      cart.Get(keys[i], result_ids);
+      ASSERT_EQ(result_ids.size(), 1);
+      ASSERT_EQ(result_ids[0], i);
+      fmt::println("pass i: {}", i);
+    }
+
+    fmt::println("pass j {}", j);
   }
 }

@@ -485,6 +485,71 @@ void Node::ToGraph(ART &art, std::ofstream &out, idx_t &id, std::string parent_i
       }
       break;
     }
+
+    case NType::NODE_48: {
+      id++;
+      std::string node_prefix("NODE48_");
+      std::string current_id_str = fmt::format("{}{}", node_prefix, id);
+      auto &node48 = Node48::Get(art, *this);
+      out << node_prefix << id;
+      out << "[shape=plain color=yellow ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node48.count << "\"> node48_" << id << "</TD></TR>\n";
+      out << "<TR>\n";
+      for (int i = 0; i < Node::NODE_256_CAPACITY; i++) {
+        if (node48.child_index[i] != Node::EMPTY_MARKER) {
+          out << "<TD>" << i << "</TD>\n";
+        }
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      for (int i = 0; i < 256; i++) {
+        if (node48.child_index[i] != Node::EMPTY_MARKER) {
+          node48.children[node48.child_index[i]].ToGraph(art, out, id, current_id_str);
+        }
+      }
+      break;
+    }
+    case NType::NODE_256: {
+      id++;
+      std::string node_prefix("NODE256_");
+      std::string current_id_str = fmt::format("{}{}", node_prefix, id);
+      auto &node256 = Node256::Get(art, *this);
+      out << node_prefix << id;
+      out << "[shape=plain color=yellow ";
+      out << "label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n";
+
+      out << "<TR><TD COLSPAN=\"" << (uint32_t)node256.count << "\"> node256_" << id << "</TD></TR>\n";
+      out << "<TR>\n";
+      for (int i = 0; i < Node::NODE_256_CAPACITY; i++) {
+        if (node256.children[i].IsSet()) {
+          out << "<TD>" << i << "</TD>\n";
+        }
+      }
+      out << "</TR>";
+      out << "</TABLE>>];\n";
+
+      // Print table end
+      if (!parent_id.empty()) {
+        out << parent_id << "->" << current_id_str << ";\n";
+      }
+
+      for (int i = 0; i < 256; i++) {
+        if (node256.children[i].IsSet()) {
+          node256.children[i].ToGraph(art, out, id, current_id_str);
+        }
+      }
+      break;
+    }
+    default:
+      throw std::invalid_argument("ToGraph does not support such node types");
   }
 }
 

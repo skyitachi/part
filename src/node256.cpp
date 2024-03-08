@@ -163,7 +163,7 @@ CNode256 &CNode256::GrowNode48(ConcurrentART &art, ConcurrentNode *node48) {
   auto &n256 = CNode256::New(art, *node256);
   node256->Unlock();
   n256.count = n48.count;
-  for (idx_t i = 0; i < n48.count; i++) {
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
     if (n48.child_index[i] != Node::EMPTY_MARKER) {
       n256.children[i] = n48.children[n48.child_index[i]];
     }
@@ -232,6 +232,7 @@ bool CNode256::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *nod
   auto &cn256 = CNode256::Get(cart, node);
   if (cn256.children[prefix.data[pos]]) {
     auto new_node = cn256.children[prefix.data[pos]];
+    new_node->RLock();
     node->RUnlock();
     pos += 1;
     if (pos < prefix.data[Node::PREFIX_SIZE]) {

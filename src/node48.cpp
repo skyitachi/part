@@ -201,6 +201,9 @@ CNode48 &CNode48::New(ConcurrentART &art, ConcurrentNode &node) {
 
   auto &n48 = CNode48::Get(art, &node);
   n48.count = 0;
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    n48.child_index[i] = Node::EMPTY_MARKER;
+  }
   return n48;
 }
 
@@ -232,9 +235,6 @@ CNode48 &CNode48::GrowNode16(ConcurrentART &art, ConcurrentNode *node16) {
   auto &n48 = CNode48::New(art, *node48);
   node48->Unlock();
   n48.count = n16.count;
-  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-    n48.child_index[i] = Node::EMPTY_MARKER;
-  }
   for (idx_t i = 0; i < n16.count; i++) {
     n48.child_index[n16.key[i]] = i;
     n48.children[i] = n16.children[i];
@@ -324,10 +324,10 @@ bool CNode48::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node
     node->RUnlock();
     node = cn48.children[cn48.child_index[prefix.data[pos]]];
     pos += 1;
+    node->RLock();
     if (pos < prefix.data[Node::PREFIX_SIZE]) {
       return ConcurrentNode::TraversePrefix(cart, art, node, other, pos);
     } else {
-      node->RLock();
       node->Merge(cart, art, prefix.ptr);
       return true;
     }

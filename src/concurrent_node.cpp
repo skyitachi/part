@@ -229,6 +229,10 @@ std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, uint
     default:
       throw std::invalid_argument("GetChild not support other types");
   }
+  if (child && reinterpret_cast<unsigned long>(child.value()) == 0xbebebebebebebebe) {
+    fmt::println("debug null pointer");
+    ::fflush(stdout);
+  }
   if (child && child.value()->IsSerialized()) {
     // TODO: Deserialize
   }
@@ -531,7 +535,9 @@ void ConcurrentNode::Merge(ConcurrentART& cart, ART& art, Node& other) {
 
 // NOTE: only used in merge function
 void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
-  P_ASSERT(Locked() && !IsSet());
+  // Origin node may not be cleared
+  //  P_ASSERT(Locked() && !IsSet());
+  P_ASSERT(Locked());
   switch (other.GetType()) {
     case NType::PREFIX:
       return CPrefix::MergeUpdate(cart, art, this, other);
@@ -664,8 +670,8 @@ bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
 // NOTE: return value indicated whether other was merged into cart
 bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode* node, reference<Node>& prefix,
                                     idx_t& pos) {
-  assert(node->RLocked());
-  assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
+  P_ASSERT(node->RLocked());
+  P_ASSERT(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
   switch (node->GetType()) {
     case NType::PREFIX:
       return CPrefix::TraversePrefix(cart, art, node, prefix, 0, pos);
@@ -782,6 +788,7 @@ void ConcurrentNode::InsertForMerge(ConcurrentART& cart, ART& art, ConcurrentNod
   assert(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED && node->GetType() != NType::PREFIX);
 
   ConcurrentNode* child = cart.AllocateNode();
+  child->Lock();
   InsertChild(cart, node, other.data[pos], child);
   if (pos + 1 < other.data[Node::PREFIX_SIZE]) {
     // copy prefix
