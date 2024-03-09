@@ -643,19 +643,19 @@ BlockPointer CPrefix::Serialize(ConcurrentART &art, ConcurrentNode *node, Serial
 }
 
 void CPrefix::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
+  assert(node->Locked());
   auto total_count = reader.Read<idx_t>();
   auto &current_node = node;
 
   while (total_count) {
     if (!current_node) {
       current_node = art.AllocateNode();
+      current_node->Lock();
     }
     current_node->Update(ConcurrentNode::GetAllocator(art, NType::PREFIX).ConcNew());
     current_node->SetType((uint8_t)NType::PREFIX);
 
-    current_node->RLock();
     auto &prefix = CPrefix::Get(art, *current_node);
-    current_node->RUnlock();
     prefix.data[Node::PREFIX_SIZE] = std::min((idx_t)Node::PREFIX_SIZE, total_count);
     // NOTE: important
     prefix.ptr = art.AllocateNode();
@@ -666,10 +666,13 @@ void CPrefix::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer
 
     total_count -= prefix.data[Node::PREFIX_SIZE];
 
+    prefix.ptr->Lock();
+    current_node->Unlock();
     current_node = prefix.ptr;
   }
 
-  *current_node = ConcurrentNode(art, reader);
+  assert(current_node->Locked());
+  current_node->Deserialize(art, reader);
 }
 
 // NOTE: need to acquire locks, just for assertions

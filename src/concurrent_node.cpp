@@ -492,10 +492,15 @@ BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serialize
 }
 
 void ConcurrentNode::Deserialize(ConcurrentART& art) {
-  assert(IsSet() && IsSerialized());
-
   BlockPointer pointer(GetBufferId(), GetOffset());
   BlockDeserializer reader(art.GetIndexFileFd(), pointer);
+
+  this->Deserialize(art, reader);
+}
+
+void ConcurrentNode::Deserialize(ConcurrentART& art, Deserializer& reader) {
+  assert(Locked());
+  assert(IsSet() && IsSerialized());
   // NOTE: important
   Reset();
   auto type = reader.Read<uint8_t>();
@@ -509,7 +514,9 @@ void ConcurrentNode::Deserialize(ConcurrentART& art) {
   }
 
   if (decoded_type == NType::LEAF_INLINED) {
-    return SetDocID(reader.Read<idx_t>());
+    SetDocID(reader.Read<idx_t>());
+    this->Unlock();
+    return;
   }
 
   if (decoded_type == NType::LEAF) {
@@ -522,6 +529,12 @@ void ConcurrentNode::Deserialize(ConcurrentART& art) {
   switch (decoded_type) {
     case NType::NODE_4:
       return CNode4::Deserialize(art, this, reader);
+    case NType::NODE_16:
+      return CNode16::Deserialize(art, this, reader);
+    case NType::NODE_48:
+      return CNode48::Deserialize(art, this, reader);
+    case NType::NODE_256:
+      return CNode256::Deserialize(art, this, reader);
     default:
       throw std::invalid_argument("other type deserializer not supported");
   }
@@ -729,13 +742,8 @@ void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, Concurre
   l_node->Unlock();
 }
 
-void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, reference<Node>& r_node,
-                                         idx_t& mismatched_position) {
-  MergePrefixesDiffer(cart, art, l_node, r_node, mismatched_position, mismatched_position);
-}
-
 // NOTE: this method is too tricky
-// TODO: this is ticky
+// NOTE: this is ticky
 void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, Node& other,
                                              idx_t l_pos) {
   assert(l_node->RLocked());

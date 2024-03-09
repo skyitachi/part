@@ -69,6 +69,10 @@ class CNode256 {
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &other, idx_t &pos);
 
   static void ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, Node &dst);
+
+  static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer);
+
+  static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer);
 };
 }  // namespace part
 #endif  // PART_NODE256_H

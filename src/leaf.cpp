@@ -507,19 +507,20 @@ idx_t CLeaf::TotalCount(ConcurrentART &art, ConcurrentNode *node) {
 }
 
 void CLeaf::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
+  assert(node->Locked());
   auto total_count = reader.Read<idx_t>();
   auto &ref_node = node;
 
   while (total_count > 0) {
     if (!ref_node) {
       ref_node = art.AllocateNode();
+      ref_node->Lock();
     }
+    assert(ref_node->Locked());
     ref_node->Update(ConcurrentNode::GetAllocator(art, NType::LEAF).ConcNew());
     ref_node->SetType((uint8_t)NType::LEAF);
 
-    ref_node->RLock();
     auto &leaf = CLeaf::Get(art, *ref_node);
-    ref_node->RUnlock();
     leaf.count = std::min((idx_t)Node::LEAF_SIZE, total_count);
 
     for (idx_t i = 0; i < leaf.count; i++) {
@@ -527,11 +528,16 @@ void CLeaf::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &
     }
 
     total_count -= leaf.count;
+    leaf.ptr->Lock();
+    ref_node->Unlock();
     ref_node = leaf.ptr;
     if (ref_node) {
       ref_node->Reset();
     }
   }
+
+  assert(ref_node->Locked());
+  assert(ref_node->Unlock());
 }
 
 void CLeaf::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {

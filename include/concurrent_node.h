@@ -17,10 +17,9 @@ class Prefix;
 // NOTE: 1. node cannot be serialized when accessed, different from Node (currently for simplicity)
 class ConcurrentNode : public Node {
  public:
-  ConcurrentNode(const uint32_t buffer_id, const uint32_t offset) {
+  ConcurrentNode(const uint32_t buffer_id, const uint32_t offset) : lock_(0) {
     SetPtr(buffer_id, offset);
     // important
-    lock_ = 0;
   }
 
   explicit ConcurrentNode(Deserializer &reader) : Node(reader) {}
@@ -83,6 +82,8 @@ class ConcurrentNode : public Node {
 
   void Deserialize(ConcurrentART &art);
 
+  void Deserialize(ConcurrentART &art, Deserializer &reader);
+
   void Merge(ConcurrentART &cart, ART &art, Node &other);
 
   void MergeUpdate(ConcurrentART &cart, ART &art, Node &other);
@@ -94,9 +95,6 @@ class ConcurrentNode : public Node {
   bool MergePrefix(ConcurrentART &cart, ART &art, Node &other);
 
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node, reference<Node> &prefix, idx_t &pos);
-
-  static void MergePrefixesDiffer(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
-                                  idx_t &mismatched_position);
 
   static void MergePrefixesDiffer(ConcurrentART &cart, ART &art, ConcurrentNode *l_node, reference<Node> &r_node,
                                   idx_t &left_pos, idx_t &right_pos);

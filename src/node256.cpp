@@ -266,4 +266,12 @@ void CNode256::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src,
   src->RUnlock();
 }
 
+// TODO
+BlockPointer CNode256::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer) {
+  return BlockPointer();
+}
+
+// TODO
+void CNode256::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer) {}
+
 }  // namespace part

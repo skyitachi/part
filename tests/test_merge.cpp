@@ -416,8 +416,8 @@ TEST(ConcurrentARTTest, MergeMediumNotEqualSizeForDebug) {
       ASSERT_EQ(result_ids.size(), 1);
       ASSERT_EQ(result_ids[0], i);
       if (result_ids.size() == 1 && result_ids[0] == i) {
-//        fmt::println("pass i: {}", i);
-//        ::fflush(stdout);
+        //        fmt::println("pass i: {}", i);
+        //        ::fflush(stdout);
       }
     }
 

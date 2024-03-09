@@ -252,6 +252,7 @@ ConcurrentART::ConcurrentART(const std::string& index_path, const FixedSizeAlloc
   try {
     auto pointer = ReadMetadata();
     root = std::make_unique<ConcurrentNode>(pointer.block_id, pointer.offset);
+    root->Lock();
     root->SetSerialized();
     root->Deserialize(*this);
   } catch (std::exception& e) {

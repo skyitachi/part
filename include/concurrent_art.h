@@ -22,9 +22,9 @@ class ConcurrentART {
   using FixedSizeAllocatorListPtr = std::shared_ptr<std::vector<FixedSizeAllocator>>;
 
  public:
-  explicit ConcurrentART(const FixedSizeAllocatorListPtr allocators_ptr = nullptr);
+  explicit ConcurrentART(FixedSizeAllocatorListPtr allocators_ptr = nullptr);
 
-  explicit ConcurrentART(const std::string &index_path, const FixedSizeAllocatorListPtr allocators_ptr = nullptr);
+  explicit ConcurrentART(const std::string &index_path, FixedSizeAllocatorListPtr allocators_ptr = nullptr);
 
   ~ConcurrentART();
 
