@@ -455,12 +455,14 @@ void CLeaf::Free(ConcurrentART &art, ConcurrentNode *node) {
 }
 
 BlockPointer CLeaf::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer) {
+  assert(node->RLocked());
   if (node->GetType() == NType::LEAF_INLINED) {
     auto block_pointer = writer.GetBlockPointer();
     writer.Write(NType::LEAF_INLINED);
     writer.Write(node->GetDocId());
     //    fmt::println("[Leaf.INLINE] block_id: {}, offset: {}",
     //    block_pointer.block_id, block_pointer.offset);
+    node->RUnlock();
     return block_pointer;
   }
 
@@ -479,8 +481,11 @@ BlockPointer CLeaf::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializ
     for (idx_t i = 0; i < leaf.count; i++) {
       writer.Write(leaf.row_ids[i]);
     }
+    leaf.ptr->RLock();
+    ref_node->RUnlock();
     ref_node = leaf.ptr;
   }
+  ref_node->RUnlock();
   return block_pointer;
 }
 

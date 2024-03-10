@@ -473,7 +473,9 @@ bool CPrefix::Split(ConcurrentART &art, ConcurrentNode *&prefix_node, Concurrent
     }
     assert(cprefix.ptr && cprefix.ptr->IsSet());
     if (cprefix.ptr->IsSerialized()) {
-      // TODO: deseralize
+      cprefix.ptr->Upgrade();
+      cprefix.ptr->Deserialize(art);
+      cprefix.ptr->RLock();
     }
 
     //
@@ -618,29 +620,36 @@ void CPrefix::FreeSelf(ConcurrentART &art, ConcurrentNode *node) {
 }
 
 BlockPointer CPrefix::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer) {
+  assert(node->RLocked());
+
   ConcurrentNode *first_non_prefix = node;
+  // NOTE: node's reader lock already released in TotalCount
+  // all prefix nodes are deserialized here
   idx_t total_count = CPrefix::TotalCount(art, first_non_prefix);
 
+  first_non_prefix->RLock();
   auto child_block_pointer = first_non_prefix->Serialize(art, serializer);
 
   auto block_pointer = serializer.GetBlockPointer();
   serializer.Write(NType::PREFIX);
   serializer.Write<idx_t>(total_count);
 
+  node->RLock();
   auto current_node = node;
   while (current_node->GetType() == NType::PREFIX) {
     // NOTE: just for assertion works
-    current_node->RLock();
     auto &prefix = CPrefix::Get(art, *current_node);
-    current_node->RUnlock();
     for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
       serializer.Write(prefix.data[i]);
     }
+    prefix.ptr->RLock();
+    current_node->RUnlock();
     current_node = prefix.ptr;
   }
   serializer.Write(child_block_pointer.block_id);
   serializer.Write(child_block_pointer.offset);
 
+  current_node->RUnlock();
   return block_pointer;
 }
 
@@ -680,21 +689,24 @@ void CPrefix::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer
 
 // NOTE: need to acquire locks, just for assertions
 idx_t CPrefix::TotalCount(ConcurrentART &art, ConcurrentNode *&node) {
+  assert(node->RLocked());
   assert(node->IsSet() && !node->IsSerialized());
 
   idx_t count = 0;
   while (node->GetType() == NType::PREFIX) {
-    node->RLock();
     auto &cprefix = CPrefix::Get(art, *node);
-    node->RUnlock();
     count += cprefix.data[Node::PREFIX_SIZE];
 
+    cprefix.ptr->RLock();
     if (cprefix.ptr->IsSerialized()) {
+      cprefix.ptr->Upgrade();
       cprefix.ptr->Deserialize(art);
+      cprefix.ptr->RLock();
     }
+    node->RUnlock();
     node = cprefix.ptr;
   }
-
+  node->RUnlock();
   return count;
 }
 

@@ -266,6 +266,7 @@ BlockPointer CNode4::Serialize(ConcurrentART &art, ConcurrentNode *node, Seriali
   std::vector<BlockPointer> child_block_pointers;
 
   for (idx_t i = 0; i < n4.count; i++) {
+    n4.children[i]->RLock();
     child_block_pointers.emplace_back(n4.children[i]->Serialize(art, writer));
   }
   for (idx_t i = n4.count; i < Node::NODE_4_CAPACITY; i++) {

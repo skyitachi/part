@@ -470,13 +470,16 @@ void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, uint8
 
 int64_t ConcurrentNode::Readers() { return lock_.load(); }
 
-// TODO: lock problems
 BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serializer) {
+  assert(RLocked());
   if (!IsSet()) {
+    RUnlock();
     return BlockPointer();
   }
   if (IsSerialized()) {
+    Upgrade();
     Deserialize(art);
+    Downgrade();
   }
   switch (GetType()) {
     case NType::PREFIX:
@@ -490,7 +493,6 @@ BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serialize
     case NType::NODE_256:
       return CNode256::Serialize(art, this, serializer);
     case NType::LEAF:
-      return CLeaf::Serialize(art, this, serializer);
     case NType::LEAF_INLINED:
       return CLeaf::Serialize(art, this, serializer);
     default:

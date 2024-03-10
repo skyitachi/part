@@ -125,6 +125,11 @@ bool ConcurrentART::insert(ConcurrentNode& node, const ARTKey& key, idx_t depth,
     ref.get().Unlock();
     return false;
   }
+  if (node.IsSerialized()) {
+    node.Upgrade();
+    node.Deserialize(*this);
+    node.RLock();
+  }
   auto node_type = node.GetType();
 
   if (node_type == NType::LEAF || node_type == NType::LEAF_INLINED) {
@@ -304,6 +309,7 @@ ConcurrentNode* ConcurrentART::AllocateNode() {
 }
 
 void ConcurrentART::Serialize() {
+  root->RLock();
   if (root->IsSet()) {
     SequentialSerializer data_writer(index_path_, META_OFFSET);
     auto pointer = root->Serialize(*this, data_writer);

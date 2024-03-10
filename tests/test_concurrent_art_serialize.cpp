@@ -147,31 +147,72 @@ TEST_F(ConcurrentARTSerializeTest, DebugForComparsion) {
   ASSERT_EQ(result_ids[0], 1);
 }
 
-TEST_F(ConcurrentARTSerializeTest, Basic) {
+TEST_F(ConcurrentARTSerializeTest, SerializeTest) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  ConcurrentART cart("cart.data");
+  SetUpFiles("cart_serialize.idx");
 
-  auto k1 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 1);
-  auto k2 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 2);
+  keep_file = false;
+  auto index_path = GetFiles();
+  ConcurrentART cart(index_path);
 
-  cart.Put(k1, 1);
-  cart.Put(k2, 2);
+  idx_t limit = 10000;
+
+  std::vector<ARTKey> keys;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t >(arena_allocator, i));
+    cart.Put(keys[i], i);
+  }
 
   cart.Serialize();
 
   {
-    ART art("cart.data");
-    std::vector<idx_t> result_ids;
-    art.Get(k1, result_ids);
-    ASSERT_EQ(result_ids.size(), 1);
-    ASSERT_EQ(result_ids[0], 1);
+    ART art(index_path);
 
-    result_ids.clear();
-    art.Get(k2, result_ids);
-    ASSERT_EQ(result_ids.size(), 1);
-    ASSERT_EQ(result_ids[0], 2);
+//    art.Draw("cart_serialize.dot");
+
+    for (idx_t i = 0; i < limit; i++) {
+      std::vector<idx_t> result_ids;
+      art.Get(keys[i], result_ids);
+      ASSERT_EQ(result_ids.size(), 1);
+      ASSERT_EQ(result_ids[0], i);
+    }
+
+  }
+}
+
+TEST_F(ConcurrentARTSerializeTest, SerializeRandomTest) {
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  SetUpFiles("cart_serialize.idx");
+
+  auto kv_pairs = PrepareData(10000, "medium_kv_pairs.json");
+
+  auto index_path = GetFiles();
+
+  ConcurrentART cart(index_path);
+
+  idx_t limit = 10000;
+
+  for (const auto &kv : kv_pairs) {
+    auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
+    cart.Put(art_key, kv.second);
+  }
+
+  cart.Serialize();
+
+  ART art(index_path);
+
+  //    art.Draw("cart_serialize.dot");
+  for (const auto &kv : kv_pairs) {
+    auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
+    std::vector<idx_t> results;
+    art.Get(art_key, results);
+    ASSERT_EQ(1, results.size());
+    ASSERT_EQ(kv.second, results[0]);
   }
 }
 
