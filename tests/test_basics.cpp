@@ -558,3 +558,60 @@ TEST(ARTTEST, Reference) {
   fmt::println("node buffer_id: {}, offset: {}", node->GetBufferId(), node->GetOffset());
   fmt::println("cnode1 buffer_id: {}, offset: {}", cnode1->GetBufferId(), cnode1->GetOffset());
 }
+
+TEST(ARTTEST, ReferenceReproduce) {
+
+  ART art;
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  Node node1;
+  Leaf::New(node1, 1);
+  Leaf::MoveInlinedToLeaf(art, node1);
+
+  auto l_node_ref = std::ref(node1);
+  reference<Leaf> l_leaf = Leaf::Get(art, node1);
+
+  for (idx_t i = 0; i < 5; i++) {
+    l_leaf = l_leaf.get().Append(art, i);
+  }
+
+  auto l_origin_leaf = Leaf::Get(art, node1);
+
+  fmt::println("origin leaf: {}", l_origin_leaf.count);
+
+  fmt::println("leaf: {}", l_leaf.get().count);
+
+
+}
+
+TEST(ConcurrentARTTEST, ReferenceReproduce) {
+
+  ConcurrentART art;
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ConcurrentNode *node1 = art.AllocateNode();
+  ConcurrentNode *next_node = node1;
+  node1->Lock();
+  CLeaf::New(*node1, 1);
+  CLeaf::MoveInlinedToLeaf(art, *node1);
+
+  reference<CLeaf> l_leaf = CLeaf::Get(art, *node1);
+
+  node1->Unlock();
+  for (idx_t i = 0; i < 5; i++) {
+    next_node->Lock();
+    l_leaf = l_leaf.get().Append(art, next_node, i);
+  }
+
+  node1->Lock();
+  auto l_origin_leaf = CLeaf::Get(art, *node1);
+  node1->Unlock();
+
+  fmt::println("origin leaf: {}", l_origin_leaf.count);
+
+  fmt::println("leaf: {}", l_leaf.get().count);
+
+
+}

@@ -32,13 +32,13 @@ class Leaf {
     return Node::GetAllocator(art, NType::LEAF).Get<Leaf>(ptr);
   }
 
-  static void Insert(ART &art, Node &node, const idx_t row_id);
+  static void Insert(ART &art, Node &node, idx_t row_id);
 
   static BlockPointer Serialize(ART &art, Node &node, Serializer &serializer);
 
   static void Deserialize(ART &art, Node &node, Deserializer &deserializer);
 
-  static bool Remove(ART &art, std::reference_wrapper<Node> &node, const idx_t row_id);
+  static bool Remove(ART &art, std::reference_wrapper<Node> &node, idx_t row_id);
 
   static void Merge(ART &art, Node &l_node, Node &r_node);
 
@@ -51,9 +51,9 @@ class Leaf {
   //! A pointer to the next LEAF node
   Node ptr;
 
- private:
+// private:
   static void MoveInlinedToLeaf(ART &art, Node &node);
-  Leaf &Append(ART &art, const idx_t row_id);
+  Leaf &Append(ART &art, idx_t row_id);
 };
 
 class CLeaf {
