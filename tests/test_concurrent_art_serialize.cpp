@@ -162,7 +162,7 @@ TEST_F(ConcurrentARTSerializeTest, SerializeTest) {
   std::vector<ARTKey> keys;
 
   for (idx_t i = 0; i < limit; i++) {
-    keys.push_back(ARTKey::CreateARTKey<int32_t >(arena_allocator, i));
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
     cart.Put(keys[i], i);
   }
 
@@ -171,7 +171,7 @@ TEST_F(ConcurrentARTSerializeTest, SerializeTest) {
   {
     ART art(index_path);
 
-//    art.Draw("cart_serialize.dot");
+    //    art.Draw("cart_serialize.dot");
 
     for (idx_t i = 0; i < limit; i++) {
       std::vector<idx_t> result_ids;
@@ -179,7 +179,6 @@ TEST_F(ConcurrentARTSerializeTest, SerializeTest) {
       ASSERT_EQ(result_ids.size(), 1);
       ASSERT_EQ(result_ids[0], i);
     }
-
   }
 }
 
