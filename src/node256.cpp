@@ -287,14 +287,13 @@ BlockPointer CNode256::Serialize(ConcurrentART &art, ConcurrentNode *node, Seria
   writer.Write(NType::NODE_256);
   writer.Write(n256.count);
 
-  for (auto &child_block_pointer: child_block_pointers) {
+  for (auto &child_block_pointer : child_block_pointers) {
     writer.Write(child_block_pointer.block_id);
     writer.Write(child_block_pointer.offset);
   }
 
   node->RUnlock();
   return block_pointer;
-
 }
 
 void CNode256::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {

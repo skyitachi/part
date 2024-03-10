@@ -372,13 +372,13 @@ BlockPointer CNode16::Serialize(ConcurrentART &art, ConcurrentNode *node, Serial
   auto &n16 = CNode16::Get(art, node);
 
   std::vector<BlockPointer> child_block_pointers;
-  for (idx_t i = 0; i <n16.count; i++) {
+  for (idx_t i = 0; i < n16.count; i++) {
     n16.children[i]->RLock();
     child_block_pointers.emplace_back(n16.children[i]->Serialize(art, writer));
   }
 
-  for (idx_t i = n16.count; i <Node::NODE_16_CAPACITY; i++) {
-    child_block_pointers.emplace_back((block_id_t )INVALID_INDEX, 0);
+  for (idx_t i = n16.count; i < Node::NODE_16_CAPACITY; i++) {
+    child_block_pointers.emplace_back((block_id_t)INVALID_INDEX, 0);
   }
 
   auto block_pointer = writer.GetBlockPointer();
@@ -389,7 +389,7 @@ BlockPointer CNode16::Serialize(ConcurrentART &art, ConcurrentNode *node, Serial
     writer.Write(n16.key[i]);
   }
 
-  for (auto &child_block_pointer:child_block_pointers) {
+  for (auto &child_block_pointer : child_block_pointers) {
     writer.Write(child_block_pointer.block_id);
     writer.Write(child_block_pointer.offset);
   }
@@ -402,7 +402,7 @@ void CNode16::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer
   assert(node->Locked());
   auto &n16 = CNode16::Get(art, node);
 
-  auto count = reader.Read<uint8_t >();
+  auto count = reader.Read<uint8_t>();
 
   n16.count = count;
 

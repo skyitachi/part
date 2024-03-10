@@ -361,13 +361,13 @@ void CNode48::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
 // TODO
 BlockPointer CNode48::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer) {
   assert(node->RLocked());
-  assert(node->IsSet() &&!node->IsSerialized());
+  assert(node->IsSet() && !node->IsSerialized());
 
   auto &n48 = CNode48::Get(art, node);
 
   std::vector<BlockPointer> child_pointer_blocks;
 
-  for (idx_t i = 0; i <Node::NODE_48_CAPACITY;i++) {
+  for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
     if (n48.children[i]) {
       n48.children[i]->RLock();
       child_pointer_blocks.emplace_back(n48.children[i]->Serialize(art, writer));
@@ -385,7 +385,7 @@ BlockPointer CNode48::Serialize(ConcurrentART &art, ConcurrentNode *node, Serial
     writer.Write(n48.child_index[i]);
   }
 
-  for (auto &child_block_pointer: child_pointer_blocks) {
+  for (auto &child_block_pointer : child_pointer_blocks) {
     writer.Write(child_block_pointer.block_id);
     writer.Write(child_block_pointer.offset);
   }

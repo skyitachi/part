@@ -5,8 +5,8 @@
 #include <gtest/gtest.h>
 
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <random>
 
 #include "art.h"
@@ -188,7 +188,7 @@ TEST_F(ConcurrentARTSerializeTest, DeserializeTest) {
   std::vector<ARTKey> keys;
 
   for (idx_t i = 0; i < limit; i++) {
-    keys.push_back(ARTKey::CreateARTKey<int32_t >(arena_allocator, i));
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
   }
 
   for (idx_t i = 0; i < limit; i++) {
