@@ -560,7 +560,6 @@ TEST(ARTTEST, Reference) {
 }
 
 TEST(ARTTEST, ReferenceReproduce) {
-
   ART art;
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
@@ -581,18 +580,15 @@ TEST(ARTTEST, ReferenceReproduce) {
   fmt::println("origin leaf: {}", l_origin_leaf.count);
 
   fmt::println("leaf: {}", l_leaf.get().count);
-
-
 }
 
 TEST(ConcurrentARTTEST, ReferenceReproduce) {
-
   ConcurrentART art;
   Allocator& allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  ConcurrentNode *node1 = art.AllocateNode();
-  ConcurrentNode *next_node = node1;
+  ConcurrentNode* node1 = art.AllocateNode();
+  ConcurrentNode* next_node = node1;
   node1->Lock();
   CLeaf::New(*node1, 1);
   CLeaf::MoveInlinedToLeaf(art, *node1);
@@ -612,6 +608,47 @@ TEST(ConcurrentARTTEST, ReferenceReproduce) {
   fmt::println("origin leaf: {}", l_origin_leaf.count);
 
   fmt::println("leaf: {}", l_leaf.get().count);
+}
 
+TEST(ConcurrentARTTEST, ReferenceReproduce2) {
+  ConcurrentART art;
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
 
+  ConcurrentNode* node1 = art.AllocateNode();
+  fmt::println("node1 = {}", static_cast<void *>(node1));
+  ConcurrentNode* next_node = node1;
+  node1->Lock();
+  CLeaf::New(*node1, 1);
+  CLeaf::MoveInlinedToLeaf(art, *node1);
+
+  auto &l_leaf = CLeaf::Get(art, *node1);
+
+  fmt::println("is_reference:{} first ptr: {}", std::is_reference<decltype(l_leaf)>::value,
+               static_cast<void *>(l_leaf.GetPointer(art, node1)));
+
+  node1->Unlock();
+  for (idx_t i = 0; i < 5; i++) {
+    next_node->Lock();
+    l_leaf = l_leaf.Append(art, next_node, i);
+    fmt::println("is_reference:{}, after put {},  next_node:{}, ptr: {}",
+                 std::is_reference<decltype(l_leaf)>::value,
+                 i, static_cast<void *>(next_node),
+                 static_cast<void *>(l_leaf.GetPointer(art, next_node)));
+  }
+
+  node1->Lock();
+  fmt::println("after append node1 = {}", static_cast<void *>(node1));
+  fmt::println("after append next_node = {}", static_cast<void *>(next_node));
+  auto l_origin_leaf = CLeaf::Get(art, *node1);
+  node1->Unlock();
+
+  fmt::println("is_reference: {}, origin leaf: {}", std::is_reference<decltype(l_origin_leaf)>::value, l_origin_leaf.count);
+
+  fmt::println("leaf: {}", l_leaf.count);
+
+  next_node->Lock();
+  auto new_leaf = CLeaf::Get(art, *next_node);
+  fmt::println("new leaf: {}", new_leaf.count);
+  next_node->Unlock();
 }
