@@ -84,6 +84,8 @@ class ConcurrentNode : public Node {
 
   void Deserialize(ConcurrentART &art, Deserializer &reader);
 
+  void DeserializeInternal(ConcurrentART &art, Deserializer &reader);
+
   void Merge(ConcurrentART &cart, ART &art, Node &other);
 
   void MergeUpdate(ConcurrentART &cart, ART &art, Node &other);

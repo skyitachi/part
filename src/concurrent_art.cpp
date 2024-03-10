@@ -36,6 +36,7 @@ bool ConcurrentART::lookup(ConcurrentNode* next_node, const ARTKey& key, idx_t d
     next_node->RUnlock();
     return true;
   }
+  P_ASSERT(!next_node->IsSerialized());
   bool retry = false;
   while (next_node->IsSet()) {
     if (next_node->GetType() == NType::PREFIX) {
@@ -85,6 +86,12 @@ bool ConcurrentART::lookup(ConcurrentNode* next_node, const ARTKey& key, idx_t d
     }
     next_node->RUnlock();
     next_node = child.value();
+    // NOTE: important
+    if (next_node->IsSerialized()) {
+      next_node->Upgrade();
+      next_node->Deserialize(*this);
+      next_node->RLock();
+    }
     depth++;
   }
   return false;

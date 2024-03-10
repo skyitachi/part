@@ -38,8 +38,6 @@ Node::Node(ART &art, Deserializer &reader) : Node(reader) {
 FixedSizeAllocator &Node::GetAllocator(const ART &art, NType type) { return (*art.allocators)[(uint8_t)type - 1]; }
 
 std::optional<Node *> Node::GetChild(ART &art, const uint8_t byte) const {
-  assert(IsSet() && !IsSerialized());
-
   std::optional<Node *> child;
   switch (GetType()) {
     case NType::NODE_4:

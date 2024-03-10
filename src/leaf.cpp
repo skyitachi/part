@@ -537,7 +537,7 @@ void CLeaf::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &
   }
 
   assert(ref_node->Locked());
-  assert(ref_node->Unlock());
+  ref_node->Unlock();
 }
 
 void CLeaf::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other) {

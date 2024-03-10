@@ -289,10 +289,9 @@ BlockPointer CNode4::Serialize(ConcurrentART &art, ConcurrentNode *node, Seriali
 }
 
 void CNode4::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
-  node->Lock();
+  assert(node->Locked());
   auto &n4 = CNode4::Get(art, node);
 
-  auto block_pointer = reader.GetBlockPointer();
   auto count = reader.Read<uint8_t>();
 
   n4.count = count;
@@ -303,7 +302,8 @@ void CNode4::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer 
 
   for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
     n4.children[i] = art.AllocateNode();
-    *n4.children[i] = ConcurrentNode(art, reader);
+    n4.children[i]->Lock();
+    n4.children[i]->Deserialize(art, reader);
   }
   node->Unlock();
 }

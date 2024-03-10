@@ -19,6 +19,27 @@ TEST(ConcurrentARTSerializeTest, Debug) {
   ConcurrentART cart("cart.data");
 
   auto k1 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 1);
+  auto k2 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 2);
+
+  std::vector<idx_t> result_ids;
+  cart.Get(k1, result_ids);
+
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+
+  result_ids.clear();
+  cart.Get(k2, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 2);
+}
+
+TEST(ConcurrentARTSerializeTest, DebugForComparsion) {
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ART cart("cart.data");
+
+  auto k1 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 1);
 
   std::vector<idx_t> result_ids;
   cart.Get(k1, result_ids);

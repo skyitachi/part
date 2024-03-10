@@ -492,18 +492,44 @@ BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serialize
 }
 
 void ConcurrentNode::Deserialize(ConcurrentART& art) {
+  assert(Locked());
   BlockPointer pointer(GetBufferId(), GetOffset());
   BlockDeserializer reader(art.GetIndexFileFd(), pointer);
 
-  this->Deserialize(art, reader);
+  // NOTE: pointer has alead parsed
+  this->DeserializeInternal(art, reader);
 }
 
+// NOTE: no release lock
 void ConcurrentNode::Deserialize(ConcurrentART& art, Deserializer& reader) {
-  assert(Locked());
-  assert(IsSet() && IsSerialized());
+  P_ASSERT(Locked());
+  auto block_id = reader.Read<block_id_t>();
+  auto offset = reader.Read<uint32_t>();
+
+  Reset();
+
+  if (block_id == INVALID_BLOCK) {
+    Unlock();
+    return;
+  }
+
+  SetSerialized();
+  SetPtr(block_id, offset);
+
+  // important
+  Unlock();
+  //  // NOTE: eager deserialize
+  //  this->Deserialize(art);
+}
+
+void ConcurrentNode::DeserializeInternal(ConcurrentART& art, Deserializer& reader) {
+  P_ASSERT(Locked());
+  P_ASSERT(IsSet() && IsSerialized());
+
+  auto type = reader.Read<uint8_t>();
+
   // NOTE: important
   Reset();
-  auto type = reader.Read<uint8_t>();
 
   SetType(type);
 
@@ -524,7 +550,7 @@ void ConcurrentNode::Deserialize(ConcurrentART& art, Deserializer& reader) {
   }
 
   this->Update(ConcurrentNode::GetAllocator(art, decoded_type).ConcNew());
-  SetType(uint8_t(decoded_type));
+  this->SetType(type);
 
   switch (decoded_type) {
     case NType::NODE_4:

@@ -364,7 +364,9 @@ idx_t CPrefix::Traverse(ConcurrentART &cart, ConcurrentNode *&next_node, const A
     P_ASSERT(next_node->IsSet());
 
     if (next_node->IsSerialized()) {
+      next_node->Upgrade();
       next_node->Deserialize(cart);
+      next_node->RLock();
     }
     // NOTE: node ptr is changed
   }
@@ -659,6 +661,7 @@ void CPrefix::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer
     prefix.data[Node::PREFIX_SIZE] = std::min((idx_t)Node::PREFIX_SIZE, total_count);
     // NOTE: important
     prefix.ptr = art.AllocateNode();
+    prefix.ptr->SetSerialized();
 
     for (idx_t i = 0; i < prefix.data[Node::PREFIX_SIZE]; i++) {
       prefix.data[i] = reader.Read<uint8_t>();
