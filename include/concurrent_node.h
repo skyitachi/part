@@ -82,7 +82,7 @@ class ConcurrentNode : public Node {
 
   void Deserialize(ConcurrentART &art);
 
-  void Deserialize(ConcurrentART &art, Deserializer &reader);
+  bool Deserialize(ConcurrentART &art, Deserializer &reader);
 
   void DeserializeInternal(ConcurrentART &art, Deserializer &reader);
 

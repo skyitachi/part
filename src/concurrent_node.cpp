@@ -470,6 +470,7 @@ void ConcurrentNode::InsertChild(ConcurrentART& art, ConcurrentNode* node, uint8
 
 int64_t ConcurrentNode::Readers() { return lock_.load(); }
 
+// TODO: lock problems
 BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serializer) {
   if (!IsSet()) {
     return BlockPointer();
@@ -482,6 +483,12 @@ BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serialize
       return CPrefix::Serialize(art, this, serializer);
     case NType::NODE_4:
       return CNode4::Serialize(art, this, serializer);
+    case NType::NODE_16:
+      return CNode16::Serialize(art, this, serializer);
+    case NType::NODE_48:
+      return CNode48::Serialize(art, this, serializer);
+    case NType::NODE_256:
+      return CNode256::Serialize(art, this, serializer);
     case NType::LEAF:
       return CLeaf::Serialize(art, this, serializer);
     case NType::LEAF_INLINED:
@@ -501,7 +508,7 @@ void ConcurrentNode::Deserialize(ConcurrentART& art) {
 }
 
 // NOTE: no release lock
-void ConcurrentNode::Deserialize(ConcurrentART& art, Deserializer& reader) {
+bool ConcurrentNode::Deserialize(ConcurrentART& art, Deserializer& reader) {
   P_ASSERT(Locked());
   auto block_id = reader.Read<block_id_t>();
   auto offset = reader.Read<uint32_t>();
@@ -510,7 +517,7 @@ void ConcurrentNode::Deserialize(ConcurrentART& art, Deserializer& reader) {
 
   if (block_id == INVALID_BLOCK) {
     Unlock();
-    return;
+    return false;
   }
 
   SetSerialized();
@@ -520,6 +527,7 @@ void ConcurrentNode::Deserialize(ConcurrentART& art, Deserializer& reader) {
   Unlock();
   //  // NOTE: eager deserialize
   //  this->Deserialize(art);
+  return true;
 }
 
 void ConcurrentNode::DeserializeInternal(ConcurrentART& art, Deserializer& reader) {

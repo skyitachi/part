@@ -359,11 +359,59 @@ void CNode48::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
 }
 
 // TODO
-BlockPointer CNode48::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer) {
-  return BlockPointer();
+BlockPointer CNode48::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer) {
+  assert(node->RLocked());
+  assert(node->IsSet() &&!node->IsSerialized());
+
+  auto &n48 = CNode48::Get(art, node);
+
+  std::vector<BlockPointer> child_pointer_blocks;
+
+  for (idx_t i = 0; i <Node::NODE_48_CAPACITY;i++) {
+    if (n48.children[i]) {
+      n48.children[i]->RLock();
+      child_pointer_blocks.emplace_back(n48.children[i]->Serialize(art, writer));
+    } else {
+      child_pointer_blocks.emplace_back(INVALID_INDEX, 0);
+    }
+  }
+
+  auto block_pointer = writer.GetBlockPointer();
+
+  writer.Write(NType::NODE_48);
+  writer.Write<uint8_t>(n48.count);
+
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    writer.Write(n48.child_index[i]);
+  }
+
+  for (auto &child_block_pointer: child_pointer_blocks) {
+    writer.Write(child_block_pointer.block_id);
+    writer.Write(child_block_pointer.offset);
+  }
+
+  node->RUnlock();
+  return block_pointer;
 }
 
-// TODO
-void CNode48::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer) {}
+void CNode48::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
+  assert(node->Locked());
+  auto &n48 = CNode48::Get(art, node);
+  n48.count = reader.Read<uint8_t>();
+
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    n48.child_index[i] = reader.Read<uint8_t>();
+  }
+
+  for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
+    n48.children[i] = art.AllocateNode();
+    n48.children[i]->Lock();
+    bool valid = n48.children[i]->Deserialize(art, reader);
+    if (!valid) {
+      n48.children[i] = nullptr;
+    }
+  }
+  node->Unlock();
+}
 
 }  // namespace part

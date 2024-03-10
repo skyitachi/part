@@ -266,12 +266,51 @@ void CNode256::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src,
   src->RUnlock();
 }
 
-// TODO
-BlockPointer CNode256::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer) {
-  return BlockPointer();
+BlockPointer CNode256::Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer) {
+  assert(node->RLocked());
+  assert(node->IsSet() && !node->IsSerialized());
+
+  auto &n256 = CNode256::Get(art, node);
+
+  std::vector<BlockPointer> child_block_pointers;
+
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    if (n256.children[i]) {
+      n256.children[i]->RLock();
+      child_block_pointers.emplace_back(n256.children[i]->Serialize(art, writer));
+    } else {
+      child_block_pointers.emplace_back(INVALID_INDEX, 0);
+    }
+  }
+
+  auto block_pointer = writer.GetBlockPointer();
+  writer.Write(NType::NODE_256);
+  writer.Write(n256.count);
+
+  for (auto &child_block_pointer: child_block_pointers) {
+    writer.Write(child_block_pointer.block_id);
+    writer.Write(child_block_pointer.offset);
+  }
+
+  node->RUnlock();
+  return block_pointer;
+
 }
 
-// TODO
-void CNode256::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer) {}
+void CNode256::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
+  assert(node->Locked());
+
+  auto &n256 = CNode256::Get(art, node);
+  n256.count = reader.Read<uint16_t>();
+  for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
+    n256.children[i] = art.AllocateNode();
+    n256.children[i]->Lock();
+    bool valid = n256.children[i]->Deserialize(art, reader);
+    if (!valid) {
+      n256.children[i] = nullptr;
+    }
+  }
+  node->Unlock();
+}
 
 }  // namespace part
