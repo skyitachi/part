@@ -51,7 +51,7 @@ class Leaf {
   //! A pointer to the next LEAF node
   Node ptr;
 
-// private:
+  // private:
   static void MoveInlinedToLeaf(ART &art, Node &node);
   Leaf &Append(ART &art, idx_t row_id);
 };
