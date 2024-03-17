@@ -901,7 +901,6 @@ void CPrefix::MergeTwoPrefix(ConcurrentART &cart, ART &art, ConcurrentNode *l_no
     if (left_pos == l_cprefix.data[Node::PREFIX_SIZE] && right_pos == new_prefix.data[Node::PREFIX_SIZE]) {
       l_cprefix.ptr->RLock();
       l_node->RUnlock();
-
       l_cprefix.ptr->ResolvePrefixes(cart, art, new_prefix.ptr);
       return;
     }

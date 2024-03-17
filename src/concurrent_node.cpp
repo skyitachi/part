@@ -619,6 +619,11 @@ void ConcurrentNode::MergeUpdate(ConcurrentART& cart, ART& art, Node& other) {
 // NOTE: return value meaning
 bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other) {
   P_ASSERT(RLocked());
+  if (IsSerialized()) {
+    Upgrade();
+    this->Deserialize(cart);
+    Downgrade();
+  }
   if (GetType() != NType::PREFIX && other.GetType() != NType::PREFIX) {
     return MergeInternal(cart, art, other);
   }
@@ -650,6 +655,11 @@ bool ConcurrentNode::ResolvePrefixes(ConcurrentART& cart, ART& art, Node& other)
 
 bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
   assert(RLocked());
+  if (IsSerialized()) {
+    Upgrade();
+    this->Deserialize(cart);
+    Downgrade();
+  }
   assert(IsSet() && other.IsSet());
   assert(GetType() != NType::PREFIX && other.GetType() != NType::PREFIX);
 
@@ -701,6 +711,11 @@ bool ConcurrentNode::MergeInternal(ConcurrentART& cart, ART& art, Node& other) {
 // NOTE: return value meaning
 bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
   assert(RLocked());
+  if (IsSerialized()) {
+    Upgrade();
+    this->Deserialize(cart);
+    Downgrade();
+  }
   // NOTE: can not be leaf type
   assert(GetType() != NType::PREFIX || GetType() != NType::LEAF_INLINED || GetType() != NType::LEAF);
   assert(other.GetType() == NType::PREFIX);
@@ -726,6 +741,11 @@ bool ConcurrentNode::MergePrefix(ConcurrentART& cart, ART& art, Node& other) {
 bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNode* node, reference<Node>& prefix,
                                     idx_t& pos) {
   P_ASSERT(node->RLocked());
+  if (node->IsSerialized()) {
+    node->Upgrade();
+    node->Deserialize(cart);
+    node->Downgrade();
+  }
   P_ASSERT(node->GetType() != NType::LEAF && node->GetType() != NType::LEAF_INLINED);
   switch (node->GetType()) {
     case NType::PREFIX:
@@ -746,12 +766,12 @@ bool ConcurrentNode::TraversePrefix(ConcurrentART& cart, ART& art, ConcurrentNod
 void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, reference<Node>& r_node,
                                          idx_t& left_pos, idx_t& right_pos) {
   assert(l_node->RLocked());
-  {
-    auto& prefix = Prefix::Get(art, r_node);
-    if (right_pos >= prefix.data[Node::PREFIX_SIZE]) {
-      fmt::println("debug pointer");
-    }
+  if (l_node->IsSerialized()) {
+    l_node->Upgrade();
+    l_node->Deserialize(cart);
+    l_node->Downgrade();
   }
+
   auto r_byte = Prefix::GetByte(art, r_node, right_pos);
   Prefix::Reduce(art, r_node, right_pos);
 
@@ -783,6 +803,11 @@ void ConcurrentNode::MergePrefixesDiffer(ConcurrentART& cart, ART& art, Concurre
 void ConcurrentNode::MergeNonePrefixByPrefix(ConcurrentART& cart, ART& art, ConcurrentNode* l_node, Node& other,
                                              idx_t l_pos) {
   assert(l_node->RLocked());
+  if (l_node->IsSerialized()) {
+    l_node->Upgrade();
+    l_node->Deserialize(cart);
+    l_node->Downgrade();
+  }
   assert(l_node->GetType() == NType::PREFIX && other.GetType() != NType::PREFIX);
 
   auto& cprefix = CPrefix::Get(cart, *l_node);

@@ -319,3 +319,28 @@ TEST_F(ConcurrentARTSerializeTest, HybridSerializeTest) {
     }
   }
 }
+
+TEST(XengineTest, Merge) {
+  ConcurrentART cart("item_id.idx");
+
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1000);
+
+
+  ART art;
+
+  auto new_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1000);
+
+  art.Put(new_key, 2);
+
+  cart.Merge(art);
+  std::vector<idx_t> result_ids;
+  cart.Get(k1, result_ids);
+  ASSERT_EQ(result_ids.size(), 2);
+  ASSERT_EQ(result_ids[0], 1);
+  ASSERT_EQ(result_ids[1], 2);
+
+  cart.Draw("item_id.dot");
+}
