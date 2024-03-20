@@ -253,6 +253,13 @@ void ART::Serialize() {
   }
 }
 
+void ART::WritePartialBlocks() {
+  SequentialSerializer data_writer(index_path_, META_OFFSET);
+  for (auto &allocator: *allocators) {
+
+  }
+}
+
 void ART::UpdateMetadata(BlockPointer pointer, Serializer &writer) {
   writer.Write<block_id_t>(pointer.block_id);
   writer.Write<uint32_t>(pointer.offset);

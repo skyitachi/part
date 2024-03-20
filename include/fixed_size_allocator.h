@@ -56,6 +56,8 @@ class FixedSizeAllocator {
 
   void ConcFree(const ConcurrentNode *ptr);
 
+  void SerializeBuffers(SequentialSerializer &writer);
+
   template <class T>
   inline T *Get(const Node ptr) const {
     return (T *)get(ptr);

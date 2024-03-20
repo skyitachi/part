@@ -62,6 +62,9 @@ class ART {
 
   void Deserialize();
 
+  void WritePartialBlocks();
+
+
   int GetIndexFileFd() { return index_fd_; }
 
   void Draw(const std::string &outf) {

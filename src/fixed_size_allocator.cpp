@@ -2,6 +2,7 @@
 // Created by Shiping Yao on 2023/12/4.
 //
 #include "fixed_size_allocator.h"
+#include "serializer.h"
 
 #include <fmt/core.h>
 #include <fmt/printf.h>
@@ -173,6 +174,12 @@ void FixedSizeAllocator::ConcFree(const ConcurrentNode *ptr) {
   buffer.allocation_count--;
   total_allocations--;
   buffers_with_free_space.insert(buffer_id);
+}
+
+void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer) {
+  for (auto &buffer : buffers) {
+
+  }
 }
 
 }  // namespace part
