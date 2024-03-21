@@ -344,3 +344,34 @@ TEST(XengineTest, Merge) {
 
   cart.Draw("item_id.dot");
 }
+
+TEST(FastSerializeTest, SerializeFast) {
+  ART art("fast_serialize.idx");
+
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1);
+
+  art.Put(k1, 1);
+
+  auto k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 2);
+
+  art.Put(k2, 2);
+
+  art.Draw("fast_serialize.dot");
+
+  art.FastSerialize();
+
+//  {
+//    ART art2("fast_serialize.idx", true);
+//
+//    std::vector<idx_t> result_ids;
+//    art2.Get(k1, result_ids);
+//
+//    ASSERT_EQ(result_ids.size(), 1);
+//    ASSERT_EQ(result_ids[0], 1);
+//  }
+
+}
+

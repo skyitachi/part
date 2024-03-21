@@ -300,15 +300,18 @@ void ART::WritePartialBlocks() {
   }
 }
 
+// NOTE: leaf inlined node how to serialize
 void ART::FastSerialize() {
   SequentialSerializer writer(index_path_);
   if (root && !root->IsSerialized()) {
+    fmt::println("root buffer_id: {}, root_offset: {}", root->GetBufferId(), root->GetOffset());
     writer.Write<block_id_t>(root->GetBufferId());
     writer.Write<uint32_t>(root->GetOffset());
     for (auto &fixed_size_allocator: *allocators) {
       fixed_size_allocator.SerializeBuffers(writer);
     }
   }
+  writer.Flush();
 }
 
 void ART::UpdateMetadata(BlockPointer pointer, Serializer &writer) {
