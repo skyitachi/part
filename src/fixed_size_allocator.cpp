@@ -2,10 +2,11 @@
 // Created by Shiping Yao on 2023/12/4.
 //
 #include "fixed_size_allocator.h"
-#include "serializer.h"
 
 #include <fmt/core.h>
 #include <fmt/printf.h>
+
+#include "serializer.h"
 
 namespace part {
 
@@ -14,7 +15,7 @@ constexpr uint8_t FixedSizeAllocator::SHIFT[];
 
 FixedSizeAllocator::FixedSizeAllocator(const idx_t allocation_size, Allocator &allocator)
     : allocation_size(allocation_size), total_allocations(0), allocator(allocator) {
-    initMaskData();
+  initMaskData();
 }
 
 void FixedSizeAllocator::initMaskData() {
@@ -38,7 +39,6 @@ void FixedSizeAllocator::initMaskData() {
     curr_alloc_size += remaining_allocations * allocation_size;
   }
   allocation_offset = bitmask_count * sizeof(validity_t);
-
 }
 
 FixedSizeAllocator::~FixedSizeAllocator() {
@@ -188,16 +188,17 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer) {
   for (auto &buffer : buffers) {
     // NOTE: mask and data are need to write files???
     // and allocation_size, allocation_count are needed to write to files
-//    ValidityMask mask(bitmask_ptr);
-//    auto p_data = buffer.ptr + allocation_offset;
+    //    ValidityMask mask(bitmask_ptr);
+    //    auto p_data = buffer.ptr + allocation_offset;
     writer.WriteData(const_data_ptr_cast(&buffer.allocation_count), sizeof(buffer.allocation_count));
-//    writer.WriteData(p_data, buffer.allocation_count * allocation_size);
+    //    writer.WriteData(p_data, buffer.allocation_count * allocation_size);
     // include mask data
     writer.WriteData(buffer.ptr, allocation_offset + buffer.allocation_count * allocation_size);
   }
 }
 
-FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocator): allocator(allocator) {
+FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocator) : allocator(allocator) {
+  total_allocations = 0;
   size_t buf_size = 0;
   reader.ReadData(data_ptr_cast(&buf_size), sizeof(buf_size));
   reader.ReadData(data_ptr_cast(&allocation_size), sizeof(allocation_size));

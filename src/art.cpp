@@ -295,19 +295,19 @@ void ART::Serialize() {
 
 void ART::WritePartialBlocks() {
   SequentialSerializer data_writer(index_path_, META_OFFSET);
-  for (auto &allocator: *allocators) {
+  for (auto &allocator : *allocators) {
     // TODO:
   }
 }
 
-// NOTE: leaf inlined node how to serialize
+// NOTE: leaf inlined node how to serialize, no need to serialize
 void ART::FastSerialize() {
   SequentialSerializer writer(index_path_);
   if (root && !root->IsSerialized()) {
     fmt::println("root buffer_id: {}, root_offset: {}", root->GetBufferId(), root->GetOffset());
     writer.Write<block_id_t>(root->GetBufferId());
     writer.Write<uint32_t>(root->GetOffset());
-    for (auto &fixed_size_allocator: *allocators) {
+    for (auto &fixed_size_allocator : *allocators) {
       fixed_size_allocator.SerializeBuffers(writer);
     }
   }

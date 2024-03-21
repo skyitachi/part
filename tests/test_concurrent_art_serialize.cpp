@@ -328,7 +328,6 @@ TEST(XengineTest, Merge) {
 
   auto k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1000);
 
-
   ART art;
 
   auto new_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1000);
@@ -363,15 +362,27 @@ TEST(FastSerializeTest, SerializeFast) {
 
   art.FastSerialize();
 
-//  {
-//    ART art2("fast_serialize.idx", true);
-//
-//    std::vector<idx_t> result_ids;
-//    art2.Get(k1, result_ids);
-//
-//    ASSERT_EQ(result_ids.size(), 1);
-//    ASSERT_EQ(result_ids[0], 1);
-//  }
-
+  //  {
+  //    ART art2("fast_serialize.idx", true);
+  //
+  //    std::vector<idx_t> result_ids;
+  //    art2.Get(k1, result_ids);
+  //
+  //    ASSERT_EQ(result_ids.size(), 1);
+  //    ASSERT_EQ(result_ids[0], 1);
+  //  }
 }
 
+TEST(FastSerializeTest, Debug) {
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1);
+  ART art2("fast_serialize.idx", true);
+
+  std::vector<idx_t> result_ids;
+  art2.Get(k1, result_ids);
+
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+}
