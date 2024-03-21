@@ -46,11 +46,51 @@ ART::ART(const std::string &index_path, const std::shared_ptr<std::vector<FixedS
   }
 
   metadata_fd_ = ::open(index_path.c_str(), O_RDWR, 0644);
+
   try {
     auto pointer = ReadMetadata();
     root = std::make_unique<Node>(pointer.block_id, pointer.offset);
     root->SetSerialized();
     root->Deserialize(*this);
+
+  } catch (std::exception &e) {
+    root = std::make_unique<Node>();
+  }
+}
+
+ART::ART(const std::string &index_path, bool fast_serialize) {
+  index_path_ = index_path;
+
+  index_fd_ = ::open(index_path.c_str(), O_CREAT | O_RDWR, 0644);
+  if (index_fd_ == -1) {
+    throw std::invalid_argument(fmt::format("cann open {} index file, error: {}", index_path, strerror(errno)));
+  }
+
+  metadata_fd_ = ::open(index_path.c_str(), O_RDWR, 0644);
+
+  try {
+    auto pointer = ReadMetadata();
+    root = std::make_unique<Node>(pointer.block_id, pointer.offset);
+    root->SetSerialized();
+    auto start_pointer = BlockPointer(0, META_OFFSET);
+    BlockDeserializer reader(index_path, start_pointer);
+    auto &allocator = Allocator::DefaultAllocator();
+    allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
+    // prefix
+    allocators->emplace_back(reader, allocator);
+    // leaf
+    allocators->emplace_back(reader, allocator);
+    // node4
+    allocators->emplace_back(reader, allocator);
+    // node16
+    allocators->emplace_back(reader, allocator);
+    // node48
+    allocators->emplace_back(reader, allocator);
+    // node256
+    allocators->emplace_back(reader, allocator);
+
+    root->Deserialize(*this);
+
   } catch (std::exception &e) {
     root = std::make_unique<Node>();
   }
@@ -256,7 +296,18 @@ void ART::Serialize() {
 void ART::WritePartialBlocks() {
   SequentialSerializer data_writer(index_path_, META_OFFSET);
   for (auto &allocator: *allocators) {
+    // TODO:
+  }
+}
 
+void ART::FastSerialize() {
+  SequentialSerializer writer(index_path_);
+  if (root && !root->IsSerialized()) {
+    writer.Write<block_id_t>(root->GetBufferId());
+    writer.Write<uint32_t>(root->GetOffset());
+    for (auto &fixed_size_allocator: *allocators) {
+      fixed_size_allocator.SerializeBuffers(writer);
+    }
   }
 }
 

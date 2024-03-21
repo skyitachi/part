@@ -29,8 +29,9 @@ class ART {
  public:
   explicit ART(const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
 
-  explicit ART(const std::string &index_path,
-               const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
+  explicit ART(const std::string &index_path, const std::shared_ptr<std::vector<FixedSizeAllocator>> &allocators_ptr = nullptr);
+
+  explicit ART(const std::string &index_path, bool fast_serialize);
 
   ~ART();
   std::unique_ptr<Node> root;
@@ -63,6 +64,8 @@ class ART {
   void Deserialize();
 
   void WritePartialBlocks();
+
+  void FastSerialize();
 
 
   int GetIndexFileFd() { return index_fd_; }

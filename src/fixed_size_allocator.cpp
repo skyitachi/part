@@ -180,7 +180,6 @@ void FixedSizeAllocator::ConcFree(const ConcurrentNode *ptr) {
   buffers_with_free_space.insert(buffer_id);
 }
 
-// TODO
 void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer) {
   auto buf_size = buffers.size();
   writer.WriteData(const_data_ptr_cast(&buf_size), sizeof(buf_size));
