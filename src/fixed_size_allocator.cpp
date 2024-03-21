@@ -14,9 +14,12 @@ constexpr uint8_t FixedSizeAllocator::SHIFT[];
 
 FixedSizeAllocator::FixedSizeAllocator(const idx_t allocation_size, Allocator &allocator)
     : allocation_size(allocation_size), total_allocations(0), allocator(allocator) {
+    initMaskData();
+}
+
+void FixedSizeAllocator::initMaskData() {
   idx_t bits_per_value = sizeof(validity_t) * 8;
   idx_t curr_alloc_size = 0;
-
   bitmask_count = 0;
   allocations_per_buffer = 0;
   while (curr_alloc_size < BUFFER_ALLOC_SIZE) {
@@ -35,6 +38,7 @@ FixedSizeAllocator::FixedSizeAllocator(const idx_t allocation_size, Allocator &a
     curr_alloc_size += remaining_allocations * allocation_size;
   }
   allocation_offset = bitmask_count * sizeof(validity_t);
+
 }
 
 FixedSizeAllocator::~FixedSizeAllocator() {
@@ -176,9 +180,40 @@ void FixedSizeAllocator::ConcFree(const ConcurrentNode *ptr) {
   buffers_with_free_space.insert(buffer_id);
 }
 
+// TODO
 void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer) {
-  for (auto &buffer : buffers) {
+  auto buf_size = buffers.size();
+  writer.WriteData(const_data_ptr_cast(&buf_size), sizeof(buf_size));
+  writer.WriteData(const_data_ptr_cast(&allocation_size), sizeof(allocation_size));
 
+  for (auto &buffer : buffers) {
+    // NOTE: mask and data are need to write files???
+    // and allocation_size, allocation_count are needed to write to files
+//    ValidityMask mask(bitmask_ptr);
+//    auto p_data = buffer.ptr + allocation_offset;
+    writer.WriteData(const_data_ptr_cast(&buffer.allocation_count), sizeof(buffer.allocation_count));
+//    writer.WriteData(p_data, buffer.allocation_count * allocation_size);
+    // include mask data
+    writer.WriteData(buffer.ptr, allocation_offset + buffer.allocation_count * allocation_size);
+  }
+}
+
+FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocator): allocator(allocator) {
+  size_t buf_size = 0;
+  reader.ReadData(data_ptr_cast(&buf_size), sizeof(buf_size));
+  reader.ReadData(data_ptr_cast(&allocation_size), sizeof(allocation_size));
+  fmt::println("buf_size: {}, allocation_size: {}", buf_size, allocation_size);
+  initMaskData();
+
+  for (idx_t i = 0; i < buf_size; i++) {
+    idx_t allocation_count = 0;
+    reader.ReadData(data_ptr_cast(&allocation_count), sizeof(allocation_count));
+    total_allocations += allocation_count;
+    auto ptr = allocator.AllocateData(BUFFER_ALLOC_SIZE);
+    auto sz = allocation_offset + allocation_count * allocation_size;
+    reader.ReadData(ptr, sz);
+    BufferEntry entry(ptr, allocation_count);
+    buffers.emplace_back(std::move(entry));
   }
 }
 

@@ -35,6 +35,7 @@ class FixedSizeAllocator {
 
  public:
   explicit FixedSizeAllocator(const idx_t allocation_size, Allocator &allocator);
+  explicit FixedSizeAllocator(Deserializer &reader, Allocator &allocator);
   ~FixedSizeAllocator();
 
   idx_t allocation_size;
@@ -80,6 +81,7 @@ class FixedSizeAllocator {
     P_ASSERT(ptr.GetOffset() < allocations_per_buffer);
     return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size + allocation_offset;
   }
+  void initMaskData();
 };
 }  // namespace part
 #endif  // PART_FIXED_SIZE_ALLOCATOR_H
