@@ -202,7 +202,6 @@ FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocato
   size_t buf_size = 0;
   reader.ReadData(data_ptr_cast(&buf_size), sizeof(buf_size));
   reader.ReadData(data_ptr_cast(&allocation_size), sizeof(allocation_size));
-  fmt::println("buf_size: {}, allocation_size: {}", buf_size, allocation_size);
   initMaskData();
 
   for (idx_t i = 0; i < buf_size; i++) {

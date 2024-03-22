@@ -385,4 +385,12 @@ TEST(FastSerializeTest, Debug) {
 
   ASSERT_EQ(result_ids.size(), 1);
   ASSERT_EQ(result_ids[0], 1);
+
+  auto k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 2);
+
+  result_ids.clear();
+  art2.Get(k2, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 2);
+
 }

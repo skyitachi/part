@@ -241,6 +241,40 @@ TEST_F(ARTSerializeTest, BigARTTest) {
   }
 }
 
+TEST_F(ARTSerializeTest, FastSerializeTest) {
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  SetUpFiles("big_i64_art.data");
+  auto kv_pairs = PrepareData(1000, "big_kv_pairs.json");
+
+  kv_pairs = readKVPairsFromFile("big_kv_pairs.json");
+
+  keep_file = true;
+
+  auto index_path = GetFiles();
+
+  ART art(index_path);
+
+  for (const auto &kv : kv_pairs) {
+    auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
+    art.Put(art_key, kv.second);
+  }
+
+  art.FastSerialize();
+
+  ART art2(index_path, true);
+
+  for (const auto &kv : kv_pairs) {
+    auto art_key = ARTKey::CreateARTKey<int64_t>(arena_allocator, kv.first);
+    std::vector<idx_t> results;
+    bool success = art2.Get(art_key, results);
+
+    EXPECT_TRUE(success);
+    EXPECT_EQ(1, results.size());
+    EXPECT_EQ(kv.second, results[0]);
+  }
+}
+
 TEST(SerializerTest, Basic) {
   Allocator &allocator = Allocator::DefaultAllocator();
   SequentialSerializer serializer("serialize_test.data");
