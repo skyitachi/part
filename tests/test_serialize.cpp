@@ -241,15 +241,15 @@ TEST_F(ARTSerializeTest, BigARTTest) {
   }
 }
 
-TEST_F(ARTSerializeTest, FastSerializeTest) {
+TEST_F(ARTSerializeTest, FastSerializeBigARTTest) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
-  SetUpFiles("big_i64_art.data");
-  auto kv_pairs = PrepareData(1000, "big_kv_pairs.json");
+  SetUpFiles("fast_serialize_random.data");
+  auto kv_pairs = PrepareData(10000, "big_kv_pairs.json");
 
   kv_pairs = readKVPairsFromFile("big_kv_pairs.json");
 
-  keep_file = true;
+  keep_file = false;
 
   auto index_path = GetFiles();
 
@@ -272,6 +272,44 @@ TEST_F(ARTSerializeTest, FastSerializeTest) {
     EXPECT_TRUE(success);
     EXPECT_EQ(1, results.size());
     EXPECT_EQ(kv.second, results[0]);
+  }
+}
+
+TEST_F(ARTSerializeTest, FastSerializeBasicTest) {
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+  SetUpFiles("fast_serialize_basic.idx");
+
+  idx_t limit = 500;
+
+  std::vector<ARTKey> keys;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
+
+  keep_file = false;
+
+  auto index_path = GetFiles();
+
+  ART art(index_path);
+
+  for (idx_t i = 0; i < limit; i++) {
+    art.Put(keys[i], i);
+  }
+
+  //  art.Draw("debug_fast_serialize.dot");
+
+  art.FastSerialize();
+
+  ART art2(index_path, true);
+
+  for (idx_t i = 0; i < limit; i++) {
+    std::vector<idx_t> results;
+    bool success = art2.Get(keys[i], results);
+    ASSERT_TRUE(success);
+    ASSERT_EQ(1, results.size());
+    ASSERT_EQ(i, results[0]);
   }
 }
 

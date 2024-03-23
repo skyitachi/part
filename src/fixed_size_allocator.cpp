@@ -193,7 +193,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer) {
     writer.WriteData(const_data_ptr_cast(&buffer.allocation_count), sizeof(buffer.allocation_count));
     //    writer.WriteData(p_data, buffer.allocation_count * allocation_size);
     // include mask data
-    writer.WriteData(buffer.ptr, allocation_offset + buffer.allocation_count * allocation_size);
+    writer.WriteData(buffer.ptr, BUFFER_ALLOC_SIZE);
   }
 }
 
@@ -209,8 +209,7 @@ FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocato
     reader.ReadData(data_ptr_cast(&allocation_count), sizeof(allocation_count));
     total_allocations += allocation_count;
     auto ptr = allocator.AllocateData(BUFFER_ALLOC_SIZE);
-    auto sz = allocation_offset + allocation_count * allocation_size;
-    reader.ReadData(ptr, sz);
+    reader.ReadData(ptr, BUFFER_ALLOC_SIZE);
     BufferEntry entry(ptr, allocation_count);
     buffers.emplace_back(std::move(entry));
   }

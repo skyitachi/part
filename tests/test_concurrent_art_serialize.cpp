@@ -392,5 +392,4 @@ TEST(FastSerializeTest, Debug) {
   art2.Get(k2, result_ids);
   ASSERT_EQ(result_ids.size(), 1);
   ASSERT_EQ(result_ids[0], 2);
-
 }

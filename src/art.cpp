@@ -73,30 +73,22 @@ ART::ART(const std::string &index_path, bool fast_serialize) {
     BlockDeserializer reader(index_path, start_pointer);
     root = std::make_unique<Node>();
     root->SetData(reader.Read<uint64_t>());
-//    root->SetSerialized();
     auto &allocator = Allocator::DefaultAllocator();
     allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
     // NOTE: must need reserve
     allocators->reserve(6);
     // prefix
     allocators->emplace_back(reader, allocator);
-    fmt::println("init prefix success: {}", sizeof(Prefix));
     // leaf
     allocators->emplace_back(reader, allocator);
-    fmt::println("init leaf success: {}", sizeof(Leaf));
     // node4
     allocators->emplace_back(reader, allocator);
-    fmt::println("init node4 success: {}", sizeof(Node4));
     // node16
     allocators->emplace_back(reader, allocator);
-    fmt::println("init node16 success: {}", sizeof(Node16));
     // node48
     allocators->emplace_back(reader, allocator);
     // node256
     allocators->emplace_back(reader, allocator);
-
-//    root->Deserialize(*this);
-
   } catch (std::exception &e) {
     root = std::make_unique<Node>();
   }
@@ -310,7 +302,6 @@ void ART::WritePartialBlocks() {
 void ART::FastSerialize() {
   SequentialSerializer writer(index_path_);
   if (root && !root->IsSerialized()) {
-    fmt::println("root buffer_id: {}, root_offset: {}", root->GetBufferId(), root->GetOffset());
     writer.Write<block_id_t>(root->GetData());
     for (auto &fixed_size_allocator : *allocators) {
       fixed_size_allocator.SerializeBuffers(writer);

@@ -9,6 +9,32 @@
 
 using namespace part;
 
+void bench_art_serialize(ART &art) {
+  auto start = std::chrono::high_resolution_clock::now();
+
+  art.Serialize();
+
+  auto end = std::chrono::high_resolution_clock::now();
+
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+  // 输出计时结果
+  std::cout << "serialize: " << duration.count() << " 毫秒" << std::endl;
+}
+
+void bench_art_fast_serialize(ART &art) {
+  auto start = std::chrono::high_resolution_clock::now();
+
+  art.FastSerialize();
+
+  auto end = std::chrono::high_resolution_clock::now();
+
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+  // 输出计时结果
+  std::cout << "fast_serialize: " << duration.count() << " 毫秒" << std::endl;
+}
+
 int main() {
   int limit = 1000000;
 
@@ -28,16 +54,14 @@ int main() {
     cart.Put(keys[i], i);
   }
 
-  auto start = std::chrono::high_resolution_clock::now();
+  bench_art_serialize(cart);
 
-  cart.Serialize();
+  ART fastART("fast_art.idx");
 
-  auto end = std::chrono::high_resolution_clock::now();
+  for (idx_t i = 0; i < limit; i++) {
+    fastART.Put(keys[i], i);
+  }
 
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-  // 输出计时结果
-  std::cout << "耗时: " << duration.count() << " 毫秒" << std::endl;
-
+  bench_art_fast_serialize(fastART);
   return 0;
 }
