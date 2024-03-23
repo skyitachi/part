@@ -12,6 +12,13 @@
 #include "art.h"
 #include "concurrent_art.h"
 #include "fixed_size_allocator.h"
+#include "leaf.h"
+#include "node.h"
+#include "node16.h"
+#include "node256.h"
+#include "node4.h"
+#include "node48.h"
+#include "prefix.h"
 
 using json = nlohmann::json;
 
@@ -392,4 +399,20 @@ TEST(FastSerializeTest, Debug) {
   art2.Get(k2, result_ids);
   ASSERT_EQ(result_ids.size(), 1);
   ASSERT_EQ(result_ids[0], 2);
+}
+
+TEST(ConcurrentART, MemoryLayout) {
+  fmt::println("sizeof(CLeaf) = {}", sizeof(CLeaf));
+  fmt::println("sizeof(CPrefix) = {}", sizeof(CPrefix));
+  fmt::println("sizeof(CNode4) = {}", sizeof(CNode4));
+  fmt::println("sizeof(CNode16) = {}", sizeof(CNode16));
+  fmt::println("sizeof(CNode48) = {}", sizeof(CNode48));
+  fmt::println("sizeof(CNode256) = {}", sizeof(CNode256));
+
+  fmt::println("sizeof(Leaf) = {}", sizeof(Leaf));
+  fmt::println("sizeof(Prefix) = {}", sizeof(Prefix));
+  fmt::println("sizeof(Node4) = {}", sizeof(Node4));
+  fmt::println("sizeof(Node16) = {}", sizeof(Node16));
+  fmt::println("sizeof(Node48) = {}", sizeof(Node48));
+  fmt::println("sizeof(Node256) = {}", sizeof(Node256));
 }

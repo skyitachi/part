@@ -332,4 +332,39 @@ void ConcurrentART::Merge(ART& other) {
   root->RLock();
   root->Merge(*this, other, *other.root);
 }
+
+void ConcurrentART::FastSerialize() {
+  assert(index_fd_ != -1);
+  SequentialSerializer writer(index_path_);
+
+  if (root) {
+    root->Lock();
+    writer.Write<uint64_t>(root->GetData());
+    for (auto& fixed_size_allocator : *allocators) {
+      fixed_size_allocator.SerializeBuffers(writer);
+    }
+    root->Unlock();
+  }
+  writer.Flush();
+}
+
+// concurrent node 没法用这种方式，因为ConcurrentNode都是以指针传递的
+ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize) {
+  index_path_ = index_path;
+
+  index_fd_ = ::open(index_path.c_str(), O_CREAT | O_RDWR, 0644);
+  if (index_fd_ == -1) {
+    throw std::invalid_argument(fmt::format("cann open {} index file, error: {}", index_path, strerror(errno)));
+  }
+
+  try {
+    auto start_pointer = BlockPointer(0, 0);
+    BlockDeserializer reader(index_path, start_pointer);
+    root = std::make_unique<ConcurrentNode>();
+    root->SetData(reader.Read<uint64_t>());
+
+  } catch (std::exception& e) {
+  }
+}
+
 }  // namespace part

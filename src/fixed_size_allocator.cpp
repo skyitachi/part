@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 #include <fmt/printf.h>
 
+#include "leaf.h"
 #include "serializer.h"
 
 namespace part {
@@ -212,6 +213,38 @@ FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocato
     reader.ReadData(ptr, BUFFER_ALLOC_SIZE);
     BufferEntry entry(ptr, allocation_count);
     buffers.emplace_back(std::move(entry));
+  }
+}
+
+// only need read lock
+// TODO: need to check out new method
+void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType node_type) {
+  auto buf_size = buffers.size();
+  writer.WriteData(const_data_ptr_cast(&buf_size), sizeof(buf_size));
+  writer.WriteData(const_data_ptr_cast(&allocation_size), sizeof(allocation_size));
+  // Node: different from ART
+  writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
+
+  for (auto &buffer : buffers) {
+    writer.Write<idx_t>(buffer.allocation_count);
+    auto bitmask_ptr = reinterpret_cast<validity_t *>(buffer.ptr);
+    ValidityMask mask(bitmask_ptr);
+
+    for (idx_t i = 0; i < allocations_per_buffer; i++) {
+      // not allocated
+      if (mask.RowIsValid(i)) continue;
+
+      switch (node_type) {
+        case NType::LEAF: {
+          // need acquire write lock for node points to this node
+          auto *cleaf = Get<CLeaf>(buffer.ptr + allocation_offset + i * allocation_size);
+          auto *cnode = cleaf->ptr;
+          if (cleaf->ptr) {
+          }
+          break;
+        }
+      }
+    }
   }
 }
 

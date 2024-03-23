@@ -26,6 +26,8 @@ class ConcurrentART {
 
   explicit ConcurrentART(const std::string &index_path, FixedSizeAllocatorListPtr allocators_ptr = nullptr);
 
+  explicit ConcurrentART(const std::string &index_path, bool fast_serialize);
+
   ~ConcurrentART();
 
   std::unique_ptr<ConcurrentNode> root;
@@ -53,9 +55,9 @@ class ConcurrentART {
 
   void Serialize();
 
-  void Deserialize();
+  void FastSerialize();
 
-  BlockPointer Serialize(Serializer &writer);
+  void Deserialize();
 
   void Merge(ART &other);
 

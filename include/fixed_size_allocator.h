@@ -59,9 +59,17 @@ class FixedSizeAllocator {
 
   void SerializeBuffers(SequentialSerializer &writer);
 
+  // for concurrent node usage
+  void SerializeBuffers(SequentialSerializer &writer, NType node_type);
+
   template <class T>
   inline T *Get(const Node ptr) const {
     return (T *)get(ptr);
+  }
+
+  template <class T>
+  inline T *Get(data_ptr_t raw) const {
+    return reinterpret_cast<T *>(raw);
   }
 
   // NOTE: for debug usage
@@ -81,6 +89,7 @@ class FixedSizeAllocator {
     P_ASSERT(ptr.GetOffset() < allocations_per_buffer);
     return buffers[ptr.GetBufferId()].ptr + ptr.GetOffset() * allocation_size + allocation_offset;
   }
+
   void initMaskData();
 };
 }  // namespace part
