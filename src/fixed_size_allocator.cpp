@@ -225,6 +225,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
   // Node: different from ART
   writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
 
+  data_t tmp_buf[4096];
   for (auto &buffer : buffers) {
     writer.Write<idx_t>(buffer.allocation_count);
     auto bitmask_ptr = reinterpret_cast<validity_t *>(buffer.ptr);
@@ -237,9 +238,13 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
       switch (node_type) {
         case NType::LEAF: {
           // need acquire write lock for node points to this node
-          auto *cleaf = Get<CLeaf>(buffer.ptr + allocation_offset + i * allocation_size);
+          auto leaf_ptr = buffer.ptr + allocation_offset + i * allocation_size;
+          std::memcpy(tmp_buf, leaf_ptr, sizeof(CLeaf));
+
+          auto *cleaf = Get<CLeaf>(tmp_buf);
           auto *cnode = cleaf->ptr;
           if (cleaf->ptr) {
+//            cleaf->ptr
           }
           break;
         }
