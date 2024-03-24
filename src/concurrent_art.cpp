@@ -338,12 +338,17 @@ void ConcurrentART::FastSerialize() {
   SequentialSerializer writer(index_path_);
 
   if (root) {
-    root->Lock();
-    writer.Write<uint64_t>(root->GetData());
-    for (auto& fixed_size_allocator : *allocators) {
-      fixed_size_allocator.SerializeBuffers(writer);
-    }
-    root->Unlock();
+    root->RLock();
+    auto root_data = root->GetData();
+    Node::SetSerialized(root_data);
+    writer.Write<uint64_t>(root_data);
+
+    root->RUnlock();
+    (*allocators)[0].SerializeBuffers(writer, NType::PREFIX);
+    (*allocators)[1].SerializeBuffers(writer, NType::LEAF);
+//    for (auto& fixed_size_allocator : *allocators) {
+//      fixed_size_allocator.SerializeBuffers(writer);
+//    }
   }
   writer.Flush();
 }

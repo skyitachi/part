@@ -109,6 +109,10 @@ class Node {
     data |= Node::SET_SERIALIZED_FLAG;
   }
 
+  static void SetSerialized(uint64_t &data) {
+    data |= Node::SET_SERIALIZED_FLAG;
+  }
+
   inline void SetDeleted() {
     data &= Node::AND_RESET;
     data |= Node::SET_DELETED_FLAG;

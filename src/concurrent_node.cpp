@@ -500,6 +500,13 @@ BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serialize
   }
 }
 
+void ConcurrentNode::FastDeserialize(ConcurrentART &art) {
+  assert(Locked() && IsSerialized());
+  // TODO:
+
+
+}
+
 void ConcurrentNode::Deserialize(ConcurrentART& art) {
   assert(Locked());
   BlockPointer pointer(GetBufferId(), GetOffset());

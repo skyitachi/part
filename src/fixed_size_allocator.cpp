@@ -8,6 +8,7 @@
 
 #include "leaf.h"
 #include "serializer.h"
+#include "prefix.h"
 
 namespace part {
 
@@ -227,29 +228,59 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
 
   data_t tmp_buf[4096];
   for (auto &buffer : buffers) {
+    // allocation_count
     writer.Write<idx_t>(buffer.allocation_count);
     auto bitmask_ptr = reinterpret_cast<validity_t *>(buffer.ptr);
     ValidityMask mask(bitmask_ptr);
+    idx_t cnt = 0;
+
+    // copy mask data
+    writer.WriteData(buffer.ptr, allocation_offset);
+    cnt += allocation_offset;
 
     for (idx_t i = 0; i < allocations_per_buffer; i++) {
-      // not allocated
-      if (mask.RowIsValid(i)) continue;
+      auto ptr = buffer.ptr + allocation_offset + i * allocation_size;
 
       switch (node_type) {
         case NType::LEAF: {
+          cnt += sizeof(CLeaf);
+          if (mask.RowIsValid(i)) {
+            // TODO: only need update offset
+            writer.WriteData(tmp_buf, sizeof(CLeaf));
+            break;
+          }
           // need acquire write lock for node points to this node
-          auto leaf_ptr = buffer.ptr + allocation_offset + i * allocation_size;
-          std::memcpy(tmp_buf, leaf_ptr, sizeof(CLeaf));
+          std::memcpy(tmp_buf, ptr, sizeof(CLeaf));
 
           auto *cleaf = Get<CLeaf>(tmp_buf);
           auto *cnode = cleaf->ptr;
           if (cleaf->ptr) {
-//            cleaf->ptr
+            cleaf->data = cnode->GetData();
+            Node::SetSerialized(cleaf->data);
           }
+          writer.WriteData(tmp_buf, sizeof(CLeaf));
           break;
         }
+        case NType::PREFIX: {
+          if (mask.RowIsValid(i)) {
+            writer.WriteData(tmp_buf, sizeof(CPrefix));
+            break;
+          }
+          std::memcpy(tmp_buf, ptr, sizeof(CPrefix));
+          auto *cprefix = Get<CPrefix>(tmp_buf);
+          auto *cnode = cprefix->ptr;
+          if (cprefix->ptr) {
+            cprefix->node = cnode->GetData();
+            Node::SetSerialized(cprefix->node);
+          }
+          writer.WriteData(tmp_buf, sizeof(CPrefix));
+          break;
+        }
+        default:
+          throw std::invalid_argument("unsupported node type in SerializeBuffers");
       }
     }
+    fmt::println("[SerializeBuffer] write data: {}, allocation size: {}", cnt, BUFFER_ALLOC_SIZE);
   }
 }
 
