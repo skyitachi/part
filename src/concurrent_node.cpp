@@ -344,7 +344,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
 
       RUnlock();
       for (int i = 0; i < node4.count; i++) {
-        node4.children[i]->ToGraph(art, out, id, current_id_str);
+        node4.children[i].ptr->ToGraph(art, out, id, current_id_str);
       }
       break;
     }
@@ -373,7 +373,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       }
 
       for (int i = 0; i < node16.count; i++) {
-        node16.children[i]->ToGraph(art, out, id, current_id_str);
+        node16.children[i].ptr->ToGraph(art, out, id, current_id_str);
       }
       break;
     }
@@ -405,7 +405,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
 
       for (int i = 0; i < 256; i++) {
         if (node48.child_index[i] != Node::EMPTY_MARKER) {
-          node48.children[node48.child_index[i]]->ToGraph(art, out, id, current_id_str);
+          node48.children[node48.child_index[i]].ptr->ToGraph(art, out, id, current_id_str);
         }
       }
       break;
@@ -424,7 +424,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       out << "<TR>\n";
       RUnlock();
       for (int i = 0; i < Node::NODE_256_CAPACITY; i++) {
-        if (node256.children[i]) {
+        if (node256.children[i].ptr) {
           out << "<TD>" << ToStr(i) << "</TD>\n";
         }
       }
@@ -437,8 +437,8 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       }
 
       for (int i = 0; i < 256; i++) {
-        if (node256.children[i]) {
-          node256.children[i]->ToGraph(art, out, id, current_id_str);
+        if (node256.children[i].ptr) {
+          node256.children[i].ptr->ToGraph(art, out, id, current_id_str);
         }
       }
       break;

@@ -54,7 +54,12 @@ class CNode48 {
 
   uint8_t child_index[Node::NODE_256_CAPACITY];
 
-  ConcurrentNode *children[Node::NODE_48_CAPACITY];
+  //  ConcurrentNode *children[Node::NODE_48_CAPACITY];
+
+  union {
+    uint64_t node;
+    ConcurrentNode *ptr;
+  } children[Node::NODE_48_CAPACITY];
 
   static CNode48 &New(ConcurrentART &art, ConcurrentNode &node);
 

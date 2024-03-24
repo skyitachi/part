@@ -71,7 +71,10 @@ class CPrefix {
   uint8_t data[Node::PREFIX_SIZE + 1];
 
   //  ConcurrentNode ptr or maybe called next more clearly
-  ConcurrentNode *ptr;
+  union {
+    uint64_t node;
+    ConcurrentNode *ptr;
+  };
 
   static void Free(ConcurrentART &art, ConcurrentNode *node);
 

@@ -52,7 +52,11 @@ class CNode4 {
  public:
   uint8_t count;
   uint8_t key[Node::NODE_4_CAPACITY];
-  ConcurrentNode *children[Node::NODE_4_CAPACITY];
+  union {
+    uint64_t node;
+    ConcurrentNode *ptr;
+  } children[Node::NODE_4_CAPACITY];
+  //  ConcurrentNode *children[Node::NODE_4_CAPACITY];
 
   static CNode4 &New(ConcurrentART &art, ConcurrentNode &node);
   static void Free(ConcurrentART &art, ConcurrentNode *node);

@@ -46,7 +46,12 @@ class CNode256 {
  public:
   uint16_t count;
 
-  ConcurrentNode *children[Node::NODE_256_CAPACITY];
+  //  ConcurrentNode *children[Node::NODE_256_CAPACITY];
+
+  union {
+    uint64_t data;
+    ConcurrentNode *ptr;
+  } children[Node::NODE_256_CAPACITY];
 
   static CNode256 &New(ConcurrentART &art, ConcurrentNode &node);
 

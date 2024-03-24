@@ -60,7 +60,10 @@ class CLeaf {
  public:
   uint8_t count;
   idx_t row_ids[Node::LEAF_SIZE];
-  ConcurrentNode *ptr;
+  union {
+    uint64_t data;
+    ConcurrentNode *ptr;
+  };
 
   static CLeaf &Get(ConcurrentART &art, const ConcurrentNode &ptr);
   static CLeaf *GetPtr(ConcurrentART &art, const ConcurrentNode &ptr);

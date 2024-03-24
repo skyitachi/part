@@ -437,40 +437,45 @@ TEST(ConcurrentARTTest, LongPrefixTest) {
 TEST(ConcurrentARTTest, PointerTest) {
   ConcurrentART art;
 
-  ConcurrentNode *ptr = art.AllocateNode();
+  ConcurrentNode* ptr = art.AllocateNode();
 
   ptr->SetData(100);
   ptr->SetType((uint8_t)NType::LEAF);
 
-  fmt::println("addr: {}", static_cast<void *>(ptr));
+  fmt::println("addr: {}", static_cast<void*>(ptr));
   fmt::println("data: {}, type: {}", ptr->GetData(), (uint8_t)ptr->GetType());
 
-  ConcurrentNode *ptr2 = art.AllocateNode();
+  ConcurrentNode* ptr2 = art.AllocateNode();
 
-  fmt::println("addr2: {}", static_cast<void *>(ptr2));
+  fmt::println("addr2: {}", static_cast<void*>(ptr2));
 
-  int64_t pv = (int64_t )(static_cast<void *>(ptr));
+  int64_t pv = (int64_t)(static_cast<void*>(ptr));
 
   fmt::println("pointer value: {}", pv);
 
-  ConcurrentNode *ptr3 = (ConcurrentNode *)(reinterpret_cast<void *>(pv));
+  ConcurrentNode* ptr3 = (ConcurrentNode*)(reinterpret_cast<void*>(pv));
 
-  fmt::println("restored addr: {}", static_cast<void *>(ptr3));
+  fmt::println("restored addr: {}", static_cast<void*>(ptr3));
 
   fmt::println("data: {}, type: {}", ptr3->GetData(), (uint8_t)ptr3->GetType());
 
-
   union Ptr {
-    Node node;
-    ConcurrentNode *ptr;
+    uint64_t node;
+    ConcurrentNode* ptr;
   };
 
   // 可以利用判断高16位是否为0。。。
   // 不能利用指针的位数来做 判断当前节点是Node 或者 ConcurrentNode *ptr
-  ConcurrentNode *ptr4 = (ConcurrentNode *)(reinterpret_cast<void *>(pv | (1L << 48)));
+  //  ConcurrentNode *ptr4 = (ConcurrentNode *)(reinterpret_cast<void *>(pv | (1L << 48)));
+  //
+  //  fmt::println("restored addr: {}", static_cast<void *>(ptr4));
+  //
+  //  fmt::println("data: {}, type: {}", ptr4->GetData(), (uint8_t)ptr4->GetType());
 
-  fmt::println("restored addr: {}", static_cast<void *>(ptr4));
+  union {
+    uint64_t node;
+    ConcurrentNode* ptr;
+  } children[10];
 
-  fmt::println("data: {}, type: {}", ptr4->GetData(), (uint8_t)ptr4->GetType());
-
+  fmt::println("sizeof(union) = {}", sizeof(children));
 }

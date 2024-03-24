@@ -205,7 +205,7 @@ CNode48 &CNode48::New(ConcurrentART &art, ConcurrentNode &node) {
     n48.child_index[i] = Node::EMPTY_MARKER;
   }
   for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
-    n48.children[i] = nullptr;
+    n48.children[i].ptr = nullptr;
   }
   return n48;
 }
@@ -216,10 +216,10 @@ void CNode48::Free(ConcurrentART &art, ConcurrentNode *node) {
 
   auto &n48 = CNode48::Get(art, node);
   for (idx_t i = 0; i < n48.count; i++) {
-    assert(n48.children[i]);
-    n48.children[i]->Lock();
-    ConcurrentNode::Free(art, n48.children[i]);
-    n48.children[i]->Unlock();
+    assert(n48.children[i].ptr);
+    n48.children[i].ptr->Lock();
+    ConcurrentNode::Free(art, n48.children[i].ptr);
+    n48.children[i].ptr->Unlock();
   }
 }
 
@@ -240,12 +240,12 @@ CNode48 &CNode48::GrowNode16(ConcurrentART &art, ConcurrentNode *node16) {
   n48.count = n16.count;
   for (idx_t i = 0; i < n16.count; i++) {
     n48.child_index[n16.key[i]] = i;
-    n48.children[i] = n16.children[i];
+    n48.children[i].ptr = n16.children[i].ptr;
   }
 
   // NOTE: should initialize as empty pointer
   for (idx_t i = n16.count; i < Node::NODE_48_CAPACITY; i++) {
-    n48.children[i] = nullptr;
+    n48.children[i].ptr = nullptr;
   }
 
   n16.count = 0;
@@ -269,14 +269,13 @@ void CNode48::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_
   if (n48.count < Node::NODE_48_CAPACITY) {
     idx_t child_pos = n48.count;
     // NOTE: judge pointer whether nullptr
-    // TODO: 这里判断的有问题
-    if (n48.children[child_pos]) {
+    if (n48.children[child_pos].ptr) {
       child_pos = 0;
-      while (n48.children[child_pos]) {
+      while (n48.children[child_pos].ptr) {
         child_pos++;
       }
     }
-    n48.children[child_pos] = child;
+    n48.children[child_pos].ptr = child;
     n48.child_index[byte] = child_pos;
     n48.count++;
   } else {
@@ -288,7 +287,7 @@ void CNode48::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_
 std::optional<ConcurrentNode *> CNode48::GetChild(const uint8_t byte) {
   if (child_index[byte] != Node::EMPTY_MARKER) {
     // assert(children[child_index[byte]]->IsSet());
-    return children[child_index[byte]];
+    return children[child_index[byte]].ptr;
   }
   return std::nullopt;
 }
@@ -311,7 +310,7 @@ void CNode48::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
       new_child->Lock();
       new_child->MergeUpdate(cart, art, n48.children[n48.child_index[i]]);
       assert(!new_child->Locked());
-      cn48.children[cn48.child_index[i]] = new_child;
+      cn48.children[cn48.child_index[i]].ptr = new_child;
     }
   }
   node->Unlock();
@@ -325,7 +324,7 @@ bool CNode48::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node
   auto &cn48 = CNode48::Get(cart, node);
   if (cn48.child_index[prefix.data[pos]] != Node::EMPTY_MARKER) {
     node->RUnlock();
-    node = cn48.children[cn48.child_index[prefix.data[pos]]];
+    node = cn48.children[cn48.child_index[prefix.data[pos]]].ptr;
     pos += 1;
     node->RLock();
     if (pos < prefix.data[Node::PREFIX_SIZE]) {
@@ -352,7 +351,8 @@ void CNode48::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
   std::memcpy(n48.child_index, cn48.child_index, sizeof(cn48.child_index));
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
     if (cn48.child_index[i] != Node::EMPTY_MARKER) {
-      ConcurrentNode::ConvertToNode(cart, art, cn48.children[cn48.child_index[i]], n48.children[n48.child_index[i]]);
+      ConcurrentNode::ConvertToNode(cart, art, cn48.children[cn48.child_index[i]].ptr,
+                                    n48.children[n48.child_index[i]]);
     }
   }
   src->RUnlock();
@@ -368,9 +368,9 @@ BlockPointer CNode48::Serialize(ConcurrentART &art, ConcurrentNode *node, Serial
   std::vector<BlockPointer> child_pointer_blocks;
 
   for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
-    if (n48.children[i]) {
-      n48.children[i]->RLock();
-      child_pointer_blocks.emplace_back(n48.children[i]->Serialize(art, writer));
+    if (n48.children[i].ptr) {
+      n48.children[i].ptr->RLock();
+      child_pointer_blocks.emplace_back(n48.children[i].ptr->Serialize(art, writer));
     } else {
       child_pointer_blocks.emplace_back(INVALID_INDEX, 0);
     }
@@ -404,11 +404,11 @@ void CNode48::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer
   }
 
   for (idx_t i = 0; i < Node::NODE_48_CAPACITY; i++) {
-    n48.children[i] = art.AllocateNode();
-    n48.children[i]->Lock();
-    bool valid = n48.children[i]->Deserialize(art, reader);
+    n48.children[i].ptr = art.AllocateNode();
+    n48.children[i].ptr->Lock();
+    bool valid = n48.children[i].ptr->Deserialize(art, reader);
     if (!valid) {
-      n48.children[i] = nullptr;
+      n48.children[i].ptr = nullptr;
     }
   }
   node->Unlock();

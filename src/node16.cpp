@@ -217,10 +217,10 @@ void CNode16::Free(ConcurrentART &art, ConcurrentNode *node) {
 
   auto &n16 = CNode16::Get(art, node);
   for (idx_t i = 0; i < n16.count; i++) {
-    assert(n16.children[i]);
-    n16.children[i]->Lock();
-    ConcurrentNode::Free(art, n16.children[i]);
-    n16.children[i]->Unlock();
+    assert(n16.children[i].ptr);
+    n16.children[i].ptr->Lock();
+    ConcurrentNode::Free(art, n16.children[i].ptr);
+    n16.children[i].ptr->Unlock();
   }
 }
 
@@ -242,11 +242,11 @@ CNode16 &CNode16::GrowNode4(ConcurrentART &art, ConcurrentNode *node4) {
   n16.count = n4.count;
   for (idx_t i = 0; i < n4.count; i++) {
     n16.key[i] = n4.key[i];
-    n16.children[i] = n4.children[i];
+    n16.children[i].ptr = n4.children[i].ptr;
   }
 
   for (idx_t i = n4.count; i < Node::NODE_16_CAPACITY; i++) {
-    n16.children[i] = nullptr;
+    n16.children[i].ptr = nullptr;
   }
 
   n4.count = 0;
@@ -281,7 +281,7 @@ void CNode16::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_
     }
 
     n16.key[child_pos] = byte;
-    n16.children[child_pos] = child;
+    n16.children[child_pos].ptr = child;
     n16.count++;
   } else {
     CNode48::GrowNode16(art, node);
@@ -293,7 +293,7 @@ std::optional<ConcurrentNode *> CNode16::GetChild(const uint8_t byte) {
   for (idx_t i = 0; i < count; i++) {
     if (key[i] == byte) {
       //      assert(children[i]->IsSet());
-      return children[i];
+      return children[i].ptr;
     }
   }
 
@@ -315,11 +315,11 @@ void CNode16::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, N
   for (idx_t i = 0; i < n16.count; i++) {
     assert(node->Locked());
     cn16.key[i] = n16.key[i];
-    cn16.children[i] = cart.AllocateNode();
+    cn16.children[i].ptr = cart.AllocateNode();
 
-    cn16.children[i]->Lock();
-    cn16.children[i]->MergeUpdate(cart, art, n16.children[i]);
-    assert(!cn16.children[i]->Locked());
+    cn16.children[i].ptr->Lock();
+    cn16.children[i].ptr->MergeUpdate(cart, art, n16.children[i]);
+    assert(!cn16.children[i].ptr->Locked());
   }
   node->Unlock();
 }
@@ -332,9 +332,9 @@ bool CNode16::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *node
   auto &cn16 = CNode16::Get(cart, node);
   for (idx_t i = 0; i < cn16.count; i++) {
     if (cn16.key[i] == prefix.data[pos]) {
-      cn16.children[i]->RLock();
+      cn16.children[i].ptr->RLock();
       node->RUnlock();
-      node = cn16.children[i];
+      node = cn16.children[i].ptr;
       pos += 1;
       if (pos < prefix.data[Node::PREFIX_SIZE]) {
         return ConcurrentNode::TraversePrefix(cart, art, node, other, pos);
@@ -361,7 +361,7 @@ void CNode16::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, 
 
   for (idx_t i = 0; i < cn16.count; i++) {
     n16.key[i] = cn16.key[i];
-    ConcurrentNode::ConvertToNode(cart, art, cn16.children[i], n16.children[i]);
+    ConcurrentNode::ConvertToNode(cart, art, cn16.children[i].ptr, n16.children[i]);
   }
   src->RUnlock();
 }
@@ -373,8 +373,8 @@ BlockPointer CNode16::Serialize(ConcurrentART &art, ConcurrentNode *node, Serial
 
   std::vector<BlockPointer> child_block_pointers;
   for (idx_t i = 0; i < n16.count; i++) {
-    n16.children[i]->RLock();
-    child_block_pointers.emplace_back(n16.children[i]->Serialize(art, writer));
+    n16.children[i].ptr->RLock();
+    child_block_pointers.emplace_back(n16.children[i].ptr->Serialize(art, writer));
   }
 
   for (idx_t i = n16.count; i < Node::NODE_16_CAPACITY; i++) {
@@ -411,11 +411,11 @@ void CNode16::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer
   }
 
   for (idx_t i = 0; i < Node::NODE_16_CAPACITY; i++) {
-    n16.children[i] = art.AllocateNode();
-    n16.children[i]->Lock();
-    bool valid = n16.children[i]->Deserialize(art, reader);
+    n16.children[i].ptr = art.AllocateNode();
+    n16.children[i].ptr->Lock();
+    bool valid = n16.children[i].ptr->Deserialize(art, reader);
     if (!valid) {
-      n16.children[i] = nullptr;
+      n16.children[i].ptr = nullptr;
     }
   }
 

@@ -59,7 +59,10 @@ class CNode16 {
 
   uint8_t key[Node::NODE_16_CAPACITY];
 
-  ConcurrentNode *children[Node::NODE_16_CAPACITY];
+  union {
+    uint64_t node;
+    ConcurrentNode *ptr;
+  } children[Node::NODE_16_CAPACITY];
 
   static inline CNode16 &Get(const ConcurrentART &art, const ConcurrentNode *ptr) {
     assert(ptr->RLocked() || ptr->Locked());

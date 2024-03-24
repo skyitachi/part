@@ -193,7 +193,7 @@ CNode4 &CNode4::New(ConcurrentART &art, ConcurrentNode &node) {
   auto &n4 = CNode4::Get(art, &node);
   n4.count = 0;
   for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
-    n4.children[i] = nullptr;
+    n4.children[i].ptr = nullptr;
   }
   return n4;
 }
@@ -204,10 +204,10 @@ void CNode4::Free(ConcurrentART &art, ConcurrentNode *node) {
 
   auto &n4 = CNode4::Get(art, node);
   for (idx_t i = 0; i < n4.count; i++) {
-    assert(n4.children[i]);
-    n4.children[i]->Lock();
-    ConcurrentNode::Free(art, n4.children[i]);
-    n4.children[i]->Unlock();
+    assert(n4.children[i].ptr);
+    n4.children[i].ptr->Lock();
+    ConcurrentNode::Free(art, n4.children[i].ptr);
+    n4.children[i].ptr->Unlock();
   }
 }
 
@@ -237,7 +237,7 @@ void CNode4::InsertChild(ConcurrentART &art, ConcurrentNode *node, uint8_t byte,
     }
 
     n4.key[child_pos] = byte;
-    n4.children[child_pos] = child;
+    n4.children[child_pos].ptr = child;
     n4.count++;
   } else {
     // NOTE: update node pointer, node already points to CNode16
@@ -253,7 +253,7 @@ std::optional<ConcurrentNode *> CNode4::GetChild(const uint8_t byte) {
     if (key[i] == byte) {
       // NOTE: no need this assertion, only needs check children[i]->IsDeleted()
       // assert(children[i]->IsSet());
-      return children[i];
+      return children[i].ptr;
     }
   }
   return std::nullopt;
@@ -266,8 +266,8 @@ BlockPointer CNode4::Serialize(ConcurrentART &art, ConcurrentNode *node, Seriali
   std::vector<BlockPointer> child_block_pointers;
 
   for (idx_t i = 0; i < n4.count; i++) {
-    n4.children[i]->RLock();
-    child_block_pointers.emplace_back(n4.children[i]->Serialize(art, writer));
+    n4.children[i].ptr->RLock();
+    child_block_pointers.emplace_back(n4.children[i].ptr->Serialize(art, writer));
   }
   for (idx_t i = n4.count; i < Node::NODE_4_CAPACITY; i++) {
     child_block_pointers.emplace_back((block_id_t)INVALID_BLOCK, 0);
@@ -302,11 +302,11 @@ void CNode4::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer 
   }
 
   for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
-    n4.children[i] = art.AllocateNode();
-    n4.children[i]->Lock();
-    bool valid = n4.children[i]->Deserialize(art, reader);
+    n4.children[i].ptr = art.AllocateNode();
+    n4.children[i].ptr->Lock();
+    bool valid = n4.children[i].ptr->Deserialize(art, reader);
     if (!valid) {
-      n4.children[i] = nullptr;
+      n4.children[i].ptr = nullptr;
     }
   }
   node->Unlock();
@@ -327,12 +327,12 @@ void CNode4::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, No
 
   for (idx_t i = 0; i < n4.count; i++) {
     cn4.key[i] = n4.key[i];
-    cn4.children[i] = cart.AllocateNode();
+    cn4.children[i].ptr = cart.AllocateNode();
     // NOTE: important
-    cn4.children[i]->ResetAll();
-    cn4.children[i]->Lock();
-    cn4.children[i]->MergeUpdate(cart, art, n4.children[i]);
-    assert(!cn4.children[i]->Locked());
+    cn4.children[i].ptr->ResetAll();
+    cn4.children[i].ptr->Lock();
+    cn4.children[i].ptr->MergeUpdate(cart, art, n4.children[i]);
+    assert(!cn4.children[i].ptr->Locked());
   }
   node->Unlock();
 }
@@ -345,9 +345,9 @@ bool CNode4::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node
   auto &cn4 = CNode4::Get(cart, node);
   for (idx_t i = 0; i < cn4.count; i++) {
     if (cn4.key[i] == prefix.data[pos]) {
-      cn4.children[i]->RLock();
+      cn4.children[i].ptr->RLock();
       node->RUnlock();
-      node = cn4.children[i];
+      node = cn4.children[i].ptr;
       pos += 1;
       if (pos < prefix.data[Node::PREFIX_SIZE]) {
         return ConcurrentNode::TraversePrefix(cart, art, node, other, pos);
@@ -376,7 +376,7 @@ void CNode4::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, N
   n4.count = cn4.count;
   for (idx_t i = 0; i < cn4.count; i++) {
     n4.key[i] = cn4.key[i];
-    ConcurrentNode::ConvertToNode(cart, art, cn4.children[i], n4.children[i]);
+    ConcurrentNode::ConvertToNode(cart, art, cn4.children[i].ptr, n4.children[i]);
   }
   src->RUnlock();
 }

@@ -136,7 +136,7 @@ CNode256 &CNode256::New(ConcurrentART &art, ConcurrentNode &node) {
   auto &n256 = CNode256::Get(art, &node);
   n256.count = 0;
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-    n256.children[i] = nullptr;
+    n256.children[i].ptr = nullptr;
   }
   return n256;
 }
@@ -147,10 +147,10 @@ void CNode256::Free(ConcurrentART &art, ConcurrentNode *node) {
 
   auto &n256 = CNode256::Get(art, node);
   for (idx_t i = 0; i < n256.count; i++) {
-    if (n256.children[i]) {
-      n256.children[i]->Lock();
-      ConcurrentNode::Free(art, n256.children[i]);
-      n256.children[i]->Unlock();
+    if (n256.children[i].ptr) {
+      n256.children[i].ptr->Lock();
+      ConcurrentNode::Free(art, n256.children[i].ptr);
+      n256.children[i].ptr->Unlock();
     }
   }
 }
@@ -165,7 +165,7 @@ CNode256 &CNode256::GrowNode48(ConcurrentART &art, ConcurrentNode *node48) {
   n256.count = n48.count;
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
     if (n48.child_index[i] != Node::EMPTY_MARKER) {
-      n256.children[i] = n48.children[n48.child_index[i]];
+      n256.children[i].ptr = n48.children[n48.child_index[i]].ptr;
     }
   }
   n48.count = 0;
@@ -183,16 +183,16 @@ void CNode256::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8
   assert(node->IsSet() && !node->IsSerialized());
   auto &n256 = CNode256::Get(art, node);
 
-  assert(!n256.children[byte]);
+  assert(!n256.children[byte].ptr);
 
   n256.count++;
   assert(n256.count <= Node::NODE_256_CAPACITY);
-  n256.children[byte] = child;
+  n256.children[byte].ptr = child;
 }
 
 std::optional<ConcurrentNode *> CNode256::GetChild(const uint8_t byte) {
-  if (children[byte]) {
-    return children[byte];
+  if (children[byte].ptr) {
+    return children[byte].ptr;
   }
 
   return std::nullopt;
@@ -216,9 +216,9 @@ void CNode256::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, 
       new_child->Lock();
       new_child->MergeUpdate(cart, art, n256.children[i]);
       assert(!new_child->Locked());
-      cn256.children[i] = new_child;
+      cn256.children[i].ptr = new_child;
     } else {
-      cn256.children[i] = nullptr;
+      cn256.children[i].ptr = nullptr;
     }
   }
   node->Unlock();
@@ -230,8 +230,8 @@ bool CNode256::TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *nod
   assert(pos < prefix.data[Node::PREFIX_SIZE]);
 
   auto &cn256 = CNode256::Get(cart, node);
-  if (cn256.children[prefix.data[pos]]) {
-    auto new_node = cn256.children[prefix.data[pos]];
+  if (cn256.children[prefix.data[pos]].ptr) {
+    auto new_node = cn256.children[prefix.data[pos]].ptr;
     new_node->RLock();
     node->RUnlock();
     pos += 1;
@@ -258,8 +258,8 @@ void CNode256::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src,
   n256.count = cn256.count;
 
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-    if (cn256.children[i]) {
-      ConcurrentNode::ConvertToNode(cart, art, cn256.children[i], n256.children[i]);
+    if (cn256.children[i].ptr) {
+      ConcurrentNode::ConvertToNode(cart, art, cn256.children[i].ptr, n256.children[i]);
     }
   }
 
@@ -275,9 +275,9 @@ BlockPointer CNode256::Serialize(ConcurrentART &art, ConcurrentNode *node, Seria
   std::vector<BlockPointer> child_block_pointers;
 
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-    if (n256.children[i]) {
-      n256.children[i]->RLock();
-      child_block_pointers.emplace_back(n256.children[i]->Serialize(art, writer));
+    if (n256.children[i].ptr) {
+      n256.children[i].ptr->RLock();
+      child_block_pointers.emplace_back(n256.children[i].ptr->Serialize(art, writer));
     } else {
       child_block_pointers.emplace_back(INVALID_INDEX, 0);
     }
@@ -302,11 +302,11 @@ void CNode256::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserialize
   auto &n256 = CNode256::Get(art, node);
   n256.count = reader.Read<uint16_t>();
   for (idx_t i = 0; i < Node::NODE_256_CAPACITY; i++) {
-    n256.children[i] = art.AllocateNode();
-    n256.children[i]->Lock();
-    bool valid = n256.children[i]->Deserialize(art, reader);
+    n256.children[i].ptr = art.AllocateNode();
+    n256.children[i].ptr->Lock();
+    bool valid = n256.children[i].ptr->Deserialize(art, reader);
     if (!valid) {
-      n256.children[i] = nullptr;
+      n256.children[i].ptr = nullptr;
     }
   }
   node->Unlock();
