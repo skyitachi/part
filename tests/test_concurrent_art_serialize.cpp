@@ -422,6 +422,12 @@ TEST(FastSerializeTest, DebugDeserialize) {
 
   ConcurrentART art("conc_fast_serialize.idx", true);
 
+  std::vector<idx_t> result_ids;
+
+  art.Get(k1, result_ids);
+
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
 }
 
 TEST(ConcurrentART, MemoryLayout) {

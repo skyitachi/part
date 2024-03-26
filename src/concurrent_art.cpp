@@ -379,7 +379,7 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
 
     root->Lock();
     root->SetData(Node::UnSetSerialized(root->GetData()));
-    fmt::println("root type: {}", (uint8_t)root->GetType());
+    fmt::println("root type: {}, buffer_id: {}, offset: {}", (uint8_t)root->GetType(), root->GetBufferId(), root->GetOffset());
     root->FastDeserialize(*this);
 
     P_ASSERT(!root->Locked());

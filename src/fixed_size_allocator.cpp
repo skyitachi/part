@@ -223,8 +223,8 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
   auto buf_size = buffers.size();
   writer.WriteData(const_data_ptr_cast(&buf_size), sizeof(buf_size));
   writer.WriteData(const_data_ptr_cast(&allocation_size), sizeof(allocation_size));
-  // Node: different from ART
-  writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
+//  // Node: different from ART
+//  writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
 
   data_t tmp_buf[4096];
   for (auto &buffer : buffers) {
@@ -237,6 +237,8 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
     // copy mask data
     writer.WriteData(buffer.ptr, allocation_offset);
     cnt += allocation_offset;
+
+    fmt::println("allocation_offset: {}", allocation_offset);
 
     for (idx_t i = 0; i < allocations_per_buffer; i++) {
       auto ptr = buffer.ptr + allocation_offset + i * allocation_size;
@@ -262,20 +264,21 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
           break;
         }
         case NType::PREFIX: {
-          cnt += sizeof(CPrefix);
           if (mask.RowIsValid(i)) {
             writer.WriteData(tmp_buf, sizeof(CPrefix));
+            cnt += sizeof(CPrefix);
             break;
           }
           std::memcpy(tmp_buf, ptr, sizeof(CPrefix));
           auto *cprefix = Get<CPrefix>(tmp_buf);
-          fmt::println("fast_serialize prefix count: {}", cprefix->data[Node::PREFIX_SIZE]);
+          fmt::println("fast_serialize prefix count: {}, offset: {}", cprefix->data[Node::PREFIX_SIZE], i);
           auto *cnode = cprefix->ptr;
           if (cprefix->ptr) {
             cprefix->node = cnode->GetData();
             Node::SetSerialized(cprefix->node);
           }
           writer.WriteData(tmp_buf, sizeof(CPrefix));
+          cnt += sizeof(CPrefix);
           break;
         }
         default:
