@@ -350,7 +350,11 @@ void CLeaf::Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id
 
   // node points to ref
   auto ref = std::ref(CLeaf::Get(art, *node));
-  assert(ref.get().ptr);
+  if (ref.get().next == 0) {
+    ref.get().Append(art, node, row_id);
+    return;
+  }
+
   auto next_node = ref.get().ptr;
   next_node->RLock();
 
@@ -365,7 +369,7 @@ void CLeaf::Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id
       return;
     }
     if (next_node->IsSerialized()) {
-      // TODO: Deserialize
+      // TODO: Deserialize no need serialize here (new approach)
     }
     if (holds_write_lock) {
       node->Unlock();
@@ -377,6 +381,10 @@ void CLeaf::Insert(ConcurrentART &art, ConcurrentNode *&node, const idx_t row_id
     // NOTE: insert params need to check
     node = next_node;
     ref = std::ref(CLeaf::Get(art, *node));
+    if (ref.get().next == 0) {
+      ref.get().ptr = art.AllocateNode();
+      ref.get().ptr->ResetAll();
+    }
     next_node = ref.get().ptr;
     next_node->RLock();
     need_upgrade = true;
@@ -401,18 +409,24 @@ void CLeaf::MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node) {
   cleaf.count = 1;
   cleaf.row_ids[0] = doc_id;
   // NOTE: important, initialize the ptr here
-  cleaf.ptr = art.AllocateNode();
-  cleaf.ptr->ResetAll();
+  // TODO: should marked as null pointer
+  cleaf.next = 0;
+//  cleaf.ptr = art.AllocateNode();
+//  cleaf.ptr->ResetAll();
 }
 
 CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, idx_t doc_id) {
   // NOTE: node points to leaf
   auto leaf = std::ref(*this);
   assert(node->Locked());
-  assert(leaf.get().ptr);
+//  assert(leaf.get().ptr);
 
   if (leaf.get().count == Node::LEAF_SIZE) {
-    leaf.get().ptr->ResetAll();
+    if (leaf.get().next == 0) {
+      // NOTE: allocate here (lazy)
+      leaf.get().ptr = art.AllocateNode();
+      leaf.get().ptr->ResetAll();
+    }
     leaf.get().ptr->Update(ConcurrentNode::GetAllocator(art, NType::LEAF).ConcNew());
     leaf.get().ptr->SetType((uint8_t)NType::LEAF);
     leaf.get().ptr->Lock();
@@ -422,8 +436,7 @@ CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, idx_t doc_id) {
     node = leaf.get().ptr;
     leaf = CLeaf::Get(art, *node);
     // NOTE: important initialize
-    leaf.get().ptr = art.AllocateNode();
-    leaf.get().ptr->ResetAll();
+    leaf.get().next = 0;
     leaf.get().count = 0;
   }
 
@@ -519,7 +532,23 @@ void CLeaf::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
     node->SetData(Node::UnSetSerialized(node->GetData()));
     node->Unlock();
     fmt::println("leaf inline deserialized");
+    return;
   }
+
+  auto &cleaf = CLeaf::Get(art, *node);
+
+  fmt::println("CLeaf count: {}", cleaf.count);
+
+  auto next = cleaf.next;
+  if (Node::IsSerialized(cleaf.next)) {
+    cleaf.ptr = art.AllocateNode();
+    cleaf.ptr->Lock();
+    node->Unlock();
+    cleaf.ptr->SetData(Node::UnSetSerialized(next));
+    cleaf.ptr->FastDeserialize(art);
+    return;
+  }
+  node->Unlock();
 }
 
 void CLeaf::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {

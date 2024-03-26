@@ -61,7 +61,7 @@ class CLeaf {
   uint8_t count;
   idx_t row_ids[Node::LEAF_SIZE];
   union {
-    uint64_t data;
+    uint64_t next;
     ConcurrentNode *ptr;
   };
 

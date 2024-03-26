@@ -411,6 +411,8 @@ TEST(FastSerializeTest, DebugNewApproach) {
 
   art.Put(k1, 1);
 
+  art.Put(k1, 2);
+
   art.FastSerialize();
 }
 
@@ -426,8 +428,9 @@ TEST(FastSerializeTest, DebugDeserialize) {
 
   art.Get(k1, result_ids);
 
-  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids.size(), 2);
   ASSERT_EQ(result_ids[0], 1);
+  ASSERT_EQ(result_ids[1], 2);
 }
 
 TEST(ConcurrentART, MemoryLayout) {

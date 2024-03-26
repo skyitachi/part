@@ -255,10 +255,12 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
           std::memcpy(tmp_buf, ptr, sizeof(CLeaf));
 
           auto *cleaf = Get<CLeaf>(tmp_buf);
-          auto *cnode = cleaf->ptr;
-          if (cleaf->ptr) {
-            cleaf->data = cnode->GetData();
-            Node::SetSerialized(cleaf->data);
+          if (cleaf->next != 0) {
+            auto *cnode = cleaf->ptr;
+            if (cleaf->ptr) {
+              cleaf->next = cnode->GetData();
+              Node::SetSerialized(cleaf->next);
+            }
           }
           writer.WriteData(tmp_buf, sizeof(CLeaf));
           break;

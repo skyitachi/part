@@ -936,8 +936,8 @@ void CPrefix::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
   auto child_node = cprefix.node;
   if (Node::IsSerialized(child_node)) {
     cprefix.ptr = art.AllocateNode();
-    cprefix.ptr->SetData(Node::UnSetSerialized(child_node));
     cprefix.ptr->Lock();
+    cprefix.ptr->SetData(Node::UnSetSerialized(child_node));
     // asap unlock
     node->Unlock();
     cprefix.ptr->FastDeserialize(art);

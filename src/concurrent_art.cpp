@@ -374,8 +374,8 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
     allocators->reserve(6);
     // prefix
     allocators->emplace_back(reader, allocator);
-//    // leaf
-//    allocators->emplace_back(reader, allocator);
+    // leaf
+    allocators->emplace_back(reader, allocator);
 
     root->Lock();
     root->SetData(Node::UnSetSerialized(root->GetData()));
