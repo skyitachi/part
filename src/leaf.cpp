@@ -511,6 +511,17 @@ idx_t CLeaf::TotalCount(ConcurrentART &art, ConcurrentNode *node) {
   return count;
 }
 
+void CLeaf::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
+  P_ASSERT(node->Locked());
+
+  if (node->GetType() == NType::LEAF_INLINED) {
+    // set serialized flag to false
+    node->SetData(Node::UnSetSerialized(node->GetData()));
+    node->Unlock();
+    fmt::println("leaf inline deserialized");
+  }
+}
+
 void CLeaf::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader) {
   assert(node->Locked());
   auto total_count = reader.Read<idx_t>();

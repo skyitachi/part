@@ -401,6 +401,29 @@ TEST(FastSerializeTest, Debug) {
   ASSERT_EQ(result_ids[0], 2);
 }
 
+TEST(FastSerializeTest, DebugNewApproach) {
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 1);
+
+  ConcurrentART art("conc_fast_serialize.idx");
+
+  art.Put(k1, 1);
+
+  art.FastSerialize();
+}
+
+TEST(FastSerializeTest, DebugDeserialize) {
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 1);
+
+  ConcurrentART art("conc_fast_serialize.idx", true);
+
+}
+
 TEST(ConcurrentART, MemoryLayout) {
   fmt::println("sizeof(CLeaf) = {}", sizeof(CLeaf));
   fmt::println("sizeof(CPrefix) = {}", sizeof(CPrefix));

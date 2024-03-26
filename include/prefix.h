@@ -118,6 +118,9 @@ class CPrefix {
 
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer);
 
+  // NOTE: no need deserializer
+  static void FastDeserialize(ConcurrentART &art, ConcurrentNode *node);
+
   static idx_t TotalCount(ConcurrentART &art, ConcurrentNode *&node);
 
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);

@@ -367,8 +367,27 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
     BlockDeserializer reader(index_path, start_pointer);
     root = std::make_unique<ConcurrentNode>();
     root->SetData(reader.Read<uint64_t>());
+    auto &allocator = Allocator::DefaultAllocator();
+
+    allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
+
+    allocators->reserve(6);
+    // prefix
+    allocators->emplace_back(reader, allocator);
+//    // leaf
+//    allocators->emplace_back(reader, allocator);
+
+    root->Lock();
+    root->SetData(Node::UnSetSerialized(root->GetData()));
+    fmt::println("root type: {}", (uint8_t)root->GetType());
+    root->FastDeserialize(*this);
+
+    P_ASSERT(!root->Locked());
 
   } catch (std::exception& e) {
+    root = std::make_unique<ConcurrentNode>();
+
+    // TODO: allocators
   }
 }
 

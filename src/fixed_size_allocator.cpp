@@ -268,6 +268,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
           }
           std::memcpy(tmp_buf, ptr, sizeof(CPrefix));
           auto *cprefix = Get<CPrefix>(tmp_buf);
+          fmt::println("fast_serialize prefix count: {}", cprefix->data[Node::PREFIX_SIZE]);
           auto *cnode = cprefix->ptr;
           if (cprefix->ptr) {
             cprefix->node = cnode->GetData();
