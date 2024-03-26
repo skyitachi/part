@@ -262,6 +262,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
           break;
         }
         case NType::PREFIX: {
+          cnt += sizeof(CPrefix);
           if (mask.RowIsValid(i)) {
             writer.WriteData(tmp_buf, sizeof(CPrefix));
             break;
