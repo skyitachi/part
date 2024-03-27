@@ -392,6 +392,7 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
     P_ASSERT(!root->Locked());
 
   } catch (std::exception& e) {
+    fmt::println("exception: {}", e.what());
     root = std::make_unique<ConcurrentNode>();
 
     // TODO: allocators

@@ -206,9 +206,13 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer) {
 FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocator) : allocator(allocator) {
   total_allocations = 0;
   size_t buf_size = 0;
+  fmt::println("FixedSizeAllocator init");
+
   reader.ReadData(data_ptr_cast(&buf_size), sizeof(buf_size));
   reader.ReadData(data_ptr_cast(&allocation_size), sizeof(allocation_size));
   initMaskData();
+
+  fmt::println("init allocator from reader: {}, buffer_size: {} ", allocation_size, buf_size);
 
   for (idx_t i = 0; i < buf_size; i++) {
     idx_t allocation_count = 0;
@@ -227,11 +231,16 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
   auto buf_size = buffers.size();
   writer.WriteData(const_data_ptr_cast(&buf_size), sizeof(buf_size));
   writer.WriteData(const_data_ptr_cast(&allocation_size), sizeof(allocation_size));
+  auto block_pointer = writer.GetBlockPointer();
+
+  fmt::println("serialize allocator: {}, {}, block_id: {}, block_offset: {}", allocation_size, buf_size,
+               block_pointer.block_id, block_pointer.offset);
   //  // Node: different from ART
   //  writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
   idx_t nsz[] = {sizeof(CPrefix), sizeof(CLeaf), sizeof(CNode4), sizeof(CNode16), sizeof(CNode48), sizeof(CNode256)};
 
   data_t tmp_buf[4096];
+
   for (auto &buffer : buffers) {
     // allocation_count
     writer.Write<idx_t>(buffer.allocation_count);
@@ -241,9 +250,13 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
 
     // copy mask data
     writer.WriteData(buffer.ptr, allocation_offset);
+
     cnt += allocation_offset;
 
-    fmt::println("allocation_offset: {}", allocation_offset);
+    idx_t padding = BUFFER_ALLOC_SIZE - allocations_per_buffer * allocation_size - allocation_offset;
+
+    fmt::println("allocation_offset: {}, allocations_per_buffer: {}, padding: {}", allocation_offset,
+                 allocations_per_buffer, padding);
 
     for (idx_t i = 0; i < allocations_per_buffer; i++) {
       auto ptr = buffer.ptr + allocation_offset + i * allocation_size;
@@ -252,10 +265,11 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
 
       if (mask.RowIsValid(i)) {
         writer.WriteData(tmp_buf, sz);
-        break;
+        continue;
       }
 
-      std::memcpy(tmp_buf, ptr, nsz[sz]);
+      std::memcpy(tmp_buf, ptr, nsz[uint8_t(node_type) - 1]);
+
       switch (node_type) {
         case NType::LEAF: {
           // need acquire write lock for node points to this node
@@ -293,8 +307,6 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
         case NType::NODE_16: {
           auto *cn16 = Get<CNode16>(tmp_buf);
           fmt::println("cnode16 count: {}", cn16->count);
-          ::fflush(stdout);
-
           for (idx_t k = 0; k < cn16->count; k++) {
             auto child_node = cn16->children[k].ptr->GetData();
             cn16->children[k].node = child_node;
@@ -307,7 +319,17 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
       }
       writer.WriteData(tmp_buf, sizeof(sz));
     }
-    fmt::println("[SerializeBuffer] write data: {}, allocation size: {}", cnt, BUFFER_ALLOC_SIZE);
+
+    if (padding > 0) {
+      writer.WriteData(tmp_buf, padding);
+      cnt += padding;
+    }
+    block_pointer = writer.GetBlockPointer();
+
+    fmt::println(
+        "[SerializeBuffer] write data: {}, allocation size: {}, "
+        "block_id: {}, block_offset: {}",
+        cnt, BUFFER_ALLOC_SIZE, block_pointer.block_id, block_pointer.offset);
   }
 }
 

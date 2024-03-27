@@ -405,14 +405,19 @@ TEST(FastSerializeTest, DebugNewApproach) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  auto k1 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 1);
-  auto k2 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 2);
-
   ConcurrentART art("conc_fast_serialize.idx");
 
-  art.Put(k1, 1);
+  idx_t limit = 2;
 
-  art.Put(k2, 2);
+  std::vector<ARTKey> keys;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
+
+  for (idx_t i = 0; i < limit; i++) {
+    art.Put(keys[i], i);
+  }
 
   art.FastSerialize();
 }
@@ -421,22 +426,22 @@ TEST(FastSerializeTest, DebugDeserialize) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  auto k1 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 1);
-
   ConcurrentART art("conc_fast_serialize.idx", true);
 
-  std::vector<idx_t> result_ids;
+  idx_t limit = 10;
 
-  art.Get(k1, result_ids);
+  std::vector<ARTKey> keys;
 
-  ASSERT_EQ(result_ids.size(), 1);
-  ASSERT_EQ(result_ids[0], 1);
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
+  }
 
-  auto k2 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 2);
-  result_ids.clear();
-  art.Get(k2, result_ids);
-  ASSERT_EQ(result_ids.size(), 1);
-  ASSERT_EQ(result_ids[0], 2);
+  for (idx_t i = 0; i < limit; i++) {
+    std::vector<idx_t> result_ids;
+    art.Get(keys[i], result_ids);
+    ASSERT_EQ(result_ids.size(), 1);
+    ASSERT_EQ(result_ids[0], i);
+  }
 }
 
 TEST(ConcurrentART, MemoryLayout) {

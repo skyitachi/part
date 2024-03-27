@@ -246,7 +246,7 @@ CNode16 &CNode16::GrowNode4(ConcurrentART &art, ConcurrentNode *node4) {
   }
 
   for (idx_t i = n4.count; i < Node::NODE_16_CAPACITY; i++) {
-    n16.children[i].ptr = nullptr;
+    n16.children[i].node = 0;
   }
 
   n4.count = 0;
@@ -277,7 +277,8 @@ void CNode16::InsertChild(ConcurrentART &art, ConcurrentNode *node, const uint8_
 
     for (idx_t i = n16.count; i > child_pos; i--) {
       n16.key[i] = n16.key[i - 1];
-      n16.children[i] = n16.children[i - 1];
+      P_ASSERT(n16.children[i - 1].node != 0);
+      n16.children[i].ptr = n16.children[i - 1].ptr;
     }
 
     n16.key[child_pos] = byte;
