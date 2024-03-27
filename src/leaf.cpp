@@ -299,12 +299,13 @@ bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_
         return true;
       }
     }
-
+    if (leaf.next == 0) {
+      break;
+    }
     // NOTE: release lock asap
-    // TODO:
     last_leaf_ref.get().RUnlock();
-    assert(leaf.ptr);
     leaf.ptr->RLock();
+    // TODO: maybe no need this check any more
     assert(!leaf.ptr->IsSerialized());
     last_leaf_ref = *leaf.ptr;
   }
@@ -412,15 +413,15 @@ void CLeaf::MoveInlinedToLeaf(ConcurrentART &art, ConcurrentNode &node) {
   // NOTE: important, initialize the ptr here
   // TODO: should marked as null pointer
   cleaf.next = 0;
-//  cleaf.ptr = art.AllocateNode();
-//  cleaf.ptr->ResetAll();
+  //  cleaf.ptr = art.AllocateNode();
+  //  cleaf.ptr->ResetAll();
 }
 
 CLeaf &CLeaf::Append(ConcurrentART &art, ConcurrentNode *&node, idx_t doc_id) {
   // NOTE: node points to leaf
   auto leaf = std::ref(*this);
   assert(node->Locked());
-//  assert(leaf.get().ptr);
+  //  assert(leaf.get().ptr);
 
   if (leaf.get().count == Node::LEAF_SIZE) {
     if (leaf.get().next == 0) {

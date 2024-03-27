@@ -70,7 +70,10 @@ class CNode4 {
   }
   std::optional<ConcurrentNode *> GetChild(uint8_t byte);
   static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &writer);
+
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &reader);
+  static void FastDeserialize(ConcurrentART &art, ConcurrentNode *node);
+
   static void MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Node &other);
   static bool TraversePrefix(ConcurrentART &cart, ART &art, ConcurrentNode *&node, reference<Node> &other, idx_t &pos);
 

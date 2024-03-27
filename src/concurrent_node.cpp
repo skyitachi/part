@@ -500,7 +500,7 @@ BlockPointer ConcurrentNode::Serialize(ConcurrentART& art, Serializer& serialize
   }
 }
 
-void ConcurrentNode::FastDeserialize(ConcurrentART &art) {
+void ConcurrentNode::FastDeserialize(ConcurrentART& art) {
   assert(Locked());
   // read memory directly
   // TODO:
@@ -511,6 +511,10 @@ void ConcurrentNode::FastDeserialize(ConcurrentART &art) {
       return CLeaf::FastDeserialize(art, this);
     case NType::LEAF:
       return CLeaf::FastDeserialize(art, this);
+    case NType::NODE_4:
+      return CNode4::FastDeserialize(art, this);
+    case NType::NODE_16:
+      return CNode16::FastDeserialize(art, this);
     default:
       throw std::invalid_argument("FastDeserialize cannot support node type");
   }

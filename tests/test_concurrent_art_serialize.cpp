@@ -406,12 +406,13 @@ TEST(FastSerializeTest, DebugNewApproach) {
   ArenaAllocator arena_allocator(allocator, 16384);
 
   auto k1 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 1);
+  auto k2 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 2);
 
   ConcurrentART art("conc_fast_serialize.idx");
 
   art.Put(k1, 1);
 
-  art.Put(k1, 2);
+  art.Put(k2, 2);
 
   art.FastSerialize();
 }
@@ -428,9 +429,14 @@ TEST(FastSerializeTest, DebugDeserialize) {
 
   art.Get(k1, result_ids);
 
-  ASSERT_EQ(result_ids.size(), 2);
+  ASSERT_EQ(result_ids.size(), 1);
   ASSERT_EQ(result_ids[0], 1);
-  ASSERT_EQ(result_ids[1], 2);
+
+  auto k2 = ARTKey::CreateARTKey<int32_t>(arena_allocator, 2);
+  result_ids.clear();
+  art.Get(k2, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 2);
 }
 
 TEST(ConcurrentART, MemoryLayout) {

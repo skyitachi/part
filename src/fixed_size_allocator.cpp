@@ -7,8 +7,12 @@
 #include <fmt/printf.h>
 
 #include "leaf.h"
-#include "serializer.h"
+#include "node16.h"
+#include "node256.h"
+#include "node4.h"
+#include "node48.h"
 #include "prefix.h"
+#include "serializer.h"
 
 namespace part {
 
@@ -223,8 +227,9 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
   auto buf_size = buffers.size();
   writer.WriteData(const_data_ptr_cast(&buf_size), sizeof(buf_size));
   writer.WriteData(const_data_ptr_cast(&allocation_size), sizeof(allocation_size));
-//  // Node: different from ART
-//  writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
+  //  // Node: different from ART
+  //  writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
+  idx_t nsz[] = {sizeof(CPrefix), sizeof(CLeaf), sizeof(CNode4), sizeof(CNode16), sizeof(CNode48), sizeof(CNode256)};
 
   data_t tmp_buf[4096];
   for (auto &buffer : buffers) {
@@ -242,18 +247,18 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
 
     for (idx_t i = 0; i < allocations_per_buffer; i++) {
       auto ptr = buffer.ptr + allocation_offset + i * allocation_size;
+      auto sz = nsz[uint8_t(node_type) - 1];
+      cnt += sz;
 
+      if (mask.RowIsValid(i)) {
+        writer.WriteData(tmp_buf, sz);
+        break;
+      }
+
+      std::memcpy(tmp_buf, ptr, nsz[sz]);
       switch (node_type) {
         case NType::LEAF: {
-          cnt += sizeof(CLeaf);
-          if (mask.RowIsValid(i)) {
-            // TODO: only need update offset
-            writer.WriteData(tmp_buf, sizeof(CLeaf));
-            break;
-          }
           // need acquire write lock for node points to this node
-          std::memcpy(tmp_buf, ptr, sizeof(CLeaf));
-
           auto *cleaf = Get<CLeaf>(tmp_buf);
           if (cleaf->next != 0) {
             auto *cnode = cleaf->ptr;
@@ -262,16 +267,9 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
               Node::SetSerialized(cleaf->next);
             }
           }
-          writer.WriteData(tmp_buf, sizeof(CLeaf));
           break;
         }
         case NType::PREFIX: {
-          if (mask.RowIsValid(i)) {
-            writer.WriteData(tmp_buf, sizeof(CPrefix));
-            cnt += sizeof(CPrefix);
-            break;
-          }
-          std::memcpy(tmp_buf, ptr, sizeof(CPrefix));
           auto *cprefix = Get<CPrefix>(tmp_buf);
           fmt::println("fast_serialize prefix count: {}, offset: {}", cprefix->data[Node::PREFIX_SIZE], i);
           auto *cnode = cprefix->ptr;
@@ -279,13 +277,35 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
             cprefix->node = cnode->GetData();
             Node::SetSerialized(cprefix->node);
           }
-          writer.WriteData(tmp_buf, sizeof(CPrefix));
-          cnt += sizeof(CPrefix);
+          break;
+        }
+        case NType::NODE_4: {
+          auto *cnode4 = Get<CNode4>(tmp_buf);
+          fmt::println("cnode4 count: {}", cnode4->count);
+          ::fflush(stdout);
+          for (idx_t k = 0; k < cnode4->count; k++) {
+            auto child_node = cnode4->children[k].ptr->GetData();
+            cnode4->children[k].node = child_node;
+            Node::SetSerialized(cnode4->children[k].node);
+          }
+          break;
+        }
+        case NType::NODE_16: {
+          auto *cn16 = Get<CNode16>(tmp_buf);
+          fmt::println("cnode16 count: {}", cn16->count);
+          ::fflush(stdout);
+
+          for (idx_t k = 0; k < cn16->count; k++) {
+            auto child_node = cn16->children[k].ptr->GetData();
+            cn16->children[k].node = child_node;
+            Node::SetSerialized(cn16->children[k].node);
+          }
           break;
         }
         default:
           throw std::invalid_argument("unsupported node type in SerializeBuffers");
       }
+      writer.WriteData(tmp_buf, sizeof(sz));
     }
     fmt::println("[SerializeBuffer] write data: {}, allocation size: {}", cnt, BUFFER_ALLOC_SIZE);
   }

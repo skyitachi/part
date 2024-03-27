@@ -91,6 +91,8 @@ class CNode16 {
   static BlockPointer Serialize(ConcurrentART &art, ConcurrentNode *node, Serializer &serializer);
 
   static void Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer &deserializer);
+
+  static void FastDeserialize(ConcurrentART &art, ConcurrentNode *node);
 };
 
 }  // namespace part

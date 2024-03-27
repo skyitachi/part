@@ -193,11 +193,12 @@ CNode4 &CNode4::New(ConcurrentART &art, ConcurrentNode &node) {
   auto &n4 = CNode4::Get(art, &node);
   n4.count = 0;
   for (idx_t i = 0; i < Node::NODE_4_CAPACITY; i++) {
-    n4.children[i].ptr = nullptr;
+    n4.children[i].node = 0;
   }
   return n4;
 }
 
+// TODO: 这里也要重新设计
 void CNode4::Free(ConcurrentART &art, ConcurrentNode *node) {
   assert(node->Locked());
   assert(node->IsSet() && !node->IsSerialized());
@@ -379,6 +380,22 @@ void CNode4::ConvertToNode(ConcurrentART &cart, ART &art, ConcurrentNode *src, N
     ConcurrentNode::ConvertToNode(cart, art, cn4.children[i].ptr, n4.children[i]);
   }
   src->RUnlock();
+}
+
+void CNode4::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
+  P_ASSERT(node->Locked());
+  P_ASSERT(node->GetType() == NType::NODE_4);
+  auto &cn4 = CNode4::Get(art, node);
+  fmt::println("[CNode4] FastDeserialize count {}", cn4.count);
+  for (idx_t i = 0; i < cn4.count; i++) {
+    P_ASSERT(cn4.children[i].node != 0);
+    auto child_node = Node::UnSetSerialized(cn4.children[i].node);
+    cn4.children[i].ptr = art.AllocateNode();
+    cn4.children[i].ptr->Lock();
+    cn4.children[i].ptr->SetData(child_node);
+    cn4.children[i].ptr->FastDeserialize(art);
+  }
+  node->Unlock();
 }
 
 }  // namespace part

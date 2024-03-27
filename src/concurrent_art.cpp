@@ -346,9 +346,11 @@ void ConcurrentART::FastSerialize() {
     root->RUnlock();
     (*allocators)[0].SerializeBuffers(writer, NType::PREFIX);
     (*allocators)[1].SerializeBuffers(writer, NType::LEAF);
-//    for (auto& fixed_size_allocator : *allocators) {
-//      fixed_size_allocator.SerializeBuffers(writer);
-//    }
+    (*allocators)[2].SerializeBuffers(writer, NType::NODE_4);
+    (*allocators)[3].SerializeBuffers(writer, NType::NODE_16);
+    //    for (auto& fixed_size_allocator : *allocators) {
+    //      fixed_size_allocator.SerializeBuffers(writer);
+    //    }
   }
   writer.Flush();
 }
@@ -367,7 +369,7 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
     BlockDeserializer reader(index_path, start_pointer);
     root = std::make_unique<ConcurrentNode>();
     root->SetData(reader.Read<uint64_t>());
-    auto &allocator = Allocator::DefaultAllocator();
+    auto& allocator = Allocator::DefaultAllocator();
 
     allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
 
@@ -376,10 +378,15 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
     allocators->emplace_back(reader, allocator);
     // leaf
     allocators->emplace_back(reader, allocator);
+    // cnode4
+    allocators->emplace_back(reader, allocator);
+    // cnode16
+    allocators->emplace_back(reader, allocator);
 
     root->Lock();
     root->SetData(Node::UnSetSerialized(root->GetData()));
-    fmt::println("root type: {}, buffer_id: {}, offset: {}", (uint8_t)root->GetType(), root->GetBufferId(), root->GetOffset());
+    fmt::println("root type: {}, buffer_id: {}, offset: {}", (uint8_t)root->GetType(), root->GetBufferId(),
+                 root->GetOffset());
     root->FastDeserialize(*this);
 
     P_ASSERT(!root->Locked());
