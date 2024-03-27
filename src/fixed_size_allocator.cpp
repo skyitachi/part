@@ -231,9 +231,10 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
   auto buf_size = buffers.size();
   writer.WriteData(const_data_ptr_cast(&buf_size), sizeof(buf_size));
   writer.WriteData(const_data_ptr_cast(&allocation_size), sizeof(allocation_size));
+
   auto block_pointer = writer.GetBlockPointer();
 
-  fmt::println("serialize allocator: {}, {}, block_id: {}, block_offset: {}", allocation_size, buf_size,
+  fmt::println("serialize allocator: {}, buf_size: {}, block_id: {}, block_offset: {}", allocation_size, buf_size,
                block_pointer.block_id, block_pointer.offset);
   //  // Node: different from ART
   //  writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
@@ -258,17 +259,23 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
     fmt::println("allocation_offset: {}, allocations_per_buffer: {}, padding: {}", allocation_offset,
                  allocations_per_buffer, padding);
 
+    auto sz = nsz[uint8_t(node_type) - 1];
+
     for (idx_t i = 0; i < allocations_per_buffer; i++) {
       auto ptr = buffer.ptr + allocation_offset + i * allocation_size;
-      auto sz = nsz[uint8_t(node_type) - 1];
       cnt += sz;
 
+      block_pointer = writer.GetBlockPointer();
       if (mask.RowIsValid(i)) {
         writer.WriteData(tmp_buf, sz);
+        auto after_block_pointer = writer.GetBlockPointer();
+        auto written = after_block_pointer.block_id * BLOCK_SIZE + after_block_pointer.offset -
+                       block_pointer.block_id * BLOCK_SIZE - block_pointer.offset;
+        P_ASSERT(written == sz);
         continue;
       }
 
-      std::memcpy(tmp_buf, ptr, nsz[uint8_t(node_type) - 1]);
+      std::memcpy(tmp_buf, ptr, sz);
 
       switch (node_type) {
         case NType::LEAF: {
@@ -314,20 +321,59 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
           }
           break;
         }
+        case NType::NODE_48: {
+          auto *cn48 = Get<CNode48>(tmp_buf);
+          fmt::println("cnode48 count: {}", cn48->count);
+
+          for (idx_t k = 0; k < Node::NODE_256_CAPACITY; k++) {
+            auto idx = cn48->child_index[k];
+            if (idx != Node::EMPTY_MARKER) {
+              auto child_node = cn48->children[idx].ptr->GetData();
+              cn48->children[idx].node = child_node;
+              Node::SetSerialized(cn48->children[idx].node);
+            }
+          }
+          break;
+        }
+        case NType::NODE_256: {
+          auto *cn256 = Get<CNode256>(tmp_buf);
+          fmt::println("cnode256 count: {}", cn256->count);
+          for (idx_t k = 0; k < Node::NODE_256_CAPACITY; k++) {
+            if (cn256->children[k].data != 0) {
+              auto child_node = cn256->children[k].ptr->GetData();
+              cn256->children[k].data = child_node;
+              Node::SetSerialized(cn256->children[k].data);
+            }
+          }
+          break;
+        }
         default:
           throw std::invalid_argument("unsupported node type in SerializeBuffers");
       }
-      writer.WriteData(tmp_buf, sizeof(sz));
+      block_pointer = writer.GetBlockPointer();
+      writer.WriteData(tmp_buf, sz);
+      auto after_block_pointer = writer.GetBlockPointer();
+
+      auto written = after_block_pointer.block_id * BLOCK_SIZE + after_block_pointer.offset -
+                     block_pointer.block_id * BLOCK_SIZE - block_pointer.offset;
+      P_ASSERT(written == sz);
     }
 
     if (padding > 0) {
+      block_pointer = writer.GetBlockPointer();
       writer.WriteData(tmp_buf, padding);
+      auto after_block_pointer = writer.GetBlockPointer();
+
+      auto written = after_block_pointer.block_id * BLOCK_SIZE + after_block_pointer.offset -
+                     block_pointer.block_id * BLOCK_SIZE - block_pointer.offset;
       cnt += padding;
+      P_ASSERT(written == padding);
     }
+
     block_pointer = writer.GetBlockPointer();
 
     fmt::println(
-        "[SerializeBuffer] write data: {}, allocation size: {}, "
+        "[SerializeBuffer] write data: {}, buf allocated size: {}, "
         "block_id: {}, block_offset: {}",
         cnt, BUFFER_ALLOC_SIZE, block_pointer.block_id, block_pointer.offset);
   }

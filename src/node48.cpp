@@ -414,4 +414,24 @@ void CNode48::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserializer
   node->Unlock();
 }
 
+void CNode48::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
+  P_ASSERT(node->Locked());
+  P_ASSERT(node->GetType() == NType::NODE_48);
+
+  auto &cn48 = CNode48::Get(art, node);
+
+  fmt::println("[CNode16] FastDeserialize count {}", cn48.count);
+
+  for (uint8_t idx : cn48.child_index) {
+    if (idx != Node::EMPTY_MARKER) {
+      auto child_node = Node::UnSetSerialized(cn48.children[idx].node);
+      cn48.children[idx].ptr = art.AllocateNode();
+      cn48.children[idx].ptr->Lock();
+      cn48.children[idx].ptr->SetData(child_node);
+      cn48.children[idx].ptr->FastDeserialize(art);
+    }
+  }
+  node->Unlock();
+}
+
 }  // namespace part

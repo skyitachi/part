@@ -405,9 +405,9 @@ TEST(FastSerializeTest, DebugNewApproach) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  ConcurrentART art("conc_fast_serialize.idx");
+  ConcurrentART art("conc_fast_serialize_48.idx");
 
-  idx_t limit = 2;
+  idx_t limit = 48;
 
   std::vector<ARTKey> keys;
 
@@ -426,15 +426,17 @@ TEST(FastSerializeTest, DebugDeserialize) {
   Allocator &allocator = Allocator::DefaultAllocator();
   ArenaAllocator arena_allocator(allocator, 16384);
 
-  ConcurrentART art("conc_fast_serialize.idx", true);
+  ConcurrentART art("conc_fast_serialize_48.idx", true);
 
-  idx_t limit = 10;
+  idx_t limit = 48;
 
   std::vector<ARTKey> keys;
 
   for (idx_t i = 0; i < limit; i++) {
     keys.push_back(ARTKey::CreateARTKey<int32_t>(arena_allocator, i));
   }
+
+  art.Draw("conc_fast_serialize_48.dot");
 
   for (idx_t i = 0; i < limit; i++) {
     std::vector<idx_t> result_ids;

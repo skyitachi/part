@@ -312,4 +312,21 @@ void CNode256::Deserialize(ConcurrentART &art, ConcurrentNode *node, Deserialize
   node->Unlock();
 }
 
+void CNode256::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
+  P_ASSERT(node->Locked());
+
+  auto &cn256 = CNode256::Get(art, node);
+
+  for (auto &child : cn256.children) {
+    if (child.data != 0) {
+      auto child_node = Node::UnSetSerialized(child.data);
+      child.ptr = art.AllocateNode();
+      child.ptr->Lock();
+      child.ptr->SetData(child_node);
+      child.ptr->FastDeserialize(art);
+    }
+  }
+  node->Unlock();
+}
+
 }  // namespace part

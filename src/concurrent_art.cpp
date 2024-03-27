@@ -348,6 +348,9 @@ void ConcurrentART::FastSerialize() {
     (*allocators)[1].SerializeBuffers(writer, NType::LEAF);
     (*allocators)[2].SerializeBuffers(writer, NType::NODE_4);
     (*allocators)[3].SerializeBuffers(writer, NType::NODE_16);
+    (*allocators)[4].SerializeBuffers(writer, NType::NODE_48);
+    (*allocators)[5].SerializeBuffers(writer, NType::NODE_256);
+
     //    for (auto& fixed_size_allocator : *allocators) {
     //      fixed_size_allocator.SerializeBuffers(writer);
     //    }
@@ -381,6 +384,10 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
     // cnode4
     allocators->emplace_back(reader, allocator);
     // cnode16
+    allocators->emplace_back(reader, allocator);
+    // cnode48
+    allocators->emplace_back(reader, allocator);
+    // cnode256
     allocators->emplace_back(reader, allocator);
 
     root->Lock();

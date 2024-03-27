@@ -533,7 +533,6 @@ void CLeaf::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
     // set serialized flag to false
     node->SetData(Node::UnSetSerialized(node->GetData()));
     node->Unlock();
-    fmt::println("leaf inline deserialized");
     return;
   }
 

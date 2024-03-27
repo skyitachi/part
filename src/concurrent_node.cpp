@@ -515,6 +515,10 @@ void ConcurrentNode::FastDeserialize(ConcurrentART& art) {
       return CNode4::FastDeserialize(art, this);
     case NType::NODE_16:
       return CNode16::FastDeserialize(art, this);
+    case NType::NODE_48:
+      return CNode48::FastDeserialize(art, this);
+    case NType::NODE_256:
+      return CNode256::FastDeserialize(art, this);
     default:
       throw std::invalid_argument("FastDeserialize cannot support node type");
   }
