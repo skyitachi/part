@@ -301,6 +301,7 @@ bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_
     }
 
     // NOTE: release lock asap
+    // TODO:
     last_leaf_ref.get().RUnlock();
     assert(leaf.ptr);
     leaf.ptr->RLock();

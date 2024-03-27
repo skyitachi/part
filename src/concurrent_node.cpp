@@ -510,6 +510,7 @@ void ConcurrentNode::FastDeserialize(ConcurrentART &art) {
     case NType::LEAF_INLINED:
       return CLeaf::FastDeserialize(art, this);
     case NType::LEAF:
+      return CLeaf::FastDeserialize(art, this);
     default:
       throw std::invalid_argument("FastDeserialize cannot support node type");
   }
