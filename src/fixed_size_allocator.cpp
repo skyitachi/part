@@ -226,7 +226,6 @@ FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocato
 }
 
 // only need read lock
-// TODO: need to check out new method
 void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType node_type) {
   auto buf_size = buffers.size();
   writer.WriteData(const_data_ptr_cast(&buf_size), sizeof(buf_size));
@@ -234,8 +233,8 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
 
   auto block_pointer = writer.GetBlockPointer();
 
-  fmt::println("serialize allocator: {}, buf_size: {}, block_id: {}, block_offset: {}", allocation_size, buf_size,
-               block_pointer.block_id, block_pointer.offset);
+//  fmt::println("serialize allocator: {}, buf_size: {}, block_id: {}, block_offset: {}", allocation_size, buf_size,
+//               block_pointer.block_id, block_pointer.offset);
   //  // Node: different from ART
   //  writer.Write<uint8_t>(static_cast<uint8_t>(node_type));
   idx_t nsz[] = {sizeof(CPrefix), sizeof(CLeaf), sizeof(CNode4), sizeof(CNode16), sizeof(CNode48), sizeof(CNode256)};
@@ -256,8 +255,8 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
 
     idx_t padding = BUFFER_ALLOC_SIZE - allocations_per_buffer * allocation_size - allocation_offset;
 
-    fmt::println("allocation_offset: {}, allocations_per_buffer: {}, padding: {}", allocation_offset,
-                 allocations_per_buffer, padding);
+//    fmt::println("allocation_offset: {}, allocations_per_buffer: {}, padding: {}", allocation_offset,
+//                 allocations_per_buffer, padding);
 
     auto sz = nsz[uint8_t(node_type) - 1];
 
@@ -292,7 +291,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
         }
         case NType::PREFIX: {
           auto *cprefix = Get<CPrefix>(tmp_buf);
-          fmt::println("fast_serialize prefix count: {}, offset: {}", cprefix->data[Node::PREFIX_SIZE], i);
+//          fmt::println("fast_serialize prefix count: {}, offset: {}", cprefix->data[Node::PREFIX_SIZE], i);
           auto *cnode = cprefix->ptr;
           if (cprefix->ptr) {
             cprefix->node = cnode->GetData();
@@ -302,7 +301,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
         }
         case NType::NODE_4: {
           auto *cnode4 = Get<CNode4>(tmp_buf);
-          fmt::println("cnode4 count: {}", cnode4->count);
+//          fmt::println("cnode4 count: {}", cnode4->count);
           ::fflush(stdout);
           for (idx_t k = 0; k < cnode4->count; k++) {
             auto child_node = cnode4->children[k].ptr->GetData();
@@ -313,7 +312,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
         }
         case NType::NODE_16: {
           auto *cn16 = Get<CNode16>(tmp_buf);
-          fmt::println("cnode16 count: {}", cn16->count);
+//          fmt::println("cnode16 count: {}", cn16->count);
           for (idx_t k = 0; k < cn16->count; k++) {
             auto child_node = cn16->children[k].ptr->GetData();
             cn16->children[k].node = child_node;
@@ -323,7 +322,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
         }
         case NType::NODE_48: {
           auto *cn48 = Get<CNode48>(tmp_buf);
-          fmt::println("cnode48 count: {}", cn48->count);
+//          fmt::println("cnode48 count: {}", cn48->count);
 
           for (idx_t k = 0; k < Node::NODE_256_CAPACITY; k++) {
             auto idx = cn48->child_index[k];
@@ -337,7 +336,7 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
         }
         case NType::NODE_256: {
           auto *cn256 = Get<CNode256>(tmp_buf);
-          fmt::println("cnode256 count: {}", cn256->count);
+//          fmt::println("cnode256 count: {}", cn256->count);
           for (idx_t k = 0; k < Node::NODE_256_CAPACITY; k++) {
             if (cn256->children[k].data != 0) {
               auto child_node = cn256->children[k].ptr->GetData();
@@ -372,10 +371,10 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer, NType no
 
     block_pointer = writer.GetBlockPointer();
 
-    fmt::println(
-        "[SerializeBuffer] write data: {}, buf allocated size: {}, "
-        "block_id: {}, block_offset: {}",
-        cnt, BUFFER_ALLOC_SIZE, block_pointer.block_id, block_pointer.offset);
+//    fmt::println(
+//        "[SerializeBuffer] write data: {}, buf allocated size: {}, "
+//        "block_id: {}, block_offset: {}",
+//        cnt, BUFFER_ALLOC_SIZE, block_pointer.block_id, block_pointer.offset);
   }
 }
 
