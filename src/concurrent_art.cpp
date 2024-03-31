@@ -367,6 +367,8 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
     throw std::invalid_argument(fmt::format("cann open {} index file, error: {}", index_path, strerror(errno)));
   }
 
+  P_ASSERT(fast_serialize);
+
   try {
     auto start_pointer = BlockPointer(0, 0);
     BlockDeserializer reader(index_path, start_pointer);
@@ -402,7 +404,14 @@ ConcurrentART::ConcurrentART(const std::string& index_path, bool fast_serialize)
     fmt::println("exception: {}", e.what());
     root = std::make_unique<ConcurrentNode>();
 
-    // TODO: allocators
+    owns_data = true;
+    allocators = std::make_shared<std::vector<FixedSizeAllocator>>();
+    allocators->emplace_back(sizeof(CPrefix), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CLeaf), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CNode4), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CNode16), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CNode48), Allocator::DefaultAllocator());
+    allocators->emplace_back(sizeof(CNode256), Allocator::DefaultAllocator());
   }
 }
 

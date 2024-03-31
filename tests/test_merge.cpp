@@ -476,3 +476,24 @@ TEST(ConcurrentARTTest, Debug) {
     fmt::println("pass j {}", j);
   }
 }
+
+TEST(MergeWithFastSerialize, Basic) {
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ConcurrentART cart("merge_with_fast_serialize.idx", true);
+  auto key = ARTKey::CreateARTKey<int32_t>(arena_allocator, 16384);
+
+  ART art;
+  art.Put(key, 1);
+
+  cart.Merge(art);
+
+  std::vector<idx_t> result_ids;
+
+  cart.Get(key, result_ids);
+
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+
+}
