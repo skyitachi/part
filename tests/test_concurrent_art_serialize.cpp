@@ -327,6 +327,12 @@ TEST_F(ConcurrentARTSerializeTest, HybridSerializeTest) {
   }
 }
 
+TEST_F(ConcurrentARTSerializeTest, FastDeserializeTest) {
+
+}
+
+
+
 TEST(XengineTest, Merge) {
   ConcurrentART cart("item_id.idx");
 
@@ -443,6 +449,41 @@ TEST(FastSerializeTest, DebugDeserialize) {
     art.Get(keys[i], result_ids);
     ASSERT_EQ(result_ids.size(), 1);
     ASSERT_EQ(result_ids[0], i);
+  }
+}
+
+TEST(FastSerializeTest, Merge) {
+  Allocator &allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ConcurrentART cart("fast_serialize_merge.idx");
+  ART art;
+
+  idx_t limit = 10000;
+
+  std::vector<ARTKey> keys;
+
+  for (idx_t i = 0; i < limit; i++) {
+    keys.push_back(ARTKey::CreateARTKey<int32_t >(arena_allocator, i));
+    if (i % 2 == 0) {
+      cart.Put(keys[i], i);
+    } else {
+      art.Put(keys[i], i);
+    }
+  }
+
+  cart.Merge(art);
+
+  cart.FastSerialize();
+
+  {
+    ConcurrentART cart2("fast_serialize_merge.idx", true);
+    for (idx_t i = 0; i < limit; i++) {
+      std::vector<idx_t> result_ids;
+      cart2.Get(keys[i], result_ids);
+      ASSERT_EQ(result_ids.size(), 1);
+      ASSERT_EQ(result_ids[0], i);
+    }
   }
 }
 
