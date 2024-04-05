@@ -46,6 +46,8 @@ class ART {
 
   void Delete(const ARTKey &key, idx_t doc_id);
 
+  void LazyDelete(const ARTKey &key, idx_t doc_id);
+
   void Merge(ART &other);
 
   idx_t GetMemoryUsage();
@@ -84,7 +86,7 @@ class ART {
   void erase(Node &node, const ARTKey &key, idx_t depth, const idx_t &value);
   std::optional<Node *> lookup(Node node, const ARTKey &key, idx_t depth);
   //! Insert a row ID into a leaf
-  bool insertToLeaf(Node &leaf, const idx_t row_id);
+  bool insertToLeaf(Node &leaf, idx_t row_id);
 
   int metadata_fd_;
   int index_fd_;

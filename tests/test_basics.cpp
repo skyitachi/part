@@ -651,3 +651,50 @@ TEST(ConcurrentARTTEST, ReferenceReproduce2) {
   fmt::println("new leaf: {}", new_leaf.count);
   next_node->Unlock();
 }
+
+TEST(ARTTest, StringKeyTest) {
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+//  auto k1 = ARTKey::CreateARTKey<std::string_view>(arena_allocator, "xengine");
+//
+//  art.Put(k1, 1);
+//  art.Put(k1, -1);
+
+  auto k1 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 1000);
+  auto k2 = ARTKey::CreateARTKey<int64_t>(arena_allocator, 999);
+
+  // NOTE: 这个doc_id是有问题的
+  art.Put(k2, -1);
+
+  art.Draw("999.dot");
+
+  art.Put(k2, 1);
+
+}
+
+TEST(ARTTest, LazyDeleteTest) {
+  ART art;
+
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  auto k1 = ARTKey::CreateARTKey<int64_t >(arena_allocator, 1);
+
+  art.Put(k1, 1);
+
+  std::vector<idx_t> result_ids;
+  art.Get(k1, result_ids);
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+
+  art.LazyDelete(k1, 1);
+
+  result_ids.clear();
+  art.Get(k1, result_ids);
+  ASSERT_EQ(result_ids.size(), 0);
+
+  ASSERT_ANY_THROW(art.Put(k1, -1));
+}

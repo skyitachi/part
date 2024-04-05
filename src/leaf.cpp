@@ -1,6 +1,8 @@
 //
 // Created by Shiping Yao on 2023/12/4.
 //
+#include <unordered_set>
+
 #include "leaf.h"
 
 namespace part {
@@ -43,24 +45,42 @@ bool Leaf::GetDocIds(ART &art, Node &node, std::vector<idx_t> &result_ids, idx_t
   // NOTE: Leaf::TotalCount fully deserializes the leaf
   assert(!node.IsSerialized());
 
+  std::unordered_set<idx_t> current_ids;
+
+  bool success = false;
   if (node.GetType() == NType::LEAF_INLINED) {
     // push back the inlined row ID of this leaf
-    result_ids.push_back(node.GetDocId());
-
+    if (node.GetDocId() <= Node::MAX_DOC_ID) {
+      result_ids.push_back(node.GetDocId());
+      success = true;
+    }
+    return success;
   } else {
     // push back all the row IDs of this leaf
     std::reference_wrapper<Node> last_leaf_ref(node);
     while (last_leaf_ref.get().IsSet()) {
       auto &leaf = Leaf::Get(art, last_leaf_ref);
       for (idx_t i = 0; i < leaf.count; i++) {
-        result_ids.push_back(leaf.row_ids[i]);
+        if (leaf.row_ids[i] <= Node::MAX_DOC_ID) {
+          current_ids.insert(leaf.row_ids[i]);
+        } else {
+          auto real_id = leaf.row_ids[i] & Node::MAX_DOC_ID;
+          current_ids.erase(real_id);
+        }
       }
 
       assert(!leaf.ptr.IsSerialized());
       last_leaf_ref = leaf.ptr;
     }
   }
-  return true;
+  success = !current_ids.empty();
+  for(auto id: current_ids) {
+    result_ids.push_back(id);
+    if (result_ids.size() >= max_count) {
+      return true;
+    }
+  }
+  return success;
 }
 
 void Leaf::Insert(ART &art, Node &node, const idx_t row_id) {
@@ -95,7 +115,6 @@ void Leaf::MoveInlinedToLeaf(ART &art, Node &node) {
   leaf.ptr.Reset();
 }
 
-// TODO: bug?
 Leaf &Leaf::Append(ART &art, const idx_t row_id) {
   auto leaf = std::ref(*this);
 
@@ -278,12 +297,19 @@ bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_
   // NOTE: Leaf::TotalCount fully deserializes the leaf
   assert(!node.IsSerialized());
 
+  bool success = false;
   if (node.GetType() == NType::LEAF_INLINED) {
-    result_ids.push_back(node.GetDocId());
+    if (node.GetDocId() <= Node::MAX_DOC_ID) {
+      result_ids.push_back(node.GetDocId());
+      success = true;
+    }
     // important
     node.RUnlock();
-    return true;
+    return success;
   }
+
+  std::unordered_set<idx_t > current_ids;
+
   auto last_leaf_ref = std::ref(node);
   while (last_leaf_ref.get().IsSet()) {
     if (last_leaf_ref.get().IsDeleted()) {
@@ -293,10 +319,11 @@ bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_
     }
     auto &leaf = CLeaf::Get(art, last_leaf_ref);
     for (idx_t i = 0; i < leaf.count; i++) {
-      result_ids.push_back(leaf.row_ids[i]);
-      if (result_ids.size() >= max_count) {
-        last_leaf_ref.get().RUnlock();
-        return true;
+      if (leaf.row_ids[i] <= Node::MAX_DOC_ID) {
+        current_ids.insert(leaf.row_ids[i]);
+      } else {
+        auto real_id = leaf.row_ids[i] & Node::MAX_DOC_ID;
+        current_ids.erase(real_id);
       }
     }
     if (leaf.next == 0) {
@@ -310,7 +337,14 @@ bool CLeaf::GetDocIds(ConcurrentART &art, ConcurrentNode &node, std::vector<idx_
     last_leaf_ref = *leaf.ptr;
   }
   last_leaf_ref.get().RUnlock();
-  return true;
+  success = !current_ids.empty();
+  for (auto id: current_ids) {
+    result_ids.push_back(id);
+    if (result_ids.size() >= max_count) {
+      return true;
+    }
+  }
+  return success;
 }
 
 // NOTE: CLeaf class Layout cannot be changed
@@ -593,6 +627,7 @@ void CLeaf::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Nod
   node->Reset();
   node->SetType((uint8_t)other.GetType());
   if (other.GetType() == NType::LEAF_INLINED) {
+    // TODO: maybe lazy deleted
     node->SetDocID(other.GetDocId());
     node->Unlock();
     return;
@@ -608,6 +643,7 @@ void CLeaf::MergeUpdate(ConcurrentART &cart, ART &art, ConcurrentNode *node, Nod
     auto &cleaf = CLeaf::Get(cart, *current_node);
     auto &leaf = Leaf::Get(art, ref_node.get());
     cleaf.count = leaf.count;
+    // NOTE: 这里如何合并
     for (idx_t i = 0; i < leaf.count; i++) {
       cleaf.row_ids[i] = leaf.row_ids[i];
     }

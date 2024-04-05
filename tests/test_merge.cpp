@@ -497,3 +497,31 @@ TEST(MergeWithFastSerialize, Basic) {
   ASSERT_EQ(result_ids[0], 1);
 
 }
+
+TEST(MergeWithLazyDelete, Basic) {
+  Allocator& allocator = Allocator::DefaultAllocator();
+  ArenaAllocator arena_allocator(allocator, 16384);
+
+  ConcurrentART cart;
+
+  auto key = ARTKey::CreateARTKey<int32_t>(arena_allocator, 16384);
+
+  ART art;
+  art.LazyDelete(key, 1);
+
+  cart.Merge(art);
+
+  std::vector<idx_t> result_ids;
+
+  cart.Get(key, result_ids);
+
+  ASSERT_EQ(result_ids.size(), 0);
+
+  cart.Put(key, 1);
+
+  result_ids.clear();
+  cart.Get(key, result_ids);
+
+  ASSERT_EQ(result_ids.size(), 1);
+  ASSERT_EQ(result_ids[0], 1);
+}

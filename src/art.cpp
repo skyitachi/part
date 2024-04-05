@@ -96,14 +96,16 @@ ART::ART(const std::string &index_path, bool fast_serialize) {
 
 ART::~ART() { root->Reset(); }
 
-void ART::Put(const ARTKey &key, idx_t doc_id) { insert(*root, key, 0, doc_id); }
+void ART::Put(const ARTKey &key, idx_t doc_id) {
+  P_ASSERT(doc_id <= Node::MAX_ID);
+  insert(*root, key, 0, doc_id);
+}
 
 bool ART::Get(const ARTKey &key, std::vector<idx_t> &result_ids) {
   auto leaf = lookup(*root, key, 0);
   if (!leaf) {
     return false;
   }
-
   return Leaf::GetDocIds(*this, *leaf.value(), result_ids, std::numeric_limits<int64_t>::max());
 }
 
@@ -406,5 +408,11 @@ idx_t ART::NoneLeafCount() { return SumNoneLeafCount(*this, *root, false); }
 idx_t ART::LeafCount() { return SumNoneLeafCount(*this, *root, true); }
 
 void ART::Merge(ART &other) { root->Merge(*this, *other.root); }
+
+void ART::LazyDelete(const ARTKey &key, idx_t doc_id) {
+  P_ASSERT(doc_id < Node::MAX_DOC_ID);
+  idx_t removed_doc_id = doc_id | (Node::MAX_DOC_ID + 1);
+  Put(key, removed_doc_id);
+}
 
 }  // namespace part

@@ -42,6 +42,7 @@ class Node {
   static constexpr uint64_t SHIFT_TYPE = 56;
   static constexpr uint64_t SHIFT_SERIALIZED_FLAG = 63;
   static constexpr uint64_t SHIFT_DELETED_FLAG = 62;
+  static constexpr uint64_t SHIFT_LEAF_REMOVE_FLAG = 61;
   //! AND operations
   static constexpr uint64_t AND_OFFSET = 0x0000000000FFFFFF;
   static constexpr uint64_t AND_BUFFER_ID = 0x00000000FFFFFFFF;
@@ -52,10 +53,15 @@ class Node {
 
   static constexpr uint64_t SET_DELETED_FLAG = 0x4000000000000000;
 
+  static constexpr uint64_t SET_LEAF_REMOVE_FLAG = 0x2000000000000000;
+
   //! Other constants
   static constexpr uint8_t EMPTY_MARKER = 48;
   static constexpr uint8_t LEAF_SIZE = 4;
   static constexpr uint8_t PREFIX_SIZE = 15;
+
+  static constexpr uint64_t MAX_ID = (1L << 56) - 1;
+  static constexpr uint64_t MAX_DOC_ID = (1L << 55) - 1;
 
   Node() : data(0) {}
   Node(const uint32_t buffer_id, const uint32_t offset) : data(0) { SetPtr(buffer_id, offset); };
@@ -121,6 +127,14 @@ class Node {
   inline void SetDeleted() {
     data &= Node::AND_RESET;
     data |= Node::SET_DELETED_FLAG;
+  }
+
+  inline void SetLazyDeleted() {
+    data |= Node::SET_LEAF_REMOVE_FLAG;
+  }
+
+  static inline bool IsLazyDeleted(uint64_t node) {
+    return (node >> Node::SHIFT_LEAF_REMOVE_FLAG) & 0x1;
   }
 
   //! Set the type (1st to 7th bit)

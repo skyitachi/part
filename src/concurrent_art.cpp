@@ -55,19 +55,15 @@ bool ConcurrentART::lookup(ConcurrentNode* next_node, const ARTKey& key, idx_t d
 
     assert(next_node->RLocked());
 
-    // inlined leaf can return directly
-    if (next_node->GetType() == NType::LEAF_INLINED) {
-      result_ids.emplace_back(next_node->GetDocId());
-      next_node->RUnlock();
-      return false;
-    }
-
-    if (next_node->GetType() == NType::LEAF) {
-      auto& cleaf = CLeaf::Get(*this, *next_node);
-      // NOTE: GetDocIds already released lock
-      cleaf.GetDocIds(*this, *next_node, result_ids, std::numeric_limits<int64_t>::max(), retry);
+    if (next_node->GetType() == NType::LEAF_INLINED || next_node->GetType() == NType::LEAF) {
+      CLeaf::GetDocIds(*this, *next_node, result_ids, std::numeric_limits<int64_t>::max(), retry);
       return retry;
     }
+
+//    if (next_node->GetType() == NType::LEAF) {
+//      CLeaf::GetDocIds(*this, *next_node, result_ids, std::numeric_limits<int64_t>::max(), retry);
+//      return retry;
+//    }
 
     assert(depth < key.len);
     auto child = next_node->GetChild(*this, key[depth]);
@@ -327,7 +323,6 @@ void ConcurrentART::UpdateMetadata(BlockPointer pointer, Serializer& writer) {
   writer.Write<uint32_t>(pointer.offset);
 }
 
-// NOTE: no need to retry ???
 void ConcurrentART::Merge(ART& other) {
   root->RLock();
   root->Merge(*this, other, *other.root);
