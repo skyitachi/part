@@ -420,8 +420,6 @@ void CNode48::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
 
   auto &cn48 = CNode48::Get(art, node);
 
-  fmt::println("[CNode16] FastDeserialize count {}", cn48.count);
-
   for (uint8_t idx : cn48.child_index) {
     if (idx != Node::EMPTY_MARKER) {
       auto child_node = Node::UnSetSerialized(cn48.children[idx].node);

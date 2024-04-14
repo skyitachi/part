@@ -428,7 +428,6 @@ void CNode16::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
   P_ASSERT(node->GetType() == NType::NODE_16);
   auto &cn16 = CNode16::Get(art, node);
 
-  fmt::println("[CNode16] FastDeserialize count {}", cn16.count);
   for (idx_t i = 0; i < cn16.count; i++) {
     P_ASSERT(cn16.children[i].node != 0);
     auto child_node = Node::UnSetSerialized(cn16.children[i].node);

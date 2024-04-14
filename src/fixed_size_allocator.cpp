@@ -203,16 +203,14 @@ void FixedSizeAllocator::SerializeBuffers(SequentialSerializer &writer) {
   }
 }
 
-FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocator) : allocator(allocator) {
-  total_allocations = 0;
+FixedSizeAllocator::FixedSizeAllocator(Deserializer &reader, Allocator &allocator)
+    : total_allocations(0), allocator(allocator) {
+
   size_t buf_size = 0;
-  fmt::println("FixedSizeAllocator init");
 
   reader.ReadData(data_ptr_cast(&buf_size), sizeof(buf_size));
   reader.ReadData(data_ptr_cast(&allocation_size), sizeof(allocation_size));
   initMaskData();
-
-  fmt::println("init allocator from reader: {}, buffer_size: {} ", allocation_size, buf_size);
 
   for (idx_t i = 0; i < buf_size; i++) {
     idx_t allocation_count = 0;

@@ -931,7 +931,6 @@ void CPrefix::FastDeserialize(ConcurrentART &art, ConcurrentNode *node) {
   P_ASSERT(node->GetType() == NType::PREFIX);
 
   auto &cprefix = CPrefix::Get(art, *node);
-  fmt::println("prefix count: {}", cprefix.data[Node::PREFIX_SIZE]);
 
   auto child_node = cprefix.node;
   if (Node::IsSerialized(child_node)) {

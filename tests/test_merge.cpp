@@ -524,4 +524,6 @@ TEST(MergeWithLazyDelete, Basic) {
 
   ASSERT_EQ(result_ids.size(), 1);
   ASSERT_EQ(result_ids[0], 1);
+
+  cart.Draw("merge_with_lazy_delete.dot");
 }

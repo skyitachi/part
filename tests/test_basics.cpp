@@ -697,4 +697,6 @@ TEST(ARTTest, LazyDeleteTest) {
   ASSERT_EQ(result_ids.size(), 0);
 
   ASSERT_ANY_THROW(art.Put(k1, -1));
+
+  art.Draw("lazy_delete.dot");
 }

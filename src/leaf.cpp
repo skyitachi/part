@@ -552,10 +552,14 @@ idx_t CLeaf::TotalCount(ConcurrentART &art, ConcurrentNode *node) {
     auto &leaf = CLeaf::Get(art, *node_ref);
     node_ref->RUnlock();
     count += leaf.count;
-    if (leaf.ptr->IsSerialized()) {
-      leaf.ptr->Deserialize(art);
+    if (leaf.next != 0) {
+      if (leaf.ptr->IsSerialized()) {
+        leaf.ptr->Deserialize(art);
+      }
+      node_ref = leaf.ptr;
+    } else {
+      break;
     }
-    node_ref = leaf.ptr;
   }
   return count;
 }

@@ -54,7 +54,7 @@ class ConcurrentNode : public Node {
 
   static FixedSizeAllocator &GetAllocator(const ConcurrentART &art, NType type);
 
-  void ToGraph(ConcurrentART &art, std::ofstream &out, idx_t &id, std::string parent_id = "");
+  void ToGraph(ConcurrentART &art, std::ofstream &out, idx_t &id, const std::string& parent_id = "");
 
   void Lock();
   void Unlock();

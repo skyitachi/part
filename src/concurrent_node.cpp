@@ -239,7 +239,7 @@ std::optional<ConcurrentNode*> ConcurrentNode::GetChild(ConcurrentART& art, uint
   return child;
 }
 
-void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, std::string parent_id) {
+void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, const std::string& parent_id) {
   RLock();
   if (!IsSet()) {
     return;
@@ -264,13 +264,19 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
         }
         next_node->RUnlock();
         next_node = leaf.ptr;
-        next_node->RLock();
+        if (next_node != nullptr) {
+          next_node->RLock();
+        } else {
+          break;
+        }
       }
       out << "</TR></TABLE>>];\n";
       if (!parent_id.empty()) {
         out << parent_id << "->" << leaf_prefix << id << ";\n";
       }
-      next_node->RUnlock();
+      if (next_node != nullptr) {
+        next_node->RUnlock();
+      }
       break;
     }
     case NType::LEAF_INLINED: {
@@ -314,7 +320,7 @@ void ConcurrentNode::ToGraph(ConcurrentART& art, std::ofstream& out, idx_t& id, 
       }
 
       RUnlock();
-      if (prefix.ptr->IsSet()) {
+      if (prefix.node != 0 && prefix.ptr->IsSet()) {
         prefix.ptr->ToGraph(art, out, id, current_id_str);
       }
       break;

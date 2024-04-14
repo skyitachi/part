@@ -479,3 +479,4 @@ TEST(ConcurrentARTTest, PointerTest) {
 
   fmt::println("sizeof(union) = {}", sizeof(children));
 }
+
