@@ -7,8 +7,21 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-add_compile_options(-fsanitize=address)
-add_link_options(-fsanitize=address)
+option(DISABLE_ASSERTIONS "Debug setting: disable assertions" FALSE)
+option(ENABLE_SANITIZER "Enable address sanitizer." TRUE)
+option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
+option(ENABLE_UBSAN "Enable undefined behavior sanitizer." TRUE)
+
+if(DISABLE_ASSERTIONS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDISABLE_ASSERTIONS")
+endif()
+
+if(ENABLE_SANITIZER)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+endif()
+
+#add_compile_options(-fsanitize=address)
+#add_link_options(-fsanitize=address)
 
 include_directories(include /usr/local/include)
 link_directories(/usr/local/lib)
