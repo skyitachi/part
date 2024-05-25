@@ -13,3 +13,9 @@ target_link_libraries(bench_index PRIVATE hamt)
 
 add_executable(bench_hamt ${COMMON_SOURCE} bench_hamt.cpp)
 target_link_libraries(bench_hamt PRIVATE hamt gc uuid dlmalloc)
+
+add_executable(bench_art bench.cpp)
+target_link_libraries(bench_art PRIVATE part)
+
+add_executable(bench_part ${COMMON_SOURCE} bench_part.cpp)
+target_link_libraries(bench_part PRIVATE part)

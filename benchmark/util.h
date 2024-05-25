@@ -2,8 +2,8 @@
 // Created by skyitachi on 24-5-12.
 //
 
-#ifndef PART_UTIL_H
-#define PART_UTIL_H
+#ifndef PART_BENCH_UTIL_H
+#define PART_BENCH_UTIL_H
 
 #include <stddef.h>
 #include <stdio.h>

@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 #include "art.h"
-#include "util.h"
+#include "part/util.h"
 
 namespace bm = benchmark;
 using namespace part;
