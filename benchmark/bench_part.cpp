@@ -5,10 +5,15 @@
 #include <string>
 #include <time.h>
 #include <part/util.h>
+#include <functional>
 
 #include "util.h"
 
 using namespace part;
+
+class BenchmarkConfig;
+
+using BenchFn = std::function<void(const BenchmarkConfig*)>;
 
 class BenchmarkConfig {
  public:
@@ -17,6 +22,7 @@ class BenchmarkConfig {
   size_t scale;
   size_t n_repeats;
   std::string bench_fn_name;
+  BenchFn bench_fn;
 };
 
 std::vector<std::pair<ARTKey, idx_t>> make_art_keys(ArenaAllocator &allocator, size_t n_insert, size_t k) {
@@ -78,15 +84,24 @@ static void perf_inset(const BenchmarkConfig *cfg) {
   }
 }
 
+static void perf_query(const BenchmarkConfig* cfg) {
+
+}
+
 int main() {
   size_t scale[] = {1000, 10000, 100000, 1000000};
   size_t n_scales = 4;
+  std::vector<std::unique_ptr<BenchmarkConfig>> benches;
+
+  std::vector<BenchFn> bench_fns = {perf_inset};
+
   for (size_t i = 0; i < n_scales; i++) {
-    BenchmarkConfig cfg;
-    cfg.scale = scale[i];
-    cfg.n_repeats = 20;
-    cfg.id = "art_insert";
-    cfg.ts = time(0);
-    perf_inset(&cfg);
+    auto cfg = std::make_unique<BenchmarkConfig>();
+    cfg->scale = scale[i];
+    cfg->n_repeats = 20;
+    cfg->id = "art_insert";
+    cfg->ts = time(0);
+    cfg->bench_fn = perf_inset;
+    cfg->bench_fn(cfg.get());
   }
 }
